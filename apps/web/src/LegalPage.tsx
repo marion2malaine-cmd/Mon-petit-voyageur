@@ -1,6 +1,7 @@
-import { legalDocs, type LegalDoc } from "./legalContent";
+import { getLegalDocs, type LegalDoc } from "./legalContent";
 
 interface LegalPageProps {
+  locale: string;
   active: LegalDoc["key"];
   onSelect: (key: LegalDoc["key"]) => void;
   onBack: () => void;
@@ -35,14 +36,15 @@ function renderBody(body: string[]) {
   return blocks;
 }
 
-export function LegalPage({ active, onSelect, onBack, backLabel }: LegalPageProps) {
-  const doc = legalDocs.find((d) => d.key === active) ?? legalDocs[0];
+export function LegalPage({ locale, active, onSelect, onBack, backLabel }: LegalPageProps) {
+  const docs = getLegalDocs(locale);
+  const doc = docs.find((d) => d.key === active) ?? docs[0];
 
   return (
     <main className="layout legal-page">
       <div className="card legal-card">
         <nav className="legal-tabs">
-          {legalDocs.map((d) => (
+          {docs.map((d) => (
             <button
               key={d.key}
               type="button"
@@ -59,7 +61,10 @@ export function LegalPage({ active, onSelect, onBack, backLabel }: LegalPageProp
 
         <article className="legal-doc">
           <h1>{doc.title}</h1>
-          <p className="legal-updated">Dernière mise à jour : {doc.updated}</p>
+          <p className="legal-updated">
+            {locale === "en" ? "Last updated: " : "Dernière mise à jour : "}
+            {doc.updated}
+          </p>
           {doc.intro.map((line, i) => (
             <p key={i} className="legal-intro">
               {line}

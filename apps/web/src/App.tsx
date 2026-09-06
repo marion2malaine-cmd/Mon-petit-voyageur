@@ -700,6 +700,7 @@ function TravelerApp() {
 
       {page === "legal" ? (
         <LegalPage
+          locale={locale}
           active={legalDoc}
           onSelect={setLegalDoc}
           onBack={() => setPage("planner")}
