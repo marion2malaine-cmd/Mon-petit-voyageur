@@ -1748,3 +1748,8 @@ select:focus, input:focus, textarea:focus {
   .hero-brand p { display: none; }
   .brand-logo-dark img { width: 4.5rem; }
 }
+
+/* Same plane as the planning wait, shown on the landing hero. */
+.hero-plane { display: flex; justify-content: center; margin: -1rem auto 1.4rem; }
+.hero-plane .plane-3d { background: transparent; height: clamp(200px, 40vw, 260px); }
+.hero-plane .plane-loader { margin: 0 auto; }

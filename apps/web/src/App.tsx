@@ -850,6 +850,9 @@ function TravelerApp() {
             </span>
             <h1 className="hero-title">{t.title}</h1>
             <p className="hero-tagline">{t.tagline}</p>
+            <div className="hero-plane">
+              <Plane3D />
+            </div>
             <div className="hero-actions">
               <button onClick={() => document.getElementById("connexion")?.scrollIntoView({ behavior: "smooth" })}>
                 {t.ctaStart}
