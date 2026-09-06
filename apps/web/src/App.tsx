@@ -530,6 +530,14 @@ function TravelerApp() {
   const [billingBusy, setBillingBusy] = useState(false);
   const [billingMsg, setBillingMsg] = useState("");
 
+  // Deep link to a legal page: /?legal=privacy|terms|sales. Gives the privacy
+  // policy and terms a stable public URL (needed for the Google OAuth screen).
+  useEffect(() => {
+    const key = new URLSearchParams(window.location.search).get("legal");
+    if (key === "privacy" || key === "terms" || key === "sales") openLegal(key);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     api
       .me()
@@ -850,8 +858,9 @@ function TravelerApp() {
             </span>
             <h1 className="hero-title">{t.title}</h1>
             <p className="hero-tagline">{t.tagline}</p>
-            <div className="hero-plane">
-              <img className="hero-logo" src="/logo-hero.png" alt="" width="900" height="620" />
+            <div className="hero-plane" aria-hidden="true">
+              <img className="hero-card" src="/logo-card.png" alt="" width="900" height="620" />
+              <img className="hero-jet" src="/logo-plane.png" alt="" width="277" height="217" />
             </div>
             <div className="hero-actions">
               <button onClick={() => document.getElementById("connexion")?.scrollIntoView({ behavior: "smooth" })}>
