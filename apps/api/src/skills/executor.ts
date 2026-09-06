@@ -60,7 +60,11 @@ export class SkillExecutor {
     const parsed = schema.safeParse(result.output);
     if (parsed.success) return parsed.data;
 
-    console.warn(`[skill:${skillName}] LLM output rejected: ${parsed.error.issues[0]?.message ?? "invalid"} at ${parsed.error.issues[0]?.path.join(".") || "root"}`);
+    const keys = result.output && typeof result.output === "object" ? Object.keys(result.output as object) : [];
+    console.warn(
+      `[skill:${skillName}] LLM output rejected: ${parsed.error.issues[0]?.message ?? "invalid"} at ${parsed.error.issues[0]?.path.join(".") || "root"}` +
+        (keys.length ? ` (top-level keys: ${keys.slice(0, 8).join(", ")})` : " (empty answer, see the warning above)")
+    );
     return null;
   }
 
@@ -130,6 +134,9 @@ export class SkillExecutor {
       const response = await this.client.chat.completions.create({
         model: this.llm.model,
         response_format: { type: "json_object" },
+        // A two-day batch with three options and three tables each runs long;
+        // the provider default (4k on DeepSeek) cut it off silently.
+        max_tokens: 8192,
         messages: [
           {
             role: "system",
@@ -156,6 +163,7 @@ export class SkillExecutor {
       const text = choice?.message?.content ?? "";
       const json = safeJsonParse(text);
       if (!json) {
+        console.warn(`[skill:${skill.name}] LLM answer is not JSON (finish_reason=${choice?.finish_reason ?? "?"}, ${text.length} chars): ${text.slice(0, 160).replace(/\s+/g, " ")}`);
         return { output: {}, meta: { toolStatuses: {} } };
       }
 
@@ -163,7 +171,11 @@ export class SkillExecutor {
         output: json,
         meta: { toolStatuses: {} }
       };
-    } catch {
+    } catch (error) {
+      // A rate limit, a timeout or an outage used to surface as a mysterious
+      // "required field missing": name the real cause.
+      const err = error as { status?: number; message?: string };
+      console.warn(`[skill:${skill.name}] LLM call failed${err.status ? ` (HTTP ${err.status})` : ""}: ${err.message ?? String(error)}`);
       return { output: {}, meta: { toolStatuses: {} } };
     }
   }

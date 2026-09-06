@@ -809,12 +809,17 @@ export function balanceOptionCategories(days: ItineraryDay[], outline: Itinerary
   }
 }
 
-// A batch the model returned malformed (a missing field, a truncated JSON) is
-// asked again once before its days fall back to the local generator: the
-// second answer is almost always fine, and it costs a cent.
+// A batch the model returned malformed (a missing field, a rate limit, a
+// truncated JSON) is asked again, with a pause so a rate limit has time to
+// clear, before its days fall back to the local generator.
+const RETRY_DELAYS_MS = [2000, 6000];
+
 async function withOneRetry<T>(call: () => Promise<T | null>): Promise<T | null> {
-  const first = await call();
-  if (first) return first;
-  console.warn("[itinerary] batch rejected, retrying once");
-  return call();
+  let result = await call();
+  for (let attempt = 0; !result && attempt < RETRY_DELAYS_MS.length; attempt += 1) {
+    console.warn(`[itinerary] batch rejected, retrying (${attempt + 1}/${RETRY_DELAYS_MS.length}) in ${RETRY_DELAYS_MS[attempt] / 1000}s`);
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
+    result = await call();
+  }
+  return result;
 }
