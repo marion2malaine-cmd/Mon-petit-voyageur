@@ -34,6 +34,13 @@ interface PlanJob {
 const planJobs = new Map<string, PlanJob>();
 const PLAN_JOB_TTL_MS = 30 * 60 * 1000;
 
+/** How many trips are being planned right now — a restart must wait for them. */
+export function runningPlanJobs(): number {
+  let running = 0;
+  for (const job of planJobs.values()) if (job.status === "running") running += 1;
+  return running;
+}
+
 const DEV_SEED_USER = {
   email: "marion2malaine@gmail.com",
   password: "MonPetitVoyageur123!",

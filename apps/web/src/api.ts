@@ -1,6 +1,32 @@
 import type { PlanTripResponse, TripPreferences } from "@mlt/contracts";
 
 const PLAN_POLL_MS = 3000;
+const SAVED_TRIP_WAIT_MS = 10 * 60 * 1000;
+
+/**
+ * After the planning job disappeared (API restart), waits for the trip the
+ * old process was writing: a saved trip created after the job started, or
+ * the re-planned trip when one was being updated.
+ */
+async function waitForSavedTrip(startedAt: number, tripId?: number): Promise<PlanTripResponse & { trip_id: number; run_id: string }> {
+  const deadline = startedAt + SAVED_TRIP_WAIT_MS;
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, PLAN_POLL_MS * 2));
+    let trips: any[] = [];
+    try {
+      trips = await http<any[]>("/api/trips");
+    } catch {
+      continue;
+    }
+    const found = trips.find((trip) => {
+      if (!trip?.plan_json) return false;
+      if (tripId) return trip.id === tripId && Date.parse(`${String(trip.updated_at ?? trip.created_at).replace(" ", "T")}Z`) >= startedAt - 1000;
+      return Date.parse(`${String(trip.created_at).replace(" ", "T")}Z`) >= startedAt - 1000;
+    });
+    if (found) return { ...found.plan_json, trip_id: found.id, run_id: "" };
+  }
+  throw new Error("planning_interrupted");
+}
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8787";
 const DEV_TEST_CREDENTIALS = {
   email: "marion2malaine@gmail.com",
@@ -59,6 +85,7 @@ export const api = {
     }),
   // Planning is a job: start it, then poll until the plan is ready.
   planTrip: async (payload: { message: string; locale: "fr" | "en"; trip_id?: number; preferences?: Partial<TripPreferences> }) => {
+    const startedAt = Date.now();
     const started = await http<{ job_id: string }>("/api/trips/plan", {
       method: "POST",
       body: JSON.stringify(payload)
@@ -69,8 +96,10 @@ export const api = {
       try {
         job = await http(`/api/trips/plan/${started.job_id}`);
       } catch (error) {
-        // A blip on one poll is not a failed plan; a vanished job is.
-        if (/job_not_found/.test((error as Error).message)) throw new Error("planning_interrupted");
+        // A blip on one poll is not a failed plan. A vanished job means the
+        // API restarted: the old process still saves the trip when it finishes,
+        // so the saved trips are watched for it instead of giving up.
+        if (/job_not_found/.test((error as Error).message)) return waitForSavedTrip(startedAt, payload.trip_id);
         continue;
       }
       if (job.status === "done" && job.result) return job.result;
