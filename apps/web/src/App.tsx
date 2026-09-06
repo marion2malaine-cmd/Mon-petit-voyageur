@@ -5,6 +5,8 @@ import type { PlanTripResponse } from "@mlt/contracts";
 import AdminDashboard from "./AdminDashboard";
 import TripMap, { routesFromItinerary } from "./TripMap";
 import Plane3D from "./Plane3D";
+import { LegalPage } from "./LegalPage";
+import type { LegalDoc } from "./legalContent";
 
 type Locale = "fr" | "en";
 
@@ -74,6 +76,8 @@ const text = {
     footerLinks: "Liens utiles",
     footerPrivacy: "Politique de confidentialité",
     footerTerms: "Conditions d'utilisation",
+    footerSales: "Conditions générales de vente",
+    backHome: "Retour à l\u2019accueil",
     footerContact: "Contact",
     footerRights: "Tous droits réservés.",
     authSub: "Accédez à vos voyages",
@@ -199,6 +203,8 @@ const text = {
     footerLinks: "Useful links",
     footerPrivacy: "Privacy policy",
     footerTerms: "Terms of use",
+    footerSales: "Terms of sale",
+    backHome: "Back to home",
     footerContact: "Contact",
     footerRights: "All rights reserved.",
     authSub: "Access your trips",
@@ -435,7 +441,14 @@ function TravelerApp() {
   const [result, setResult] = useState<(PlanTripResponse & { trip_id?: number; run_id?: string }) | null>(null);
   const [trips, setTrips] = useState<any[]>([]);
   // Saved trips live on their own page; the planner page only plans.
-  const [page, setPage] = useState<"planner" | "trips">("planner");
+  const [page, setPage] = useState<"planner" | "trips" | "legal">("planner");
+  const [legalDoc, setLegalDoc] = useState<LegalDoc["key"]>("privacy");
+
+  const openLegal = (key: LegalDoc["key"]) => {
+    setLegalDoc(key);
+    setPage("legal");
+    window.scrollTo({ top: 0 });
+  };
   const [guideBusy, setGuideBusy] = useState(false);
   const [guideError, setGuideError] = useState("");
   const [guideSent, setGuideSent] = useState("");
@@ -685,7 +698,14 @@ function TravelerApp() {
         </div>
       )}
 
-      {!user ? (
+      {page === "legal" ? (
+        <LegalPage
+          active={legalDoc}
+          onSelect={setLegalDoc}
+          onBack={() => setPage("planner")}
+          backLabel={user ? t.navPlan : t.backHome}
+        />
+      ) : !user ? (
         <main className="landing">
           <section className="hero-landing">
             <span className="pill">
@@ -771,8 +791,9 @@ function TravelerApp() {
               </div>
               <div>
                 <strong>{t.footerLinks}</strong>
-                <p><a href="#">{t.footerPrivacy}</a></p>
-                <p><a href="#">{t.footerTerms}</a></p>
+                <p><button type="button" className="link footer-link" onClick={() => openLegal("privacy")}>{t.footerPrivacy}</button></p>
+                <p><button type="button" className="link footer-link" onClick={() => openLegal("terms")}>{t.footerTerms}</button></p>
+                <p><button type="button" className="link footer-link" onClick={() => openLegal("sales")}>{t.footerSales}</button></p>
               </div>
               <div>
                 <strong>{t.footerContact}</strong>
@@ -782,7 +803,7 @@ function TravelerApp() {
             <p className="footer-copy">© 2026 {t.title}. {t.footerRights}</p>
           </footer>
         </main>
-      ) : page === "trips" ? (
+            ) : page === "trips" ? (
         <main className="layout trips-page">
           <section className="card trips">
             <div className="trips-head">

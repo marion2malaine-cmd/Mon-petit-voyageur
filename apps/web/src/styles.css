@@ -1573,3 +1573,57 @@ select:focus, input:focus, textarea:focus {
 .day-grid { grid-template-columns: 1fr; }
 @media (min-width: 1100px) { .day-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .day-grid .day-card-photo { max-height: 220px; object-fit: cover; }
+
+/* --- Pages légales --- */
+.legal-page {
+  max-width: 900px;
+  margin: 0 auto;
+}
+.legal-card {
+  padding: 2.5rem;
+}
+.legal-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  align-items: center;
+}
+.legal-tabs .legal-back {
+  margin-left: auto;
+}
+.legal-doc h1 {
+  margin: 0 0 0.25rem;
+}
+.legal-updated {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin: 0 0 1.5rem;
+}
+.legal-intro {
+  font-size: 1.02rem;
+}
+.legal-section {
+  margin-top: 2rem;
+}
+.legal-section h2 {
+  font-size: 1.1rem;
+  margin: 0 0 0.6rem;
+}
+.legal-doc p {
+  line-height: 1.65;
+  margin: 0 0 0.9rem;
+}
+.legal-list {
+  margin: 0 0 1rem;
+  padding-left: 1.2rem;
+}
+.legal-list li {
+  line-height: 1.6;
+  margin-bottom: 0.45rem;
+}
+.footer-link {
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
