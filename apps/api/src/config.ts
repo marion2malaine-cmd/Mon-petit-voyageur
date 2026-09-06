@@ -84,6 +84,9 @@ const EnvSchema = z.object({
   STRIPE_PRICE_ANNUAL: z.string().optional(),
   // Free trial length, in days, applied once per account (trial_used guards it).
   TRIAL_DAYS: z.coerce.number().int().min(0).max(90).default(7),
+  // Comptes offerts : emails (séparés par des virgules) qui gardent un accès
+  // illimité même quand le paiement est activé — pour l'équipe / la fondatrice.
+  COMP_EMAILS: z.string().default(""),
   // Google sign-in (OAuth 2.0). Create credentials at
   // https://console.cloud.google.com → APIs & Services → Credentials.
   // The redirect URI must be <API origin>/api/auth/google/callback.

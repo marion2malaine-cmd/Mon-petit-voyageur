@@ -60,6 +60,10 @@ export function buildServer() {
   const orchestrator = createOrchestrator(config, tools, skillRegistry);
   const mailer = new Mailer(config);
   const billing = new Billing(config);
+  // Comp accounts (founder / team): unlimited access even once billing is on.
+  const compEmails = new Set(
+    config.COMP_EMAILS.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean)
+  );
 
   /** The account as the web app needs it, with its billing state. */
   function serializeUser(user: UserRecord) {
@@ -72,7 +76,7 @@ export function buildServer() {
       current_period_end: user.current_period_end ?? null,
       trial_used: !!user.trial_used,
       billing_enabled: billing.isConfigured,
-      has_access: hasActiveAccess(user, billing.isConfigured)
+      has_access: hasActiveAccess(user, billing.isConfigured, compEmails)
     };
   }
 
@@ -390,7 +394,7 @@ export function buildServer() {
     // Planning is the paid feature: without an active plan or a running trial,
     // the traveler is sent to checkout instead. Open while Stripe is off.
     const planUser = db.findUserById(userId);
-    if (!planUser || !hasActiveAccess(planUser, billing.isConfigured)) {
+    if (!planUser || !hasActiveAccess(planUser, billing.isConfigured, compEmails)) {
       return reply.code(402).send({
         error: "subscription_required",
         message: "Votre essai est terminé ou aucun abonnement n'est actif. Choisissez une formule pour continuer."
