@@ -239,7 +239,8 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
       itineraryResult.output = await enrichItinerary(itineraryResult.output, tools, {
         destination: destinationResolved,
         locale,
-        withPhotos: true
+        withPhotos: true,
+        travelers: brief.travelers_count
       });
 
       if (researchResult) {
@@ -286,6 +287,21 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
         if (itineraryResult.output.car_rationale) {
           advice.why = itineraryResult.output.car_rationale;
         }
+
+        // A picture of a typical model of each category, from the free photo
+        // libraries (no rental API involved). The recommended option shares
+        // the object of one of the options, so it is covered too.
+        await Promise.all(
+          advice.options.map(async (option) => {
+            if (!option.example_model) return;
+            try {
+              const photo = await tools.find_photo({ query: `${option.example_model} car`, locale });
+              option.photo = photo?.url ? photo : null;
+            } catch {
+              option.photo = null;
+            }
+          })
+        );
 
         researchResult.output.car_rental = advice;
 

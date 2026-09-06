@@ -111,6 +111,11 @@ export const api = {
     http<{ filename: string; html: string }>(
       `/api/trips/${tripId}/guide?locale=${locale}&embed=${embed ? "1" : "0"}`
     ),
+  chooseStay: (tripId: number, index: number) =>
+    http<{ chosen_stay_index: number }>(`/api/trips/${tripId}/stay`, {
+      method: "PATCH",
+      body: JSON.stringify({ index })
+    }),
   emailGuide: (tripId: number, locale: "fr" | "en", to?: string) =>
     http<{ sent: boolean; to: string; filename: string }>(`/api/trips/${tripId}/guide/email`, {
       method: "POST",
@@ -136,6 +141,23 @@ export async function downloadGuide(tripId: number, locale: "fr" | "en"): Promis
   link.click();
   link.remove();
 
+  URL.revokeObjectURL(url);
+}
+
+/** Downloads the guide as a PDF produced by the API. */
+export async function downloadGuidePdf(tripId: number, locale: "fr" | "en"): Promise<void> {
+  const response = await fetch(`${API_BASE}/api/trips/${tripId}/guide.pdf?locale=${locale}`, { credentials: "include" });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = (response.headers.get("Content-Disposition")?.match(/filename="([^"]+)"/)?.[1]) ?? "guide.pdf";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
   URL.revokeObjectURL(url);
 }
 

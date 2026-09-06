@@ -25,13 +25,15 @@ const CATEGORIES: Array<{
   seats: number;
   pricePerDay: number;
   transmission: "manual" | "automatic";
+  /** A model the agencies actually hand over in that category. */
+  model: string;
 }> = [
-  { fr: "Citadine (2 portes)", en: "City car (2 doors)", seats: 4, pricePerDay: 28, transmission: "manual" },
-  { fr: "Compacte 5 portes", en: "Compact 5-door", seats: 5, pricePerDay: 38, transmission: "manual" },
-  { fr: "Berline familiale", en: "Family sedan", seats: 5, pricePerDay: 52, transmission: "automatic" },
-  { fr: "SUV compact", en: "Compact SUV", seats: 5, pricePerDay: 62, transmission: "automatic" },
-  { fr: "Monospace 7 places", en: "7-seater minivan", seats: 7, pricePerDay: 85, transmission: "manual" },
-  { fr: "Minibus 9 places", en: "9-seater minibus", seats: 9, pricePerDay: 110, transmission: "manual" }
+  { fr: "Citadine (2 portes)", en: "City car (2 doors)", seats: 4, pricePerDay: 28, transmission: "manual", model: "Fiat Panda" },
+  { fr: "Compacte 5 portes", en: "Compact 5-door", seats: 5, pricePerDay: 38, transmission: "manual", model: "Toyota Yaris" },
+  { fr: "Berline familiale", en: "Family sedan", seats: 5, pricePerDay: 52, transmission: "automatic", model: "Toyota Corolla" },
+  { fr: "SUV compact", en: "Compact SUV", seats: 5, pricePerDay: 62, transmission: "automatic", model: "Nissan Juke" },
+  { fr: "Monospace 7 places", en: "7-seater minivan", seats: 7, pricePerDay: 85, transmission: "manual", model: "Citroën Grand C4 SpaceTourer" },
+  { fr: "Minibus 9 places", en: "9-seater minibus", seats: 9, pricePerDay: 110, transmission: "manual", model: "Ford Transit Custom" }
 ];
 
 /**
@@ -69,7 +71,9 @@ export function buildCarRentalAdvice(input: CarRentalInput): CarRentalAdvice {
         : "Check on the supplier's page whether the desk is inside the terminal or a shuttle is required.",
       fits_budget: fitsBudget,
       notes: buildCategoryNotes(index, category.transmission, fr),
-      booking_links: buildCarRentalLinks(input, fr ? category.fr : category.en)
+      booking_links: buildCarRentalLinks(input, fr ? category.fr : category.en),
+      example_model: category.model,
+      photo: null
     };
   });
 

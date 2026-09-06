@@ -1540,3 +1540,31 @@ select:focus, input:focus, textarea:focus {
   font-weight: 500;
 }
 .planning-overlay-text small { font-size: 0.95rem; color: rgba(244, 241, 236, 0.75); }
+
+/* ---------- Hotel choice, activity cards, travel times ---------- */
+
+.stay-card.chosen { border: 2px solid var(--primary); }
+.stay-photo, .car-photo { width: 100%; height: 150px; object-fit: cover; border-radius: 10px; margin-bottom: 0.6rem; display: block; }
+.choose-stay { margin-top: 0.6rem; font-size: 0.85rem; padding: 0.4rem 0.8rem; }
+.choose-stay.chosen { background: var(--primary); color: #fff; border-color: var(--primary); }
+.stay-hint { color: var(--muted-fg); margin: 0.2rem 0 0.8rem; }
+
+.option-list { display: grid; gap: 0.6rem; margin-top: 0.4rem; }
+.option-card {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 0.7rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem;
+}
+.option-card .option-photo { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; }
+.option-card:has(> .option-body:only-child) { grid-template-columns: 1fr; }
+.option-body { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+.option-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.option-meta, .option-leg, .option-crossing { color: var(--muted-fg); }
+.option-leg { color: var(--primary-dark); font-weight: 500; }
+.option-card .link-chips { margin-top: 0.3rem; }
+.option-card .chip { font-size: 0.78rem; }
+.map-marker-hotel { background: #334d3e !important; border-radius: 6px !important; }

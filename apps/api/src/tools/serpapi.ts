@@ -307,7 +307,12 @@ export async function searchHotels(ctx: ToolContext, input: HotelsInput): Promis
             total != null ? `${locale === "fr" ? "Séjour" : "Stay"} ${Math.round(Number(total))} ${currency}` : "",
             property.type && property.type !== "hotel" ? property.type : ""
           ].filter(Boolean),
-          link: property.link ?? null
+          link: property.link ?? null,
+          coordinates:
+            property.gps_coordinates?.latitude != null && property.gps_coordinates?.longitude != null
+              ? { lat: Number(property.gps_coordinates.latitude), lon: Number(property.gps_coordinates.longitude) }
+              : null,
+          photo_url: property.images?.[0]?.original_image ?? property.images?.[0]?.thumbnail ?? null
         };
       });
 

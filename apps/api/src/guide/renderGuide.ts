@@ -113,6 +113,10 @@ interface Strings {
   cheaperTitle: string;
   resellerNote: string;
   forumTip: string;
+  bestChannel: Record<string, string>;
+  onSitePrice: string;
+  crossingTitle: string;
+  crossingFrom: string;
   mapTitle: string;
   mapSub: string;
   mapOffline: string;
@@ -263,6 +267,10 @@ const STRINGS: Record<"fr" | "en", Strings> = {
     perBag: "par bagage",
     transportCost: "de trajet",
     cheaperTitle: "Moins cher en direct",
+    bestChannel: { on_site: "Le moins cher : sur place", official: "Le moins cher : site officiel", online: "Le moins cher : en ligne" },
+    onSitePrice: "sur place",
+    crossingTitle: "Traversée en bateau",
+    crossingFrom: "départ de",
     resellerNote: "Complet sur le site officiel à votre date ? Les revendeurs ci-dessous (GetYourGuide, Viator, Tiqets) ont souvent encore des places, un peu plus cher.",
     forumTip: "Ce que disent les voyageurs :",
     ladderTitle: "Réserver moins cher",
@@ -399,6 +407,10 @@ const STRINGS: Record<"fr" | "en", Strings> = {
     perBag: "per bag",
     transportCost: "to get there",
     cheaperTitle: "Cheaper booked direct",
+    bestChannel: { on_site: "Cheapest: on the spot", official: "Cheapest: official site", online: "Cheapest: online" },
+    onSitePrice: "on the spot",
+    crossingTitle: "Boat crossing",
+    crossingFrom: "from",
     resellerNote: "Sold out on the official site for your date? The resellers below (GetYourGuide, Viator, Tiqets) often still have tickets, at a slightly higher price.",
     forumTip: "What travelers report:",
     ladderTitle: "Booking it for less",
@@ -507,14 +519,17 @@ function stat(value: string, label: string): string {
 }
 
 function renderBase(t: Strings, structured: any, destination: string): string {
-  const stay = structured.research?.recommended_stays?.[0];
+  const stays = structured.research?.recommended_stays ?? [];
+  const chosen = Number(structured.research?.chosen_stay_index);
+  const stay = stays[Number.isInteger(chosen) && chosen >= 0 && chosen < stays.length ? chosen : 0];
   const stayLink =
     stay?.booking_url ??
     structured.research?.search_links?.find((link: any) => link.category === "stays")?.url ??
     null;
 
   const body = stay
-    ? `<h3 class="resto-name" style="font-size:1.4rem">${escapeHtml(stay.name)}</h3>
+    ? `${stay.photo_url ? `<img src="${escapeAttr(stay.photo_url)}" alt="${escapeAttr(stay.name)}" style="width:100%;max-height:260px;object-fit:cover;border-radius:12px;margin-bottom:.8rem" />` : ""}
+       <h3 class="resto-name" style="font-size:1.4rem">${escapeHtml(stay.name)}</h3>
        <p class="muted" style="margin:.4rem 0 .8rem">${escapeHtml(stay.area ?? destination)}</p>
        <div class="chips">
          ${stay.price_per_night ? chip("wallet", `${stay.price_per_night} ${stay.currency ?? "EUR"} / nuit`) : ""}
@@ -1204,7 +1219,7 @@ function renderPaidOptions(t: Strings, opts: PaidOption[]): string {
           }
           ${(option.suited_for ?? []).map((tag) => chip("check", tag)).join("")}
         </div>
-        ${renderLocalAlternative(t, option.local_alternative)}
+        ${renderLocalAlternative(t, option.local_alternative, option.crossing)}
         ${option.kind === "ticket" ? renderTicketButtons(t, option.booking_links ?? []) : renderBookingButtons(option.booking_links ?? [])}
       </div>
     </div>`;
@@ -1217,16 +1232,27 @@ function renderPaidOptions(t: Strings, opts: PaidOption[]): string {
 }
 
 /** The cheaper route for one activity: local operator, official site, forums. */
-function renderLocalAlternative(t: Strings, alternative: any): string {
-  if (!alternative?.how_to_book && !alternative?.forum_tip) return "";
+function renderLocalAlternative(t: Strings, alternative: any, crossing?: any): string {
+  if (!alternative?.how_to_book && !alternative?.forum_tip && !alternative?.advice && !crossing?.from_port) return "";
+
+  const channel = alternative?.best_channel && t.bestChannel[alternative.best_channel];
+  const onSite = alternative?.on_site_price_eur != null ? `<span class="chip chip-free">${escapeHtml(`${alternative.on_site_price_eur} € ${t.onSitePrice}`)}</span>` : "";
 
   return `<div class="saving">
-    <div class="saving-head">${icon("wallet")}${escapeHtml(t.cheaperTitle)}${
-      alternative.typical_saving
+    <div class="saving-head">${icon("wallet")}${escapeHtml(channel || t.cheaperTitle)}${onSite}${
+      alternative?.typical_saving
         ? `<span class="chip chip-free">${escapeHtml(alternative.typical_saving)}</span>`
         : ""
     }</div>
-    ${alternative.how_to_book ? `<p>${escapeHtml(alternative.how_to_book)}</p>` : ""}
+    ${alternative?.advice ? `<p><strong>${escapeHtml(alternative.advice)}</strong></p>` : ""}
+    ${alternative?.how_to_book ? `<p>${escapeHtml(alternative.how_to_book)}</p>` : ""}
+    ${
+      crossing?.from_port
+        ? `<p class="saving-forum">${icon("compass")}${escapeHtml(t.crossingTitle)} — ${escapeHtml(t.crossingFrom)} ${escapeHtml(crossing.from_port)}${
+            crossing.price_eur != null ? ` · ${escapeHtml(String(crossing.price_eur))} € ${escapeHtml(t.perPerson)}` : ""
+          }${crossing.note ? `. ${escapeHtml(crossing.note)}` : ""}</p>`
+        : ""
+    }
     ${
       alternative.forum_tip
         ? `<p class="saving-forum">${icon("compass")}${escapeHtml(t.forumTip)} ${escapeHtml(alternative.forum_tip)}</p>`

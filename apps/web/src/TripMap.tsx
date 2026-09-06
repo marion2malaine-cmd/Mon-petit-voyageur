@@ -88,7 +88,7 @@ function popupNode(title: string, label: string): HTMLElement {
  * with a popup. mapbox-gl is imported lazily so the initial bundle (and the
  * jsdom tests) never load WebGL code.
  */
-export default function TripMap({ routes, locale = "fr" }: { routes: MapRoute[]; locale?: "fr" | "en" }) {
+export default function TripMap({ routes, locale = "fr", hotel = null }: { routes: MapRoute[]; locale?: "fr" | "en"; hotel?: { name: string; lat: number; lon: number } | null }) {
   const container = useRef<HTMLDivElement>(null);
   const [walks, setWalks] = useState<Record<number, Walk>>({});
 
@@ -112,6 +112,16 @@ export default function TripMap({ routes, locale = "fr" }: { routes: MapRoute[];
       map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
 
       const bounds = new mapboxgl.LngLatBounds();
+      if (hotel) {
+        bounds.extend([hotel.lon, hotel.lat]);
+        const el = document.createElement("div");
+        el.className = "map-marker map-marker-hotel";
+        el.textContent = "H";
+        new mapboxgl.Marker({ element: el })
+          .setLngLat([hotel.lon, hotel.lat])
+          .setPopup(new mapboxgl.Popup({ offset: 14, closeButton: false }).setDOMContent(popupNode(locale === "fr" ? "Votre hôtel" : "Your hotel", hotel.name)))
+          .addTo(map);
+      }
       routes.forEach((route, index) => {
         const colour = PALETTE[index % PALETTE.length];
         stops(route).forEach((point, order) => {
@@ -169,7 +179,7 @@ export default function TripMap({ routes, locale = "fr" }: { routes: MapRoute[];
       cancelled = true;
       map?.remove();
     };
-  }, [routes]);
+  }, [routes, hotel?.lat, hotel?.lon]);
 
   if (!MAPBOX_TOKEN || !routes.length) return null;
 

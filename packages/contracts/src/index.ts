@@ -116,7 +116,11 @@ export const StayOptionSchema = z.object({
   rating: z.number().min(0).max(5).nullable().default(null),
   budget_fit: z.enum(["within_budget", "over_budget", "unknown"]).default("unknown"),
   booking_url: z.string().nullable().default(null),
-  notes: z.array(z.string()).default([])
+  notes: z.array(z.string()).default([]),
+  // From the hotel search: where the property is (for travel times from the
+  // chosen hotel) and its picture.
+  coordinates: z.object({ lat: z.number(), lon: z.number() }).nullable().default(null),
+  photo_url: z.string().nullable().default(null)
 });
 
 export const SearchLinkSchema = z.object({
@@ -152,6 +156,18 @@ export const BookingLinkSchema = z.object({
 });
 export type BookingLink = z.infer<typeof BookingLinkSchema>;
 
+// A photo is never invented by the LLM: it only proposes a search query, and
+// the photo tool resolves it to a real, credited image.
+export const PhotoSchema = z.object({
+  query: z.string(),
+  url: z.string().nullable().default(null),
+  thumb_url: z.string().nullable().default(null),
+  credit: z.string().nullable().default(null),
+  source_url: z.string().nullable().default(null),
+  license: z.string().nullable().default(null)
+});
+export type Photo = z.infer<typeof PhotoSchema>;
+
 // Where the car is actually handed over decides whether the family walks out
 // of the terminal with the keys or waits for a shuttle with the luggage.
 export const CarPickupSchema = z.enum(["in_terminal", "shuttle", "off_airport", "unknown"]);
@@ -167,7 +183,10 @@ export const CarRentalOptionSchema = z.object({
   pickup_note: z.string().default(""),
   fits_budget: z.boolean().default(true),
   notes: z.array(z.string()).default([]),
-  booking_links: z.array(BookingLinkSchema).default([])
+  booking_links: z.array(BookingLinkSchema).default([]),
+  // A typical model of the category ("Fiat Panda"), and its picture.
+  example_model: z.string().nullable().default(null),
+  photo: PhotoSchema.nullable().default(null)
 });
 export type CarRentalOption = z.infer<typeof CarRentalOptionSchema>;
 
@@ -267,18 +286,6 @@ export const EntryRequirementsSchema = z.object({
 });
 export type EntryRequirements = z.infer<typeof EntryRequirementsSchema>;
 
-// A photo is never invented by the LLM: it only proposes a search query, and
-// the photo tool resolves it to a real, credited image.
-export const PhotoSchema = z.object({
-  query: z.string(),
-  url: z.string().nullable().default(null),
-  thumb_url: z.string().nullable().default(null),
-  credit: z.string().nullable().default(null),
-  source_url: z.string().nullable().default(null),
-  license: z.string().nullable().default(null)
-});
-export type Photo = z.infer<typeof PhotoSchema>;
-
 export const FreeVisitCategorySchema = z.enum([
   "museum",
   "monument",
@@ -325,7 +332,16 @@ export type FreeVisit = z.infer<typeof FreeVisitSchema>;
 export const LocalAlternativeSchema = z.object({
   how_to_book: z.string().default(""),
   typical_saving: z.string().nullable().default(null),
-  forum_tip: z.string().nullable().default(null)
+  forum_tip: z.string().nullable().default(null),
+  // What the same outing costs bought on the spot (harbour kiosk, site
+  // ticket office), per person, when it is known.
+  on_site_price_eur: z.number().nonnegative().nullable().default(null),
+  // Where the traveler actually pays the least: on the spot, on the
+  // official site, or online on a platform (a sold-out date or a mandatory
+  // time slot can make online the only sensible choice).
+  best_channel: z.enum(["on_site", "official", "online", "unknown"]).default("unknown"),
+  // One sentence of advice that goes with the channel.
+  advice: z.string().nullable().default(null)
 });
 export type LocalAlternative = z.infer<typeof LocalAlternativeSchema>;
 
@@ -365,6 +381,17 @@ export const PaidOptionSchema = z.object({
   // cruise does not) so the day's route on the map includes them.
   coordinates: GeoPointSchema.nullable().default(null),
   local_alternative: LocalAlternativeSchema.nullable().default(null),
+  // A site reached by boat (an island fortress, a sea cave) needs two
+  // bookings: the crossing from a port, and the entrance. The port is what
+  // the app needs to build the crossing links.
+  crossing: z
+    .object({
+      from_port: z.string(),
+      note: z.string().nullable().default(null),
+      price_eur: z.number().nonnegative().nullable().default(null)
+    })
+    .nullable()
+    .default(null),
   booking_links: z.array(BookingLinkSchema).default([]),
   photo: PhotoSchema.nullable().default(null)
 });

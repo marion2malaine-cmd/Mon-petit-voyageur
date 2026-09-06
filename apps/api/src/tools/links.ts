@@ -187,7 +187,86 @@ export function toSearchQuery(activityTitle: string, destinationCity: string): s
   return alreadyPlaced ? query : `${query} ${destinationCity}`.trim();
 }
 
+export interface ActivityLinkOptions {
+  /** The day of the activity (YYYY-MM-DD): pre-fills the date on the platforms that accept it. */
+  date?: string | null;
+  adults?: number | null;
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Adds the trip date (and party size) to a platform URL that honours them. */
+export function withActivityDate(url: string, options: ActivityLinkOptions | undefined): string {
+  const date = options?.date && ISO_DATE.test(options.date) ? options.date : null;
+  if (!date) return url;
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname;
+    if (host.includes("getyourguide")) {
+      parsed.searchParams.set("date_from", date);
+      parsed.searchParams.set("date_to", date);
+      if (options?.adults) parsed.searchParams.set("adults", String(options.adults));
+    } else if (host.includes("viator")) {
+      parsed.searchParams.set("startDate", date);
+      parsed.searchParams.set("endDate", date);
+    } else if (host.includes("tiqets")) {
+      parsed.searchParams.set("date", date);
+    } else if (host.includes("civitatis")) {
+      parsed.searchParams.set("date", date);
+    } else {
+      return url;
+    }
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
 export function buildActivityLinks(
+  activityTitle: string,
+  destinationCity: string,
+  locale: "fr" | "en",
+  options?: ActivityLinkOptions
+): BookingLink[] {
+  return buildActivityLinksRaw(activityTitle, destinationCity, locale).map((link) => ({ ...link, url: withActivityDate(link.url, options) }));
+}
+
+/**
+ * The two bookings of a site reached by boat: the crossing from its port,
+ * then the entrance. Both are searched on the platforms and, for the
+ * crossing, at the port's own operators — usually the cheapest.
+ */
+export function buildCrossingLinks(
+  siteTitle: string,
+  fromPort: string,
+  destinationCity: string,
+  locale: "fr" | "en",
+  options?: ActivityLinkOptions
+): BookingLink[] {
+  const fr = locale === "fr";
+  const site = toSearchQuery(siteTitle, destinationCity).replace(new RegExp(`\\s*${destinationCity.trim()}$`, "i"), "").trim() || siteTitle;
+  const boatQuery = fr ? `bateau ${site} depuis ${fromPort}` : `boat ${site} from ${fromPort}`;
+  const encoded = encodeURIComponent(boatQuery);
+  return [
+    {
+      provider: "local-agency",
+      label: fr ? `Traversée depuis ${fromPort} — opérateurs du port` : `Crossing from ${fromPort} — port operators`,
+      url: `https://www.google.com/search?q=${encodeURIComponent(fr ? `${boatQuery} billet traversée horaires` : `${boatQuery} ticket timetable`)}`
+    },
+    {
+      provider: "viator",
+      label: fr ? `Traversée depuis ${fromPort} (Viator)` : `Crossing from ${fromPort} (Viator)`,
+      url: withActivityDate(viatorUrl(`/${fr ? "fr-FR/" : ""}searchResults/all?text=${encoded}`), options)
+    },
+    {
+      provider: "getyourguide",
+      label: fr ? `Traversée depuis ${fromPort} (GetYourGuide)` : `Crossing from ${fromPort} (GetYourGuide)`,
+      url: buildGetYourGuideUrl(boatQuery, locale)
+    }
+  ];
+}
+
+function buildActivityLinksRaw(
   activityTitle: string,
   destinationCity: string,
   locale: "fr" | "en"
@@ -250,6 +329,18 @@ export function buildSiteSearchUrl(host: string, query: string): string {
  * general platforms.
  */
 export function buildTicketLinks(
+  activityTitle: string,
+  destinationCity: string,
+  locale: "fr" | "en",
+  officialUrl: string | null = null,
+  options?: ActivityLinkOptions
+): BookingLink[] {
+  return buildTicketLinksRaw(activityTitle, destinationCity, locale, officialUrl).map((link) =>
+    link.provider === "official" ? link : { ...link, url: withActivityDate(link.url, options) }
+  );
+}
+
+function buildTicketLinksRaw(
   activityTitle: string,
   destinationCity: string,
   locale: "fr" | "en",

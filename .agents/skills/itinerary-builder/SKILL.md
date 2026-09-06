@@ -173,6 +173,28 @@ The application looks things up before you write, and hands you the results:
   - `forum_tip`: what regular travelers report about this activity on forums —
     the practical detail that changes the day (best hour, which operator to
     avoid, whether booking ahead is really needed). One sentence, or null.
+  - `on_site_price_eur`: what the same outing costs bought on the spot (the
+    harbour kiosk, the site's ticket office, the village agency), per person,
+    or null when unknown. Compare it honestly with `price_from_eur`.
+  - `best_channel`: where the traveler pays the least for this exact
+    activity — `"on_site"` (kiosk, agency, ticket office on the day),
+    `"official"` (the site's own website), `"online"` (a platform, when it is
+    genuinely cheaper, or when a time slot or a sold-out date makes booking
+    ahead necessary). Excursions such as a plateau tour, a cave, a boat trip
+    or a gorge hike are almost always cheaper from a local agency or at the
+    port than on the international platforms: say so.
+  - `advice`: one sentence that goes with `best_channel` ("Achetez le billet
+    au kiosque du port de Plaka le matin même : 12 € au lieu de 25 € en
+    ligne", "Réservez en ligne : les créneaux du matin partent une semaine à
+    l'avance").
+- **crossing** on a paid option reached by boat — an island fortress, a sea
+  cave, a beach only served by ferry (Spinalonga, Chrissi, Gramvousa…): give
+  `from_port` (the port the boats leave from, e.g. "Plaka", "Elounda"),
+  `note` (frequency, duration, last return), and `price_eur` for the
+  crossing per person when known. The entrance fee of the site itself stays
+  in `price_from_eur`. The application then builds two sets of links: the
+  crossing and the entrance. Leave `crossing` null for anything reached by
+  road.
   Leave the links empty: the application builds the forum and local-agency
   searches itself.
 - **restaurants**: exactly 3 named tables with cuisine, price range (€ to €€€€),

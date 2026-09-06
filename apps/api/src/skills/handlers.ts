@@ -454,7 +454,9 @@ export async function runFlightHotelResearch(
       rating: stay.rating ?? null,
       budget_fit: budgetFit(stay.price_per_night, nightBudget),
       booking_url: stay.link ?? stayLink,
-      notes: (stay.notes ?? []).filter(Boolean)
+      notes: (stay.notes ?? []).filter(Boolean),
+      coordinates: stay.coordinates ?? null,
+      photo_url: stay.photo_url ?? null
     }))
     .sort((a: any, b: any) => (a.price_per_night ?? Infinity) - (b.price_per_night ?? Infinity));
 

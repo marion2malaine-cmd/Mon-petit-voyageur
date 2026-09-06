@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { api, downloadGuide, previewGuide, type AuthUser } from "./api";
+import { api, downloadGuide, downloadGuidePdf, previewGuide, type AuthUser } from "./api";
+import { legLabel, useHotelTravelTimes } from "./travelTimes";
 import type { PlanTripResponse } from "@mlt/contracts";
 import AdminDashboard from "./AdminDashboard";
 import TripMap, { routesFromItinerary } from "./TripMap";
@@ -125,7 +126,18 @@ const text = {
     emailGuide: "Envoyer par mail",
     emailPlaceholder: "Adresse du destinataire",
     guideSent: "Guide envoyé à",
-    guideEmailError: "Envoi impossible pour le moment."
+    guideEmailError: "Envoi impossible pour le moment.",
+    downloadPdf: "Télécharger en PDF",
+    pdfError: "PDF indisponible : ouvrez l'aperçu puis Imprimer / PDF.",
+    chooseStay: "Choisir cet hôtel",
+    chosenStay: "Hôtel choisi",
+    chooseStayHint: "Choisissez votre hôtel : les temps de trajet vers chaque activité s'affichent ensuite.",
+    fromHotel: "Depuis l'hôtel :",
+    bestChannel: { on_site: "Le moins cher : sur place", official: "Le moins cher : site officiel", online: "Le moins cher : en ligne", unknown: "Moins cher en direct" },
+    onSite: "sur place",
+    crossing: "Traversée en bateau depuis",
+    carModel: "Modèle type",
+    perPersonShort: "€ / pers."
   },
   en: {
     title: "My Little Traveler",
@@ -239,7 +251,18 @@ const text = {
     emailGuide: "Send by email",
     emailPlaceholder: "Recipient address",
     guideSent: "Guide sent to",
-    guideEmailError: "Sending failed for now."
+    guideEmailError: "Sending failed for now.",
+    downloadPdf: "Download as PDF",
+    pdfError: "PDF unavailable: open the preview, then Print / PDF.",
+    chooseStay: "Choose this hotel",
+    chosenStay: "Chosen hotel",
+    chooseStayHint: "Pick your hotel: travel times to every activity then appear.",
+    fromHotel: "From the hotel:",
+    bestChannel: { on_site: "Cheapest: on the spot", official: "Cheapest: official site", online: "Cheapest: online", unknown: "Cheaper booked direct" },
+    onSite: "on the spot",
+    crossing: "Boat crossing from",
+    carModel: "Typical model",
+    perPersonShort: "€ / pers."
   }
 } as const;
 
@@ -527,17 +550,34 @@ function TravelerApp() {
     setResult(null);
   }
 
-  async function handleGuide(action: "download" | "preview") {
+  async function handleGuide(action: "download" | "preview" | "pdf") {
     if (!result?.trip_id) return;
     setGuideBusy(true);
     setGuideError("");
     setGuideSent("");
     try {
-      await (action === "download" ? downloadGuide : previewGuide)(result.trip_id, locale);
+      const run = action === "download" ? downloadGuide : action === "pdf" ? downloadGuidePdf : previewGuide;
+      await run(result.trip_id, locale);
     } catch {
-      setGuideError(t.guideError);
+      setGuideError(action === "pdf" ? t.pdfError : t.guideError);
     } finally {
       setGuideBusy(false);
+    }
+  }
+
+  async function handleChooseStay(index: number) {
+    if (!result) return;
+    const structured = result.structured_json as any;
+    if (!structured?.research) return;
+    // Optimistic: the choice is visible at once, and stored on the trip when
+    // it has been saved.
+    setResult({ ...result, structured_json: { ...structured, research: { ...structured.research, chosen_stay_index: index } } });
+    if (result.trip_id) {
+      try {
+        await api.chooseStay(result.trip_id, index);
+      } catch {
+        // The choice stays local for this session.
+      }
     }
   }
 
@@ -568,6 +608,14 @@ function TravelerApp() {
   const experienceLinks: any[] = itinerary?.experience_links ?? [];
   const excursions: any[] = itinerary?.suggested_excursions ?? [];
   const mapRoutes = useMemo(() => routesFromItinerary(itinerary?.itinerary_by_day), [itinerary]);
+  const stays: any[] = research?.recommended_stays ?? [];
+  const chosenStayIndex: number | null = Number.isInteger(research?.chosen_stay_index) ? research.chosen_stay_index : null;
+  const chosenStay = chosenStayIndex !== null ? stays[chosenStayIndex] : null;
+  const hotelPoint = useMemo(
+    () => (chosenStay?.coordinates ? { name: String(chosenStay.name), lat: chosenStay.coordinates.lat, lon: chosenStay.coordinates.lon } : null),
+    [chosenStay]
+  );
+  const travelTimes = useHotelTravelTimes(hotelPoint, itinerary?.itinerary_by_day);
 
   const budgetBadge = (fit?: string) =>
     fit === "within_budget" ? (
@@ -898,6 +946,9 @@ function TravelerApp() {
                     <button onClick={() => handleGuide("download")} disabled={guideBusy}>
                       {guideBusy ? t.guideBusy : t.downloadGuide}
                     </button>
+                    <button className="secondary" onClick={() => handleGuide("pdf")} disabled={guideBusy}>
+                      {t.downloadPdf}
+                    </button>
                     <button className="secondary" onClick={() => handleGuide("preview")} disabled={guideBusy}>
                       {t.previewGuide}
                     </button>
@@ -971,8 +1022,9 @@ function TravelerApp() {
                     )}
                   </article>
                 ))}
-                {(research?.recommended_stays ?? []).slice(0, 3).map((s: any, idx: number) => (
-                  <article key={`stay-${idx}`}>
+                {stays.slice(0, 3).map((s: any, idx: number) => (
+                  <article key={`stay-${idx}`} className={chosenStayIndex === idx ? "stay-card chosen" : "stay-card"}>
+                    {s.photo_url && <img className="stay-photo" src={s.photo_url} alt={s.name} loading="lazy" />}
                     <span className="tag">{t.stayTag}</span>
                     <br />
                     <strong>{s.name}</strong>
@@ -988,18 +1040,36 @@ function TravelerApp() {
                         {t.book} ↗
                       </a>
                     )}
+                    <button
+                      type="button"
+                      className={chosenStayIndex === idx ? "choose-stay chosen" : "choose-stay secondary"}
+                      onClick={() => handleChooseStay(idx)}
+                    >
+                      {chosenStayIndex === idx ? t.chosenStay : t.chooseStay}
+                    </button>
                   </article>
                 ))}
               </div>
+              {stays.length > 0 && chosenStayIndex === null && <p className="stay-hint"><small>{t.chooseStayHint}</small></p>}
 
               {carRental?.recommended && (
                 <>
                   <h4>{t.carTitle}</h4>
                   <article className="car-card">
+                    {carRental.recommended.photo?.url && (
+                      <img className="car-photo" src={carRental.recommended.photo.url} alt={carRental.recommended.example_model ?? carRental.recommended.category} loading="lazy" />
+                    )}
                     <div className="car-card-head">
                       <strong>{carRental.recommended.category}</strong>
                       <span className="badge ok">{t.carRecommended}</span>
                     </div>
+                    {carRental.recommended.example_model && (
+                      <p>
+                        <small>
+                          {t.carModel} : {carRental.recommended.example_model}
+                        </small>
+                      </p>
+                    )}
                     <p>
                       {carRental.recommended.price_per_day_eur !== null && (
                         <>
@@ -1118,7 +1188,7 @@ function TravelerApp() {
               {(itinerary?.itinerary_by_day ?? []).length > 0 && (
                 <>
                   <h4>{t.itinerary}</h4>
-                  <TripMap routes={mapRoutes} locale={locale} />
+                  <TripMap routes={mapRoutes} locale={locale} hotel={hotelPoint} />
                   <div className="compact-grid">
                     {itinerary.itinerary_by_day.map((day: any) => (
                       <article key={day.day} className="day-card">
@@ -1140,27 +1210,72 @@ function TravelerApp() {
                         {(day.free_visits ?? []).length > 0 && (
                           <p className="day-facet">
                             <em>{t.freeVisitsLabel}</em>
-                            <small>{day.free_visits.map((visit: any) => visit.name).join(" · ")}</small>
+                            <small>
+                              {day.free_visits
+                                .map((visit: any) => `${visit.name}${travelTimes[visit.name] ? ` (${legLabel(travelTimes[visit.name], locale)})` : ""}`)
+                                .join(" · ")}
+                            </small>
                           </p>
                         )}
                         {(day.paid_options ?? []).length > 0 && (
-                          <p className="day-facet">
+                          <div className="day-facet">
                             <em>{t.optionsLabel}</em>
-                            <small>
-                              {day.paid_options
-                                .map((option: any) => `${option.option_label} — ${option.title}${option.category ? ` [${CATEGORY_LABELS[locale][option.category] ?? option.category}]` : ""}${option.price_from_eur != null ? ` (${option.price_source === "getyourguide" ? "dès " : "~"}${option.price_from_eur} €)` : ""}`)
-                                .join(" · ")}
-                            </small>
-                            {day.paid_options.some((option: any) => option.local_alternative?.typical_saving) && (
-                              <small className="saving-hint">
-                                {t.savingHint}{" "}
-                                {day.paid_options
-                                  .filter((option: any) => option.local_alternative?.typical_saving)
-                                  .map((option: any) => option.local_alternative.typical_saving)
-                                  .join(" · ")}
-                              </small>
-                            )}
-                          </p>
+                            <div className="option-list">
+                              {day.paid_options.map((option: any) => {
+                                const alt = option.local_alternative;
+                                const channel: string = alt?.best_channel && alt.best_channel !== "unknown" ? alt.best_channel : alt?.typical_saving ? "unknown" : "";
+                                const leg = travelTimes[option.title];
+                                return (
+                                  <div key={`${day.day}-${option.option_label}`} className="option-card">
+                                    {option.photo?.url && <img className="option-photo" src={option.photo.url} alt={option.title} loading="lazy" />}
+                                    <div className="option-body">
+                                      <div className="option-head">
+                                        <span className="tag">{option.option_label}</span>
+                                        <strong>{option.title}</strong>
+                                      </div>
+                                      <small className="option-meta">
+                                        {[
+                                          option.category ? CATEGORY_LABELS[locale][option.category] ?? option.category : null,
+                                          option.duration,
+                                          option.price_from_eur != null ? `${option.price_source === "getyourguide" ? (locale === "fr" ? "dès " : "from ") : "~"}${option.price_from_eur} ${t.perPersonShort}` : null,
+                                          day.date ? new Date(`${day.date}T12:00:00`).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "long" }) : null
+                                        ]
+                                          .filter(Boolean)
+                                          .join(" · ")}
+                                      </small>
+                                      {leg && (
+                                        <small className="option-leg">
+                                          {t.fromHotel} {legLabel(leg, locale)}
+                                        </small>
+                                      )}
+                                      {option.crossing?.from_port && (
+                                        <small className="option-crossing">
+                                          {t.crossing} {option.crossing.from_port}
+                                          {option.crossing.price_eur != null ? ` · ${option.crossing.price_eur} ${t.perPersonShort}` : ""}
+                                          {option.crossing.note ? ` · ${option.crossing.note}` : ""}
+                                        </small>
+                                      )}
+                                      {channel && (
+                                        <small className="saving-hint">
+                                          {(t.bestChannel as any)[channel]}
+                                          {alt?.on_site_price_eur != null ? ` · ${alt.on_site_price_eur} ${t.perPersonShort} ${t.onSite}` : ""}
+                                          {alt?.typical_saving ? ` · ${alt.typical_saving}` : ""}
+                                          {alt?.advice ? ` — ${alt.advice}` : alt?.how_to_book ? ` — ${alt.how_to_book}` : ""}
+                                        </small>
+                                      )}
+                                      <div className="link-chips">
+                                        {(option.booking_links ?? []).map((link: any) => (
+                                          <a key={link.url} className="chip" href={link.url} target="_blank" rel="noreferrer">
+                                            {link.label} ↗
+                                          </a>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
                         )}
                         {(day.restaurants ?? []).length > 0 && (
                           <p className="day-facet">

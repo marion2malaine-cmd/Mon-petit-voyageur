@@ -22,6 +22,7 @@ import { embedItineraryPhotos, locateItinerary, resolveItineraryPhotos } from ".
 import { renderGuideHtml } from "./guide/renderGuide";
 import { mapRouteForDay } from "./guide/renderGuide";
 import { stillMapDataUri } from "./guide/staticMap";
+import { renderPdf } from "./guide/pdf";
 import { Mailer } from "./tools/mailer";
 
 interface PlanJob {
@@ -374,6 +375,46 @@ export function buildServer() {
     }
 
     return { filename: guide.filename, html: guide.html };
+  });
+
+  // The same guide as a PDF file, produced server-side.
+  app.get("/api/trips/:id/guide.pdf", { preHandler: (app as any).authenticate }, async (request: any, reply) => {
+    const guide = await buildGuide(request.user.userId, Number(request.params.id), {
+      locale: request.query?.locale,
+      embed: true
+    });
+    if (!guide) {
+      return reply.code(404).send({ error: "Trip not found" });
+    }
+    try {
+      const pdf = await renderPdf(guide.html);
+      return reply
+        .header("Content-Type", "application/pdf")
+        .header("Content-Disposition", `attachment; filename="${guide.filename.replace(/\.html?$/i, "")}.pdf"`)
+        .send(pdf);
+    } catch (error) {
+      request.log.warn(`PDF rendering failed: ${(error as Error).message}`);
+      return reply.code(503).send({ error: "pdf_unavailable", message: "La génération PDF est indisponible sur ce serveur : utilisez « Aperçu » puis Imprimer / PDF." });
+    }
+  });
+
+  // The hotel the traveler picked among the proposals: the guide, the map
+  // and the travel times are built from it.
+  app.patch("/api/trips/:id/stay", { preHandler: (app as any).authenticate }, async (request: any, reply) => {
+    const tripId = Number(request.params.id);
+    const trip = db.getTrip(request.user.userId, tripId) as any;
+    if (!trip) {
+      return reply.code(404).send({ error: "Trip not found" });
+    }
+    const index = Number((request.body as any)?.index);
+    const plan = trip.plan_json as PlanTripResponse;
+    const research = (plan.structured_json as any)?.research;
+    if (!research || !Number.isInteger(index) || index < 0 || index >= (research.recommended_stays ?? []).length) {
+      return reply.code(400).send({ error: "invalid_stay_index" });
+    }
+    research.chosen_stay_index = index;
+    db.updateTrip({ userId: request.user.userId, tripId, plan });
+    return { chosen_stay_index: index, stay: research.recommended_stays[index] };
   });
 
   // Emails the guide as an attachment. The recipient defaults to the signed-in

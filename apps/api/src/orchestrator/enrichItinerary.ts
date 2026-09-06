@@ -1,6 +1,8 @@
 import type { ItineraryByDay, Photo } from "@mlt/contracts";
 import {
   buildActivityLinks,
+  buildCrossingLinks,
+  withActivityDate,
   buildLuggageLinks,
   buildMapUrl,
   buildRestaurantLinks,
@@ -23,6 +25,8 @@ export interface EnrichOptions {
    * rendered, and cached on the trip from then on.
    */
   withPhotos?: boolean;
+  /** Party size, pre-filled on the booking platforms that accept it. */
+  travelers?: number | null;
 }
 
 /**
@@ -51,20 +55,30 @@ export async function enrichItinerary(
       // office; an experience (tour, cruise) on the activity platforms.
       const isTicket = option.kind === "ticket";
       option.official_url = isTicket ? await verifiedOfficialUrl(option.official_url) : null;
+      const dated = { date: day.date ?? null, adults: options.travelers ?? null };
       option.booking_links = isTicket
-        ? buildTicketLinks(option.title, destination, locale, option.official_url)
-        : buildActivityLinks(option.title, destination, locale);
+        ? buildTicketLinks(option.title, destination, locale, option.official_url, dated)
+        : buildActivityLinks(option.title, destination, locale, dated);
       // A real GetYourGuide offer replaces the search link, priced in the
       // label. For an experience it leads; for a ticketed place the official
       // site stays first (no commission) and the resellers follow, as a backup
       // for a sold-out date.
       if (option.gyg_url) {
         const price = option.price_source === "getyourguide" && option.price_from_eur != null ? ` — ${locale === "fr" ? "dès" : "from"} ${option.price_from_eur} €` : "";
-        const gyg = { provider: "getyourguide" as const, label: `${locale === "fr" ? "Réserver sur GetYourGuide" : "Book on GetYourGuide"}${price}`, url: option.gyg_url };
+        const gyg = { provider: "getyourguide" as const, label: `${locale === "fr" ? "Réserver sur GetYourGuide" : "Book on GetYourGuide"}${price}`, url: withActivityDate(option.gyg_url, dated) };
         const others = option.booking_links.filter((link) => link.provider !== "getyourguide");
         option.booking_links = isTicket
           ? [...others.filter((link) => link.provider === "official"), gyg, ...others.filter((link) => link.provider !== "official")]
           : [gyg, ...others];
+      }
+      // An island or a sea cave is two bookings: the boat from its port, then
+      // the entrance. The crossing links come first (they are the harder
+      // part to find), the entrance keeps the links built above.
+      if (option.crossing?.from_port) {
+        option.booking_links = [
+          ...buildCrossingLinks(option.title, option.crossing.from_port, destination, locale, dated),
+          ...option.booking_links
+        ];
       }
       // An activity is not a place: searching "Visite guidée à vélo" in an
       // encyclopedia returns a pro cycling team. Anchoring the query on the
