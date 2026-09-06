@@ -820,6 +820,9 @@ function TravelerApp() {
         </header>
       ) : (
         <div className="topbar">
+          <a className="brand-logo brand-logo-dark topbar-logo" href="/" aria-label={t.title}>
+            <img src="/logo.png" alt={t.title} />
+          </a>
           <label>
             {t.language}
             <select value={locale} onChange={(e) => setLocale(e.target.value as Locale)}>
@@ -845,9 +848,7 @@ function TravelerApp() {
               <span className="pill-icon">{featureIcons.compass}</span>
               {t.eyebrow}
             </span>
-            <h1 className="hero-title brand-logo brand-logo-hero">
-              <img src="/logo.png" alt={t.title} width="1000" height="667" />
-            </h1>
+            <h1 className="hero-title">{t.title}</h1>
             <p className="hero-tagline">{t.tagline}</p>
             <div className="hero-actions">
               <button onClick={() => document.getElementById("connexion")?.scrollIntoView({ behavior: "smooth" })}>
