@@ -1568,3 +1568,8 @@ select:focus, input:focus, textarea:focus {
 .option-card .link-chips { margin-top: 0.3rem; }
 .option-card .chip { font-size: 0.78rem; }
 .map-marker-hotel { background: #334d3e !important; border-radius: 6px !important; }
+
+/* Days carry activity cards with links: one wide column, two on large screens. */
+.day-grid { grid-template-columns: 1fr; }
+@media (min-width: 1100px) { .day-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.day-grid .day-card-photo { max-height: 220px; object-fit: cover; }

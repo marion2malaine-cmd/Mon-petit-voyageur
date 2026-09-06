@@ -1189,7 +1189,7 @@ function TravelerApp() {
                 <>
                   <h4>{t.itinerary}</h4>
                   <TripMap routes={mapRoutes} locale={locale} hotel={hotelPoint} />
-                  <div className="compact-grid">
+                  <div className="compact-grid day-grid">
                     {itinerary.itinerary_by_day.map((day: any) => (
                       <article key={day.day} className="day-card">
                         {day.photo?.url && (
