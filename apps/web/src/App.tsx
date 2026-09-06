@@ -76,6 +76,7 @@ const text = {
     footerRights: "Tous droits réservés.",
     authSub: "Accédez à vos voyages",
     serverDown: "Serveur injoignable — lance l'API avec « npm run dev » puis réessaie.",
+    badCredentials: "Email ou mot de passe incorrect. Pas encore de compte ? Cliquez sur Inscription.",
     flightTag: "Vol",
     stayTag: "Hôtel",
     styleQuestion: "Quel type de voyage ?",
@@ -188,6 +189,7 @@ const text = {
     footerRights: "All rights reserved.",
     authSub: "Access your trips",
     serverDown: "Server unreachable — start the API with “npm run dev” and try again.",
+    badCredentials: "Wrong email or password. No account yet? Click Sign up.",
     flightTag: "Flight",
     stayTag: "Stay",
     styleQuestion: "What kind of trip?",
@@ -445,7 +447,9 @@ function TravelerApp() {
       setPassword("");
     } catch (error) {
       const message = (error as Error).message;
-      setAuthError(/fetch/i.test(message) ? t.serverDown : message);
+      setAuthError(
+        /fetch/i.test(message) ? t.serverDown : /invalid credentials/i.test(message) ? t.badCredentials : message
+      );
     }
   }
 

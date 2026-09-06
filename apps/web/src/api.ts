@@ -24,8 +24,16 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
+    // The API answers {"error": "..."}: surface the message, never raw JSON.
     const text = await response.text();
-    throw new Error(text || `HTTP ${response.status}`);
+    let message = text;
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed && typeof parsed.error === "string") message = parsed.error;
+    } catch {
+      // Not JSON: keep the body as is.
+    }
+    throw new Error(message || `HTTP ${response.status}`);
   }
 
   return response.json() as Promise<T>;
