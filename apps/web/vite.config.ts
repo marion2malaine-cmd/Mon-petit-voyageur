@@ -8,6 +8,11 @@ export default defineConfig({
   // client bundle.
   envDir: "../..",
   envPrefix: ["VITE_", "MAPBOX_ACCESS_TOKEN"],
+  // `vite preview` serves the production build on Railway; Vite 6 refuses
+  // any host it does not know (403), so the deployed domains are allowed.
+  preview: {
+    allowedHosts: true
+  },
   server: {
     // 5173 is Vite's default, so other local projects (Tout Mon Immo) grab it
     // first and the app silently ends up on another port — or worse, the other
