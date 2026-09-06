@@ -1,0 +1,7 @@
+interface:
+  display_name: "Entry Requirements"
+  short_description: "Checks visa and document constraints"
+  default_prompt: "Use $entry-requirements-checker to verify travel entry requirements."
+
+policy:
+  allow_implicit_invocation: false

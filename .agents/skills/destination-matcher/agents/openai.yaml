@@ -1,0 +1,7 @@
+interface:
+  display_name: "Destination Matcher"
+  short_description: "Ranks destinations by traveler fit"
+  default_prompt: "Use $destination-matcher to rank destination options for this trip brief."
+
+policy:
+  allow_implicit_invocation: true

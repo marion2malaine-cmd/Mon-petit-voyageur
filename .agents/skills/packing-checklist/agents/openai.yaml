@@ -1,0 +1,7 @@
+interface:
+  display_name: "Packing Checklist"
+  short_description: "Builds a tailored packing plan"
+  default_prompt: "Use $packing-checklist to create a personalized packing checklist."
+
+policy:
+  allow_implicit_invocation: true

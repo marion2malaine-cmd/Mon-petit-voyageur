@@ -1,0 +1,7 @@
+interface:
+  display_name: "Trip Summary Export"
+  short_description: "Publishes final plan and JSON"
+  default_prompt: "Use $trip-summary-export to generate the final trip summary and structured payload."
+
+policy:
+  allow_implicit_invocation: true

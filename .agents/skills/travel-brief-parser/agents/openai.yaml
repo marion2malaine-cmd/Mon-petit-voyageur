@@ -1,0 +1,7 @@
+interface:
+  display_name: "Travel Brief Parser"
+  short_description: "Extracts structured travel constraints"
+  default_prompt: "Use $travel-brief-parser to convert this message into a structured travel brief."
+
+policy:
+  allow_implicit_invocation: true

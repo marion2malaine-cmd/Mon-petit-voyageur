@@ -1,0 +1,20 @@
+{
+  "name": "my-little-traveler",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w @mlt/api\" \"npm run dev -w @mlt/web\"",
+    "build": "npm run build -w @mlt/contracts && npm run build -w @mlt/api && npm run build -w @mlt/web",
+    "test": "npm run test -ws",
+    "typecheck": "npm run typecheck -ws",
+    "start:api": "npm run start -w @mlt/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Flight and Hotel Research"
+  short_description: "Compares live transport and stays"
+  default_prompt: "Use $flight-hotel-research to compare live flights and stays for this trip."
+
+policy:
+  allow_implicit_invocation: false

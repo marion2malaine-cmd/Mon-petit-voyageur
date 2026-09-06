@@ -1,0 +1,7 @@
+interface:
+  display_name: "Itinerary Builder"
+  short_description: "Builds realistic day-by-day programs"
+  default_prompt: "Use $itinerary-builder to generate a realistic day-by-day itinerary."
+
+policy:
+  allow_implicit_invocation: true

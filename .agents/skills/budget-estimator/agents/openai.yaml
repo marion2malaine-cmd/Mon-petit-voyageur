@@ -1,0 +1,7 @@
+interface:
+  display_name: "Budget Estimator"
+  short_description: "Estimates cost and affordability"
+  default_prompt: "Use $budget-estimator to estimate this trip budget and feasibility."
+
+policy:
+  allow_implicit_invocation: true
