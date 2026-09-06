@@ -78,7 +78,9 @@ export function buildServer() {
 
   app.register(cors, {
     origin: true,
-    credentials: true
+    credentials: true,
+    // The PDF download reads its file name from this header.
+    exposedHeaders: ["Content-Disposition"]
   });
 
   app.register(cookie);
