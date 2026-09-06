@@ -141,7 +141,7 @@ function start(THREE: Three, host: HTMLElement, fail: () => void): () => void {
     const delta = Math.min((now - last) / 1000, 0.05);
     last = now;
     flight += delta * 0.7;
-    spin += delta * 0.23;
+    spin += delta * 0.6;
     earth.rotation.y = spin;
     plane.position.set(radius * Math.cos(flight), 0, radius * Math.sin(flight));
     plane.rotation.set(0, -flight - Math.PI, -0.16);
