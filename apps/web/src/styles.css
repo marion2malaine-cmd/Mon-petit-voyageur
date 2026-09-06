@@ -1740,13 +1740,12 @@ select:focus, input:focus, textarea:focus {
 .brand-logo img { display: block; height: auto; }
 .hero-brand { display: flex; align-items: center; gap: 1rem; }
 .hero-brand p { margin: 0; }
-.brand-logo-dark { border-radius: 12px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
-.brand-logo-dark img { width: 7.5rem; }
+.brand-logo-dark img { width: 8.5rem; filter: drop-shadow(0 6px 14px rgba(0,0,0,.3)); }
 .topbar-logo { display: block; }
-.footer-logo { display: block; width: 11rem; height: auto; margin-bottom: 0.6rem; border-radius: 10px; }
+.footer-logo { display: block; width: 11rem; height: auto; margin-bottom: 0.6rem; }
 @media (max-width: 720px) {
   .hero-brand p { display: none; }
-  .brand-logo-dark img { width: 5.5rem; }
+  .brand-logo-dark img { width: 6rem; }
 }
 
 /* Same plane as the planning wait, shown on the landing hero. */
