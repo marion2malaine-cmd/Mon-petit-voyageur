@@ -3,7 +3,7 @@ import { api, downloadGuide, previewGuide, type AuthUser } from "./api";
 import type { PlanTripResponse } from "@mlt/contracts";
 import AdminDashboard from "./AdminDashboard";
 import TripMap, { routesFromItinerary } from "./TripMap";
-import PlaneLoader from "./PlaneLoader";
+import Plane3D from "./Plane3D";
 
 type Locale = "fr" | "en";
 
@@ -403,7 +403,11 @@ function TravelerApp() {
   const [departure, setDeparture] = useState("");
   const [destination, setDestination] = useState("");
   const [month, setMonth] = useState("");
+  // ?demo-plane shows the wait screen without planning: for checking the animation.
   const [planning, setPlanning] = useState(false);
+  // ?demo-plane shows the wait screen alone, without an account or a plan:
+  // for checking the animation.
+  const demoPlane = new URLSearchParams(window.location.search).has("demo-plane");
   const [elapsed, setElapsed] = useState(0);
   const [result, setResult] = useState<(PlanTripResponse & { trip_id?: number; run_id?: string }) | null>(null);
   const [trips, setTrips] = useState<any[]>([]);
@@ -574,6 +578,15 @@ function TravelerApp() {
 
   return (
     <div className="app-shell">
+      {demoPlane && (
+        <div className="planning-progress" style={{ padding: "2rem" }} role="status">
+          <Plane3D />
+          <p>
+            <strong>{PLANNING_STEPS[locale][1]}</strong>
+            <small>0:42 · {t.planningHint}</small>
+          </p>
+        </div>
+      )}
       {user ? (
         <header className="hero">
           <div>
@@ -867,7 +880,7 @@ function TravelerApp() {
               </button>
               {planning && (
                 <div className="planning-progress" role="status" aria-live="polite">
-                  <PlaneLoader />
+                  <Plane3D />
                   <p>
                     <strong>{PLANNING_STEPS[locale][planningStep]}</strong>
                     <small>
