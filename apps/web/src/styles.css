@@ -1766,3 +1766,8 @@ select:focus, input:focus, textarea:focus {
 .features-section .section-sub { color: #d7e4e6; }
 .how-section { background: #fff; }
 .cta-section { background: var(--deep-blue); }
+
+/* Landing page on pure white (the app body keeps its tinted background once logged in). */
+.landing { background: #fff; }
+.landing .hero-landing, .landing .how-section { background: #fff; }
+.landing .site-footer { background: #fff; }
