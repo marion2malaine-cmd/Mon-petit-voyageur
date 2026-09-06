@@ -905,7 +905,8 @@ pre {
   margin-top: 0.9rem;
   display: flex;
   align-items: center;
-  gap: 0.9rem;
+  gap: 1.1rem;
+  flex-wrap: wrap;
 }
 
 .planning-progress p {
@@ -925,27 +926,83 @@ pre {
   font-size: 0.82rem;
 }
 
-.planning-bar {
+/* The plane crossing a strip of sky while the trip is planned. */
+.plane-loader {
+  position: relative;
   flex: none;
-  width: 84px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--secondary);
+  width: 320px;
+  max-width: 100%;
+  height: 100px;
+  border-radius: 14px;
   overflow: hidden;
+  background: linear-gradient(180deg, var(--primary-pale) 0%, #fff 100%);
+  border: 1px solid var(--border);
+  color: var(--primary);
 }
 
-.planning-bar span {
-  display: block;
-  width: 40%;
+.plane-sky {
+  position: absolute;
+  inset: 0;
+  width: 100%;
   height: 100%;
-  border-radius: 999px;
-  background: var(--primary);
-  animation: planning-slide 1.4s ease-in-out infinite;
+  opacity: 0.45;
 }
 
-@keyframes planning-slide {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(250%); }
+.plane-path {
+  stroke-dashoffset: 0;
+  animation: plane-dash 1.2s linear infinite;
+}
+
+.plane {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 34px;
+  height: 34px;
+  /* Nose pointing right, then flown along the path by the keyframes. */
+  offset-path: path("M10 72 C 100 18, 200 92, 310 34");
+  offset-rotate: auto 90deg;
+  animation: plane-fly 3.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  filter: drop-shadow(0 2px 2px rgba(11, 82, 107, 0.25));
+}
+
+.plane-cloud {
+  position: absolute;
+  top: 34px;
+  width: 36px;
+  height: 12px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 8px -5px 0 -1px #fff, -6px -3px 0 -2px #fff;
+  opacity: 0.9;
+  animation: plane-cloud-drift 5s linear infinite;
+}
+.plane-cloud-a { top: 16px; animation-duration: 6.5s; }
+.plane-cloud-b { top: 66px; width: 26px; animation-delay: -2.5s; animation-duration: 5.5s; }
+.plane-cloud-c { top: 42px; width: 44px; animation-delay: -4s; animation-duration: 7.5s; opacity: 0.7; }
+
+@keyframes plane-fly {
+  0% { offset-distance: 0%; opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
+@keyframes plane-dash {
+  to { stroke-dashoffset: -10; }
+}
+
+@keyframes plane-cloud-drift {
+  from { transform: translateX(330px); }
+  to { transform: translateX(-70px); }
+}
+
+/* Reduced motion: the flight stays (it is the whole point of the wait
+   screen) but slows down and loses the busier dashes and clouds. */
+@media (prefers-reduced-motion: reduce) {
+  .plane { animation-duration: 8s; }
+  .plane-path { animation: none; }
+  .plane-cloud { animation-duration: 14s; }
 }
 
 /* ---------- Saved trips (clickable) ---------- */

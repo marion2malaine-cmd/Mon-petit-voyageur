@@ -3,6 +3,7 @@ import { api, downloadGuide, previewGuide, type AuthUser } from "./api";
 import type { PlanTripResponse } from "@mlt/contracts";
 import AdminDashboard from "./AdminDashboard";
 import TripMap, { routesFromItinerary } from "./TripMap";
+import PlaneLoader from "./PlaneLoader";
 
 type Locale = "fr" | "en";
 
@@ -863,9 +864,7 @@ function TravelerApp() {
               </button>
               {planning && (
                 <div className="planning-progress" role="status" aria-live="polite">
-                  <div className="planning-bar">
-                    <span />
-                  </div>
+                  <PlaneLoader />
                   <p>
                     <strong>{PLANNING_STEPS[locale][planningStep]}</strong>
                     <small>
