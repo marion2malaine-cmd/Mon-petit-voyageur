@@ -1749,5 +1749,15 @@ select:focus, input:focus, textarea:focus {
 }
 
 /* Animated postcard logo on the landing hero. */
-.hero-plane { display: flex; justify-content: center; margin: 0 auto 2rem; }
-.hero-logo { width: min(30rem, 82vw); height: auto; filter: drop-shadow(0 18px 40px rgba(0,0,0,.35)); }
+.hero-plane { display: flex; justify-content: center; margin: 0 auto 2rem; padding-top: 0.5rem; }
+.hero-logo { width: min(32rem, 86vw); height: auto; filter: drop-shadow(0 18px 40px rgba(7,54,74,.25)); animation: hero-float 5s ease-in-out infinite; }
+@keyframes hero-float { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-10px) rotate(-1.2deg); } }
+@media (prefers-reduced-motion: reduce) { .hero-logo { animation: none; } }
+
+/* Landing hero on white. */
+.hero-landing { color: var(--deep-blue); background: #fff; }
+.hero-landing::after { border-color: rgba(7,54,74,.12); box-shadow: 0 0 0 60px rgba(7,54,74,.03), 0 0 0 120px rgba(7,54,74,.02); }
+.hero-landing .pill { color: var(--deep-blue); background: rgba(7,54,74,.06); border-color: rgba(7,54,74,.15); }
+.hero-landing .hero-title { color: var(--deep-blue); }
+.hero-landing .hero-tagline { color: #3f5a66; }
+.hero-landing .hero-actions .secondary { color: var(--deep-blue); border-color: rgba(7,54,74,.3); }
