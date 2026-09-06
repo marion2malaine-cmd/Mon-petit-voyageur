@@ -341,7 +341,7 @@ describe("guide rendering", () => {
     expect(html).toContain("&lt;script&gt;");
 
     // One card per day, plus the calendar tiles.
-    expect(html.match(/class="day-ribbon"/g)).toHaveLength(7);
+    expect(html.match(/class="day-head"/g)).toHaveLength(7);
   });
 
   it("draws the map with Mapbox when a token is set, Leaflet otherwise", async () => {

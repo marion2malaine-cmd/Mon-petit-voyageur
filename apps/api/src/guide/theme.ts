@@ -1,20 +1,20 @@
-// The guide reuses the structure and layout of the printed travel guide, but
-// its colors, radii and typography come straight from the website's design
-// tokens (apps/web/src/styles.css) so a downloaded guide still looks like the
-// site that produced it.
+// The guide is laid out like the printed carnet: cream paper, deep-blue serif
+// titles, terracotta kickers and a sage panel for the tables of the day. Body
+// text stays in the system sans-serif the site uses.
 export const GUIDE_CSS = `
 :root {
-  --bg: #f0ebe6;
-  --ink: #334d3e;
-  --primary: #78a189;
-  --primary-dark: #678f78;
-  --primary-pale: #eef3ef;
-  --secondary: #ede3dc;
+  --bg: #faf6ef;
+  --ink: #22384a;
+  --primary: #c0664a;
+  --primary-dark: #a4543b;
+  --primary-pale: #e7ece7;
+  --secondary: #f3eee5;
   --card: #ffffff;
-  --border: #ddd0c6;
-  --muted: #57705f;
+  --border: #ddd6cb;
+  --muted: #5f6570;
   --radius: 12px;
   --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
 }
 
 * { box-sizing: border-box; }
@@ -52,20 +52,35 @@ svg {
 .inner { max-width: 940px; margin: 0 auto; }
 
 .section-title {
-  margin: 0 0 0.5rem;
-  text-align: center;
-  font-size: clamp(1.6rem, 3.4vw, 2.2rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  margin: 0 0 0.6rem;
+  font-family: var(--serif);
+  font-size: clamp(1.9rem, 4vw, 2.8rem);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
 }
-.section-rule {
-  width: 64px; height: 3px; border-radius: 999px;
-  background: var(--primary); margin: 0.9rem auto 1.4rem;
-}
-.band-deep .section-rule { background: var(--primary); }
+.section-rule { display: none; }
 .section-sub {
-  max-width: 620px; margin: 0 auto 2.6rem;
-  text-align: center; color: var(--muted); font-size: 0.98rem;
+  max-width: 640px; margin: 0 0 2.4rem;
+  color: var(--muted); font-size: 1rem;
+}
+
+/* Small capitals in terracotta above a title, as on each page of the carnet. */
+.kicker {
+  font-size: 0.74rem; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--primary); margin-bottom: 0.9rem;
+}
+.band-deep .kicker { color: #e6a58e; }
+.page-title {
+  margin: 0 0 1.6rem;
+  font-family: var(--serif);
+  font-size: clamp(2.4rem, 5.5vw, 3.8rem);
+  font-weight: 400; line-height: 1.08; letter-spacing: -0.02em;
+}
+.running-head {
+  display: flex; justify-content: space-between;
+  padding-bottom: 1rem; margin-bottom: 2.8rem; border-bottom: 1px solid var(--border);
+  font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink);
 }
 
 /* ---------- Cover ---------- */
@@ -81,8 +96,9 @@ svg {
 }
 .cover-title {
   margin: 1.6rem 0 0.9rem;
-  font-size: clamp(2.6rem, 6.5vw, 4.1rem);
-  font-weight: 700; letter-spacing: -0.03em; line-height: 1.05;
+  font-family: var(--serif);
+  font-size: clamp(2.8rem, 7vw, 4.6rem);
+  font-weight: 400; letter-spacing: -0.02em; line-height: 1.05;
 }
 .cover-title em { font-style: normal; color: var(--primary-dark); }
 .cover-sub { max-width: 620px; margin: 0 auto; color: var(--muted); font-size: 1.02rem; }
@@ -91,7 +107,7 @@ svg {
   display: flex; flex-wrap: wrap; justify-content: center;
   gap: 2.6rem; margin: 3rem auto 0;
 }
-.stat-value { font-size: 2.4rem; font-weight: 700; letter-spacing: -0.02em; color: var(--primary-dark); }
+.stat-value { font-family: var(--serif); font-size: 2.4rem; font-weight: 400; letter-spacing: -0.02em; color: var(--ink); }
 .stat-label {
   font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--muted); margin-top: 0.2rem;
@@ -142,57 +158,77 @@ svg {
 .legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 
-/* ---------- Day card ---------- */
+/* ---------- Day page ---------- */
 
-.day {
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--radius); overflow: hidden; margin-bottom: 2.6rem;
-}
-.day-hero { position: relative; aspect-ratio: 16 / 7; background: var(--secondary); overflow: hidden; }
+.day { margin-bottom: 3.4rem; padding-top: 2.4rem; border-top: 1px solid var(--border); }
+.day:first-of-type { border-top: none; padding-top: 0; }
+.day-hero { aspect-ratio: 21 / 8; border-radius: var(--radius); overflow: hidden; background: var(--secondary); margin-bottom: 1.8rem; }
 .day-hero img { width: 100%; height: 100%; object-fit: cover; }
-.day-hero-fallback {
-  width: 100%; height: 100%;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--ink) 100%);
+.day-hero-fallback { width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary-pale) 0%, #c9d3cc 100%); }
+.day-head { margin-bottom: 2rem; }
+.day-title {
+  margin: 0 0 0.9rem;
+  font-family: var(--serif);
+  font-size: clamp(2rem, 4.6vw, 3.1rem);
+  font-weight: 400; line-height: 1.12; letter-spacing: -0.015em;
 }
-.day-badge {
-  position: absolute; top: 1rem; left: 1rem;
-  background: var(--primary); color: #fff;
-  border-radius: 999px; padding: 0.35rem 0.9rem;
-  font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600;
-}
-.day-date {
-  position: absolute; top: 1rem; right: 1rem;
-  background: rgba(51, 77, 62, 0.82); color: #fff;
-  border-radius: 999px; padding: 0.35rem 0.9rem; font-size: 0.75rem;
-}
-.day-ribbon { background: var(--ink); color: #f4f1ec; padding: 1.1rem 1.5rem; }
-.day-ribbon h3 { margin: 0; font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; }
-.day-ribbon p { margin: 0.2rem 0 0; font-size: 0.85rem; color: rgba(244, 241, 236, 0.8); }
-.day-body { padding: 1.6rem 1.5rem 1.8rem; }
-.day-narrative {
-  margin: 0 0 1.4rem; padding-left: 1rem;
-  border-left: 3px solid var(--primary); color: var(--muted); font-size: 0.95rem;
-}
+.day-sub { margin: 0; color: var(--muted); font-size: 1.02rem; max-width: 640px; }
+.day-body > .chips { margin-bottom: 1.2rem; }
+
+.day-columns { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 2.4rem; align-items: start; }
 
 .block-title {
   display: flex; align-items: center; gap: 0.5rem;
-  margin: 1.8rem 0 0.9rem;
-  font-size: 0.74rem; letter-spacing: 0.16em; text-transform: uppercase;
-  font-weight: 700; color: var(--primary-dark);
+  margin: 2rem 0 0.9rem;
+  font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase;
+  font-weight: 500; color: var(--primary);
 }
-.block-title svg { width: 1rem; height: 1rem; }
+.block-title svg { width: 1rem; height: 1rem; color: var(--primary); }
 
 /* ---------- Timeline ---------- */
 
-.timeline { border-left: 2px solid var(--primary-pale); padding-left: 1.1rem; margin: 0; }
-.tl-step { position: relative; padding-bottom: 0.85rem; }
+.timeline { list-style: none; margin: 0; padding: 0 0 0 1.6rem; border-left: 1px solid var(--border); }
+.tl-step { position: relative; padding-bottom: 1.6rem; }
+.tl-step:last-child { padding-bottom: 0.4rem; }
 .tl-step::before {
-  content: ""; position: absolute; left: -1.5rem; top: 0.45rem;
-  width: 8px; height: 8px; border-radius: 50%; background: var(--primary);
+  content: ""; position: absolute; left: calc(-1.6rem - 6px); top: 0.3rem;
+  width: 11px; height: 11px; border-radius: 50%; background: var(--primary);
 }
-.tl-time { font-weight: 700; color: var(--primary-dark); font-size: 0.85rem; margin-right: 0.4rem; }
-.tl-label { font-weight: 600; font-size: 0.92rem; }
-.tl-detail { color: var(--muted); font-size: 0.88rem; }
+.tl-time { font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.35rem; }
+.tl-label { margin: 0 0 0.4rem; font-family: var(--serif); font-size: 1.45rem; font-weight: 400; line-height: 1.2; }
+.tl-detail { margin: 0; color: var(--muted); font-size: 0.95rem; max-width: 520px; }
+
+/* ---------- Tables of the day ---------- */
+
+.tables { background: var(--primary-pale); padding: 1.6rem 1.5rem 1.2rem; border-radius: 4px; }
+.tables .kicker { margin-bottom: 0.6rem; }
+.tables-title { margin: 0 0 1.2rem; font-family: var(--serif); font-size: 1.55rem; font-weight: 400; line-height: 1.15; }
+.table-row { display: flex; gap: 0.8rem; padding: 0.85rem 0; border-top: 1px solid rgba(34, 56, 74, 0.14); }
+.table-thumb { flex: none; width: 56px; height: 56px; border-radius: 6px; overflow: hidden; background: var(--secondary); }
+.table-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.table-body { min-width: 0; }
+.table-meal { font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.table-name { font-size: 1rem; font-weight: 500; margin: 0.15rem 0; }
+.table-name a { text-decoration: none; }
+.table-name a:hover { text-decoration: underline; }
+.table-rating { font-size: 0.78rem; color: var(--primary); margin-left: 0.45rem; font-weight: 500; }
+.table-meta { font-size: 0.86rem; color: var(--muted); }
+.table-links { margin-top: 0.3rem; font-size: 0.8rem; }
+.table-links a { color: var(--primary-dark); }
+
+/* ---------- Folds: alternatives and plan B ---------- */
+
+.fold { border-top: 1px solid var(--border); margin-top: 1.6rem; }
+.fold summary { cursor: pointer; padding: 1rem 0; font-size: 1.02rem; color: var(--ink); list-style: none; display: flex; align-items: center; gap: 0.6rem; }
+.fold summary::-webkit-details-marker { display: none; }
+.fold summary::before {
+  content: ""; width: 0; height: 0; flex: none;
+  border-left: 7px solid var(--ink); border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+  transition: transform 0.15s ease;
+}
+.fold[open] summary::before { transform: rotate(90deg); }
+.fold-body { padding: 0.2rem 0 1.4rem; }
+.fold-body .backup { margin-top: 0; }
 
 /* ---------- Free visits ---------- */
 
@@ -376,12 +412,26 @@ svg {
 .backup { margin-top: 0.9rem; font-size: 0.86rem; color: var(--muted); }
 .backup strong { color: var(--ink); }
 
+/* ---------- Budget page ---------- */
+
+.budget-amount { font-family: var(--serif); font-size: clamp(3rem, 7vw, 4.6rem); line-height: 1; letter-spacing: -0.02em; margin-top: 0.4rem; }
+.budget-amount-label { margin: 0.5rem 0 2.6rem; color: var(--muted); font-size: 0.9rem; }
+.budget-table { border-top: 1px solid var(--border); }
 .budget-row {
   display: flex; justify-content: space-between; gap: 1rem;
-  padding: 0.6rem 0; border-bottom: 1px dashed var(--border); font-size: 0.92rem;
+  padding: 1rem 0; border-bottom: 1px solid var(--border); font-size: 1.02rem;
 }
-.budget-row:last-child { border-bottom: none; }
-.budget-row span:last-child { font-weight: 700; white-space: nowrap; }
+.budget-row span:last-child { white-space: nowrap; }
+.budget-total { color: var(--primary); }
+.transfer .budget-row, .car-option .budget-row { padding: 0.6rem 0; font-size: 0.92rem; border-bottom: 1px dashed var(--border); }
+.callout {
+  margin-top: 2rem; padding: 1.2rem 1.4rem;
+  background: var(--primary-pale); border-left: 3px solid var(--primary);
+}
+.callout p { margin: 0; font-size: 0.98rem; color: var(--ink); }
+.callout p + p { margin-top: 0.3rem; color: var(--muted); }
+.callout-title { font-weight: 500; }
+.footnote { margin: 1.6rem 0 0; font-size: 0.86rem; color: var(--muted); }
 
 .credit { font-size: 0.68rem; color: var(--muted); padding: 0.35rem 0.85rem 0; }
 .band-deep .credit { color: rgba(244, 241, 236, 0.55); }
@@ -406,6 +456,7 @@ svg {
 }
 .toolbar .btn { box-shadow: 0 8px 22px rgba(51, 77, 62, 0.28); padding: 0.6rem 1.2rem; }
 
+@media (max-width: 760px) { .day-columns { grid-template-columns: 1fr; gap: 1.6rem; } }
 @media (max-width: 640px) {
   .band { padding: 3rem 1.1rem; }
   .option { grid-template-columns: 1fr; }
@@ -418,8 +469,10 @@ svg {
   body { background: #fff; }
   .band { padding: 1.6rem 0; }
   .band-deep { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .day, .free-card, .option, .resto, .info-card { break-inside: avoid; page-break-inside: avoid; }
-  .day { box-shadow: none; }
+  .free-card, .option, .resto, .info-card, .tables { break-inside: avoid; page-break-inside: avoid; }
+  .day { break-before: page; }
+  .fold[open] summary::before { transform: rotate(90deg); }
+  .fold { break-inside: auto; }
   @page { size: A4; margin: 12mm; }
 }
 `;

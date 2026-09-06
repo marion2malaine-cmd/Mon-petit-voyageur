@@ -65,6 +65,18 @@ interface Strings {
   budgetSub: string;
   budgetLines: Record<string, string>;
   budgetTotal: string;
+  budgetKicker: (travelers: number, days: number) => string;
+  budgetHeadline: string;
+  budgetEnvelope: string;
+  budgetEstimateOnly: string;
+  budgetMargin: string;
+  budgetOverrun: string;
+  budgetTipsTitle: string;
+  budgetNote: string;
+  tableTitle: (count: number) => string;
+  mealLabels: Record<string, string>;
+  changeMood: (count: number) => string;
+  weatherChange: string;
   practicalTitle: string;
   practicalSub: string;
   entry: string;
@@ -178,6 +190,20 @@ const STRINGS: Record<"fr" | "en", Strings> = {
       contingency: "Marge de sécurité"
     },
     budgetTotal: "Total estimé",
+    budgetKicker: (travelers, days) =>
+      `Pour ${travelers === 1 ? "un voyageur" : travelers === 2 ? "deux voyageurs" : `${travelers} voyageurs`} · ${days} jours`,
+    budgetHeadline: "Profiter.<br>Garder le cap.",
+    budgetEnvelope: "Enveloppe prévue pour le séjour",
+    budgetEstimateOnly: "Estimation pour le séjour",
+    budgetMargin: "Marge pour les envies spontanées",
+    budgetOverrun: "Dépassement à prévoir",
+    budgetTipsTitle: "Les bons plans, au bon endroit.",
+    budgetNote: "Les montants sont des fourchettes : le carnet distingue les prix trouvés en ligne des estimations.",
+    tableTitle: (count) =>
+      count === 1 ? "Une pause gourmande" : count === 2 ? "Deux pauses gourmandes" : count === 3 ? "Trois pauses gourmandes" : `${count} pauses gourmandes`,
+    mealLabels: { coffee: "Le café du matin", lunch: "La table du midi", dinner: "Le dîner" },
+    changeMood: (count) => `Changer d'ambiance : ${count} alternative${count > 1 ? "s" : ""}`,
+    weatherChange: "Et si la météo change ?",
     practicalTitle: "Pratique",
     practicalSub: "Formalités, valise et points à confirmer",
     entry: "Formalités d'entrée",
@@ -302,6 +328,18 @@ const STRINGS: Record<"fr" | "en", Strings> = {
       contingency: "Contingency"
     },
     budgetTotal: "Estimated total",
+    budgetKicker: (travelers, days) => `For ${travelers} traveller${travelers > 1 ? "s" : ""} · ${days} days`,
+    budgetHeadline: "Enjoy.<br>Stay on course.",
+    budgetEnvelope: "Envelope planned for the trip",
+    budgetEstimateOnly: "Estimate for the trip",
+    budgetMargin: "Room for spontaneous treats",
+    budgetOverrun: "Expected overrun",
+    budgetTipsTitle: "The good deals, right where you need them.",
+    budgetNote: "Amounts are ranges: the guide tells prices found online apart from estimates.",
+    tableTitle: (count) => `${count} food stop${count > 1 ? "s" : ""}`,
+    mealLabels: { coffee: "Morning coffee", lunch: "Lunch", dinner: "Dinner" },
+    changeMood: (count) => `Change the mood: ${count} alternative${count > 1 ? "s" : ""}`,
+    weatherChange: "What if the weather turns?",
     practicalTitle: "Practical",
     practicalSub: "Formalities, packing and open points",
     entry: "Entry requirements",
@@ -411,7 +449,7 @@ ${renderBookingLadder(t, structured, destination)}
 ${renderFreeHighlights(t, itinerary.free_culture_highlights ?? [], days)}
 ${renderRestaurants(t, days)}
 ${renderForumFindings(t, itinerary?.forum_findings ?? [])}
-${renderBudget(t, structured.budget_estimate)}
+${renderBudget(t, structured.budget_estimate, brief, days.length, destination)}
 ${renderPractical(t, structured, plan)}
 ${renderLinks(t, structured, itinerary)}
 ${renderPhotoCredits(t, days, itinerary?.suggested_excursions ?? [])}
@@ -1017,69 +1055,92 @@ function renderDays(t: Strings, days: ItineraryDay[], locale: "fr" | "en"): stri
 
   const cards = days.map((day) => renderDay(t, day, locale)).join("");
 
-  return `<section class="band band-soft">
+  return `<section class="band band-cream">
   <div class="inner">
     <h2 class="section-title">${escapeHtml(t.daysTitle)}</h2>
-    <div class="section-rule"></div>
     <p class="section-sub">${escapeHtml(t.daysSub)}</p>
     ${cards}
   </div>
 </section>`;
 }
 
+/**
+ * One day laid out like a page of the printed carnet: the date and place as
+ * a kicker, the title set in serif, the day's walk as a dotted timeline and
+ * the tables of the day in a panel beside it. Alternatives and the plan B
+ * fold away so the page reads calmly.
+ */
 function renderDay(t: Strings, day: ItineraryDay, locale: "fr" | "en"): string {
   const dateLabel = day.date
     ? new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-GB", {
+        weekday: "long",
         day: "numeric",
         month: "long",
         timeZone: "UTC"
       }).format(new Date(`${day.date}T00:00:00Z`))
-    : null;
+    : t.dayLabel(day.day);
+  const kicker = [dateLabel, day.area].filter(Boolean).join(" · ");
+  const subtitle = day.narrative || [day.theme, day.area].filter(Boolean).join(" · ");
 
-  const timeline = (day.timeline ?? []).length
-    ? `<div class="block-title">${icon("clock")}${escapeHtml(t.timeline)}</div>
-       <div class="timeline">
-         ${day.timeline
-           .map(
-             (step) =>
-               `<div class="tl-step"><span class="tl-time">${escapeHtml(step.time)}</span><span class="tl-label">${escapeHtml(
-                 step.label
-               )}</span>${step.detail ? ` — <span class="tl-detail">${escapeHtml(step.detail)}</span>` : ""}</div>`
-           )
-           .join("")}
-       </div>`
-    : `<div class="timeline">
-         <div class="tl-step"><span class="tl-label">${escapeHtml(day.morning)}</span></div>
-         <div class="tl-step"><span class="tl-label">${escapeHtml(day.afternoon)}</span></div>
-         <div class="tl-step"><span class="tl-label">${escapeHtml(day.evening)}</span></div>
-       </div>`;
+  const steps = (day.timeline ?? []).length
+    ? day.timeline.map((step) => ({ time: step.time, label: step.label, detail: step.detail }))
+    : [
+        { time: "", label: day.morning, detail: "" },
+        { time: "", label: day.afternoon, detail: "" },
+        { time: "", label: day.evening, detail: "" }
+      ];
+  const timeline = `<ol class="timeline">${steps
+    .map(
+      (step) => `<li class="tl-step">
+      <div class="tl-time">${escapeHtml([step.time, day.theme].filter(Boolean).join(" · "))}</div>
+      <h4 class="tl-label">${escapeHtml(step.label)}</h4>
+      ${step.detail ? `<p class="tl-detail">${escapeHtml(step.detail)}</p>` : ""}
+    </li>`
+    )
+    .join("")}</ol>`;
+
+  const options = day.paid_options ?? [];
 
   return `<article class="day">
-  <div class="day-hero">
-    ${photoTag(day.photo, "day-hero-fallback")}
-    <span class="day-badge">${escapeHtml(t.dayLabel(day.day))}</span>
-    ${dateLabel ? `<span class="day-date">${escapeHtml(dateLabel)}</span>` : ""}
-  </div>
-  <div class="day-ribbon">
-    <h3>${escapeHtml(day.title)}</h3>
-    <p>${escapeHtml([day.theme, day.area].filter(Boolean).join(" · "))}</p>
-  </div>
+  ${day.photo?.url ? `<div class="day-hero">${photoTag(day.photo, "day-hero-fallback")}</div>` : ""}
+  <header class="day-head">
+    <div class="kicker">${escapeHtml(kicker)}</div>
+    <h3 class="day-title">${escapeHtml(day.title)}</h3>
+    ${subtitle ? `<p class="day-sub">${escapeHtml(subtitle)}</p>` : ""}
+  </header>
   <div class="day-body">
-    ${day.narrative ? `<p class="day-narrative">${escapeHtml(day.narrative)}</p>` : ""}
     ${renderLuggage(t, day.luggage_storage)}
     ${day.travel_note ? `<div class="chips">${chip("car", `${t.travelNote} · ${day.travel_note}`)}</div>` : ""}
-    ${timeline}
+    <div class="day-columns">
+      <div class="day-main">${timeline}</div>
+      ${renderDayRestaurants(t, day.restaurants ?? [])}
+    </div>
     ${renderFreeVisits(t, day.free_visits ?? [])}
-    ${renderPaidOptions(t, day.paid_options ?? [])}
-    ${renderDayRestaurants(t, day.restaurants ?? [])}
     ${
-      (day.practical_tips ?? []).length
-        ? `<div class="tips"><div class="block-title" style="margin-top:0">${icon("check")}${escapeHtml(
-            t.tips
-          )}</div><ul>${day.practical_tips.map((tip) => `<li>${escapeHtml(tip)}</li>`).join("")}</ul></div>`
+      options.length
+        ? `<details class="fold">
+      <summary>${escapeHtml(t.changeMood(options.length))}</summary>
+      <div class="fold-body">${renderPaidOptions(t, options)}</div>
+    </details>`
         : ""
     }
-    ${day.backup_option ? `<p class="backup"><strong>${escapeHtml(t.backup)} :</strong> ${escapeHtml(day.backup_option)}</p>` : ""}
+    ${
+      day.backup_option || (day.practical_tips ?? []).length
+        ? `<details class="fold">
+      <summary>${escapeHtml(t.weatherChange)}</summary>
+      <div class="fold-body">
+        ${day.backup_option ? `<p class="backup"><strong>${escapeHtml(t.backup)} :</strong> ${escapeHtml(day.backup_option)}</p>` : ""}
+        ${
+          (day.practical_tips ?? []).length
+            ? `<div class="tips"><div class="block-title" style="margin-top:0">${icon("check")}${escapeHtml(
+                t.tips
+              )}</div><ul>${day.practical_tips.map((tip) => `<li>${escapeHtml(tip)}</li>`).join("")}</ul></div>`
+            : ""
+        }
+      </div>
+    </details>`
+        : ""
+    }
   </div>
 </article>`;
 }
@@ -1150,7 +1211,7 @@ function renderPaidOptions(t: Strings, opts: PaidOption[]): string {
     })
     .join("");
 
-  return `<div class="block-title">${icon("ticket")}${escapeHtml(t.paidOptions)}</div>
+  return `<div class="block-title" style="margin-top:0">${icon("ticket")}${escapeHtml(t.paidOptions)}</div>
   <p class="free-desc" style="margin-top:-.4rem">${escapeHtml(t.paidOptionsHint)}</p>
   ${cards}`;
 }
@@ -1174,11 +1235,44 @@ function renderLocalAlternative(t: Strings, alternative: any): string {
   </div>`;
 }
 
+const MEAL_ORDER: Record<string, number> = { coffee: 0, lunch: 1, dinner: 2 };
+
+/** The tables of the day, in the order of the meals, as a panel beside the walk. */
 function renderDayRestaurants(t: Strings, restaurants: RestaurantPick[]): string {
   if (!restaurants.length) return "";
 
-  return `<div class="block-title">${icon("fork")}${escapeHtml(t.whereToEat)}</div>
-  <div class="resto-grid">${restaurants.map((resto) => renderRestaurantCard(t, resto)).join("")}</div>`;
+  const sorted = [...restaurants].sort((a, b) => (MEAL_ORDER[a.meal] ?? 9) - (MEAL_ORDER[b.meal] ?? 9));
+  const rows = sorted
+    .map((resto) => {
+      const link = resto.booking_links?.[0]?.url ?? resto.maps_url ?? resto.website;
+      const name = link
+        ? `<a href="${escapeAttr(link)}" target="_blank" rel="noreferrer">${escapeHtml(resto.name)}</a>`
+        : escapeHtml(resto.name);
+      const meta = [resto.cuisine, resto.area ?? resto.address, resto.price_range].filter(Boolean).join(" · ");
+      const links = (resto.booking_links ?? [])
+        .map(
+          (l) => `<a href="${escapeAttr(l.url)}" target="_blank" rel="noreferrer">${escapeHtml(l.label)}</a>`
+        )
+        .join(" · ");
+      return `<div class="table-row">
+      ${resto.photo?.url ? `<div class="table-thumb">${photoTag(resto.photo, "resto-photo-fallback")}</div>` : ""}
+      <div class="table-body">
+        <div class="table-meal">${escapeHtml(t.mealLabels[resto.meal] ?? t.mealLabels.dinner)}</div>
+        <div class="table-name">${name}${
+          resto.rating != null ? `<span class="table-rating">★ ${escapeHtml(resto.rating)}</span>` : ""
+        }</div>
+        <div class="table-meta">${escapeHtml(meta)}</div>
+        ${links ? `<div class="table-links">${links}</div>` : ""}
+      </div>
+    </div>`;
+    })
+    .join("");
+
+  return `<aside class="tables">
+    <div class="kicker">${escapeHtml(t.whereToEat)}</div>
+    <h4 class="tables-title">${escapeHtml(t.tableTitle(sorted.length))}</h4>
+    ${rows}
+  </aside>`;
 }
 
 function renderRestaurantCard(t: Strings, resto: RestaurantPick): string {
@@ -1391,40 +1485,72 @@ function renderForumFindings(t: Strings, findings: ForumFinding[]): string {
 </section>`;
 }
 
-function renderBudget(t: Strings, budget: any): string {
+function renderBudget(t: Strings, budget: any, brief: any, dayCount: number, destination: string): string {
   if (!budget?.budget_breakdown) return "";
 
   const rows = Object.entries(budget.budget_breakdown)
     .map(([key, range]) => {
       const [min, max] = range as [number, number];
       const label = t.budgetLines[key] ?? key;
-      return `<div class="budget-row"><span>${escapeHtml(label)}</span><span>${Math.round(min)} – ${Math.round(
-        max
-      )} €</span></div>`;
+      return `<div class="budget-row"><span>${escapeHtml(label)}</span><span>${fmtRange(min, max)}</span></div>`;
     })
     .join("");
 
   const total = budget.estimated_total;
+  const envelope = Number(brief?.budget_total) > 0 ? Number(brief.budget_total) : null;
+  const travelers = Number(brief?.travelers_count ?? 1);
+  const headlineAmount = envelope ?? (total ? Math.round((total.min + total.max) / 2) : null);
+  const margin = envelope && total ? envelope - Math.round(total.max) : null;
+  const tips: string[] = [...(budget.optimization_options ?? []), ...(budget.pressure_points ?? [])].slice(0, 4);
 
-  return `<section class="band band-soft">
+  return `<section class="band band-cream">
   <div class="inner">
-    <h2 class="section-title">${escapeHtml(t.budgetTitle)}</h2>
-    <div class="section-rule"></div>
-    <p class="section-sub">${escapeHtml(t.budgetSub)}</p>
-    <div class="info-card">
+    <div class="running-head"><span>${escapeHtml([destination, t.budgetTitle].filter(Boolean).join(" / "))}</span></div>
+    <div class="kicker">${escapeHtml(t.budgetKicker(travelers, dayCount))}</div>
+    <h2 class="page-title">${t.budgetHeadline}</h2>
+    ${
+      headlineAmount != null
+        ? `<div class="budget-amount">${fmtEuro(headlineAmount)}</div>
+    <p class="budget-amount-label">${escapeHtml(envelope ? t.budgetEnvelope : t.budgetEstimateOnly)}</p>`
+        : ""
+    }
+    <div class="budget-table">
       ${rows}
       ${
         total
-          ? `<div class="budget-row" style="border-top:2px solid var(--border);margin-top:.5rem;padding-top:.8rem"><span><strong>${escapeHtml(
-              t.budgetTotal
-            )}</strong></span><span>${Math.round(total.min)} – ${Math.round(total.max)} ${escapeHtml(
-              total.currency ?? "EUR"
+          ? `<div class="budget-row budget-total"><span>${escapeHtml(t.budgetTotal)}</span><span>${fmtRange(
+              total.min,
+              total.max
+            )}</span></div>`
+          : ""
+      }
+      ${
+        margin != null
+          ? `<div class="budget-row"><span>${escapeHtml(margin >= 0 ? t.budgetMargin : t.budgetOverrun)}</span><span>${fmtEuro(
+              Math.abs(margin)
             )}</span></div>`
           : ""
       }
     </div>
+    ${
+      tips.length
+        ? `<div class="callout">
+      <p class="callout-title">${escapeHtml(t.budgetTipsTitle)}</p>
+      ${tips.map((tip) => `<p>${escapeHtml(tip)}</p>`).join("")}
+    </div>`
+        : ""
+    }
+    <p class="footnote">${escapeHtml(t.budgetNote)}</p>
   </div>
 </section>`;
+}
+
+function fmtEuro(value: number): string {
+  return `${Math.round(value).toLocaleString("fr-FR").replace(/ | /g, " ")} €`;
+}
+
+function fmtRange(min: number, max: number): string {
+  return Math.round(min) === Math.round(max) ? fmtEuro(min) : `${fmtEuro(min).replace(" €", "")} – ${fmtEuro(max)}`;
 }
 
 function renderPractical(t: Strings, structured: any, plan: PlanTripResponse): string {
