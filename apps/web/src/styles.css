@@ -1748,7 +1748,6 @@ select:focus, input:focus, textarea:focus {
   .brand-logo-dark img { width: 6rem; }
 }
 
-/* Same plane as the planning wait, shown on the landing hero. */
-.hero-plane { display: flex; justify-content: center; margin: -1rem auto 1.4rem; }
-.hero-plane .plane-3d { background: transparent; height: clamp(200px, 40vw, 260px); }
-.hero-plane .plane-loader { margin: 0 auto; }
+/* Animated postcard logo on the landing hero. */
+.hero-plane { display: flex; justify-content: center; margin: 0 auto 2rem; }
+.hero-logo { width: min(30rem, 82vw); height: auto; filter: drop-shadow(0 18px 40px rgba(0,0,0,.35)); }
