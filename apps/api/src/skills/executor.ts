@@ -8,7 +8,6 @@ import {
   runDestinationMatcher,
   runEntryRequirementsChecker,
   runFlightHotelResearch,
-  runItineraryBuilder,
   runPackingChecklist,
   runTravelBriefParser,
   runTripSummaryExport,
@@ -201,8 +200,9 @@ export class SkillExecutor {
         return runFlightHotelResearch(input as any, ctx);
       case "entry-requirements-checker":
         return runEntryRequirementsChecker(input as any, ctx);
-      case "itinerary-builder":
-        return runItineraryBuilder(input as any, ctx);
+      // No fallback for the program: the itinerary is written by the AI or
+      // not at all (see ItineraryUnavailableError). A template-generated day
+      // reads like a real one and tells the traveler nothing.
       case "packing-checklist":
         return runPackingChecklist(input as any, ctx);
       case "trip-summary-export":

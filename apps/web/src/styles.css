@@ -839,6 +839,24 @@ pre {
   color: var(--muted-fg);
 }
 
+/* The drive that opens the day, and the bed that closes it. */
+.day-route {
+  margin: 0.35rem 0 0;
+  color: var(--muted-fg);
+}
+
+.day-lodging {
+  margin-top: 0.7rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  background: var(--subtle-bg, rgba(0, 0, 0, 0.03));
+}
+
+/* The night the bags move is the one thing the eye must catch. */
+.day-lodging-change {
+  border-left: 3px solid var(--primary-dark);
+}
+
 /* ---------- Car rental ---------- */
 
 .car-card {
@@ -1627,3 +1645,91 @@ select:focus, input:focus, textarea:focus {
   font: inherit;
   cursor: pointer;
 }
+
+/* ---------- Subscription / paywall ---------- */
+.paywall { text-align: center; }
+.paywall > .section-sub { max-width: 52ch; margin: 0.4rem auto 1.8rem; }
+
+.pricing { margin-top: 1rem; }
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.2rem;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.plan-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.6rem 1.4rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: left;
+}
+.plan-card.is-featured {
+  border-color: var(--primary);
+  box-shadow: 0 14px 40px -24px rgba(9, 57, 77, 0.4);
+}
+.plan-badge {
+  position: absolute;
+  top: -0.75rem;
+  right: 1.2rem;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--terracotta);
+  border-radius: 999px;
+}
+.plan-card h3 { margin: 0; font-family: var(--display); font-size: 1.5rem; color: var(--deep-blue); }
+.plan-price { margin: 0; color: var(--deep-blue); }
+.plan-price strong { font-size: 2rem; }
+.plan-price span { color: var(--muted-fg); font-size: 0.95rem; }
+.plan-save { margin: -0.4rem 0 0; color: var(--primary-dark); font-weight: 600; font-size: 0.85rem; }
+.plan-features { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.plan-features li { position: relative; padding-left: 1.5rem; font-size: 0.9rem; color: var(--foreground); }
+.plan-features li::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0.35rem;
+  width: 0.85rem; height: 0.5rem;
+  border-left: 2px solid var(--primary);
+  border-bottom: 2px solid var(--primary);
+  transform: rotate(-45deg);
+}
+.plan-card button { margin-top: auto; }
+.plan-note { margin-top: 1.2rem; color: var(--muted-fg); font-size: 0.85rem; }
+.sub-badge { border-color: var(--primary) !important; color: var(--primary-dark) !important; }
+
+/* ---------- Google sign-in + divider ---------- */
+.auth-divider { display: flex; align-items: center; gap: 0.8rem; margin: 1rem 0; color: var(--muted-fg); font-size: 0.8rem; }
+.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  background: #fff;
+  color: #3c4043;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.google-btn:hover { background: #f6f7f8; border-color: #c9cdd1; }
+
+@media (max-width: 600px) {
+  .pricing-grid { grid-template-columns: 1fr; }
+  .plan-card { padding: 1.3rem 1.15rem; }
+}
+
+.plan-reassurance { margin: 1rem auto 0; max-width: 44ch; text-align: center; font-size: 0.85rem; color: var(--muted-fg); display: flex; align-items: center; justify-content: center; gap: 0.4rem; }
+.plan-reassurance::before { content: ""; width: 0.9rem; height: 0.9rem; flex: none; border-radius: 50%; border: 2px solid var(--primary); border-right-color: transparent; transform: rotate(-45deg); }

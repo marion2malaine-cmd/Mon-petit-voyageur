@@ -16,9 +16,10 @@ import {
 } from "@mlt/contracts";
 import { detectIntent } from "../skills/intent";
 import { SkillExecutor } from "../skills/executor";
-import { planItinerary } from "../skills/itineraryPlanner";
+import { applyStayAsLodging, planItinerary } from "../skills/itineraryPlanner";
 import { buildExcursions, completeBriefDates, mergePreferencesIntoBrief, runFlightHotelResearch } from "../skills/handlers";
 import { buildExperienceLinks, buildSearchLinks, buildTransferLinks } from "../tools/links";
+import { resolveAirportCodes } from "../tools/serpapi";
 import { buildCarRentalAdvice } from "../tools/carRental";
 import { enrichItinerary } from "./enrichItinerary";
 import type { SkillDefinition } from "../skills/types";
@@ -199,7 +200,8 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
         : Promise.resolve(null),
 
       // The day-by-day program is itself several calls (outline, then day
-      // batches); planItinerary has its own local fallback so it never throws.
+      // batches). It throws when the AI could not write the program: no
+      // generic guide is ever served, the run fails with that message.
       planItinerary(executor, { brief, destination: destinationResolved, locale, remainingBudgetEur, liveCosts }, { locale, tools }),
 
       executor.run("packing-checklist", PackingChecklistSchema, { brief, destinationFallback: destinationResolved }, { locale })
@@ -219,7 +221,16 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
       }
     }
     trace.push({ skill: "itinerary-builder", status: "ok", source: itineraryResult.source, tool_statuses: itineraryResult.meta.toolStatuses });
-    trace.push({ skill: "packing-checklist", status: "ok", source: packingResult.meta.source, tool_statuses: packingResult.meta.toolStatuses });
+
+    // A trip that sleeps in one place has no stage to name, so the hotel of
+    // every day is the one the live search actually priced.
+    const stays = researchResult?.output?.recommended_stays ?? [];
+    const chosen = Number((researchResult?.output as any)?.chosen_stay_index);
+    applyStayAsLodging(
+      itineraryResult.output.itinerary_by_day ?? [],
+      stays[Number.isInteger(chosen) && chosen >= 0 && chosen < stays.length ? chosen : 0] ?? null,
+      locale
+    );
 
     // URLs and photos must never come from the LLM (it invents plausible-looking
     // dead links and image URLs): both are rebuilt locally from the titles it
@@ -320,10 +331,17 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
           }
         }
 
+        // Without the IATA codes the Skyscanner link degrades to its bare
+        // home page and the traveler has to retype the whole search.
+        const research = researchResult.output as any;
+        const originCity = brief.departure_city ?? "Paris";
         const searchLinks = buildSearchLinks({
           locale,
-          originCity: brief.departure_city ?? "Paris",
+          originCity,
+          originCode: research.origin_code ?? resolveAirportCodes(originCity)?.split(",")[0] ?? null,
           destinationCity: destinationResolved,
+          destinationCode:
+            research.destination_code ?? resolveAirportCodes(destinationResolved)?.split(",")[0] ?? null,
           departureDate: brief.exact_dates.start,
           returnDate: brief.exact_dates.end,
           adults: brief.travelers_count

@@ -457,6 +457,38 @@ svg {
 .toolbar .btn { box-shadow: 0 8px 22px rgba(51, 77, 62, 0.28); padding: 0.6rem 1.2rem; }
 
 @media (max-width: 760px) { .day-columns { grid-template-columns: 1fr; gap: 1.6rem; } }
+/* The overview table of the roadbook: the page the traveler comes back to. */
+.stages { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.stages th {
+  text-align: left; padding: 0.55rem 0.6rem; border-bottom: 2px solid var(--border);
+  font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 600;
+}
+.stages td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+.stages tr:last-child td { border-bottom: none; }
+.stages td:nth-child(3), .stages th:nth-child(3) { text-align: center; }
+.stages td:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* The drive of the day, above the timeline. */
+.route { margin: 0 0 1rem; padding: 0.8rem 1rem; border-left: 3px solid var(--primary); background: var(--secondary); border-radius: 0 var(--radius) var(--radius) 0; }
+
+/* The bed at the end of the day. A hotel change is what the eye must catch. */
+.lodging {
+  display: grid; grid-template-columns: 150px 1fr; gap: 1rem; margin-top: 1.4rem;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); overflow: hidden;
+}
+.lodging-change { border-color: var(--primary); box-shadow: inset 4px 0 0 var(--primary); }
+.lodging-photo { height: 100%; min-height: 120px; }
+.lodging-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lodging-body { padding: 0.9rem 1rem 1rem 0.2rem; }
+.lodging-change .lodging-body .kicker { color: var(--primary); }
+.lodging .btn-row { margin-top: 0.6rem; }
+
+@media (max-width: 640px) {
+  .lodging { grid-template-columns: 1fr; }
+  .lodging-body { padding: 0 1rem 1rem; }
+  .stages { font-size: 0.82rem; }
+}
+
 @media (max-width: 640px) {
   .band { padding: 3rem 1.1rem; }
   .option { grid-template-columns: 1fr; }
@@ -469,7 +501,8 @@ svg {
   body { background: #fff; }
   .band { padding: 1.6rem 0; }
   .band-deep { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .free-card, .option, .resto, .info-card, .tables { break-inside: avoid; page-break-inside: avoid; }
+  .free-card, .option, .resto, .info-card, .tables, .lodging, .route { break-inside: avoid; page-break-inside: avoid; }
+  .stages tr { break-inside: avoid; }
   .day { break-before: page; }
   .fold[open] summary::before { transform: rotate(90deg); }
   .fold { break-inside: auto; }
@@ -493,6 +526,9 @@ const ICON_PATHS: Record<string, string> = {
   wallet: '<path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7H5a2 2 0 0 1-2-2Z"/><circle cx="17" cy="14" r="1"/>',
   check: '<path d="m4 12 5 5L20 6"/>',
   arrow: '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
+  boat: '<path d="M3 17s2 2 4.5 2 4-2 4.5-2 2 2 4.5 2 4-2 4.5-2"/><path d="M5 14 12 4l7 10"/><path d="M12 4v10"/>',
+  plane: '<path d="M10 3 4 12l2 3 5-2 3 6 2-1-1-7 5-2-1-3-6 1-3-4Z"/>',
+  walk: '<circle cx="13" cy="4" r="1.6"/><path d="m9 21 3-6-2-3 1-4 3 2 3 1"/><path d="m11 12-3 2"/>',
   car: '<path d="M5 17h14"/><path d="M3 17v-4l2-5h14l2 5v4"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/>',
   download: '<path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M4 21h16"/>',
   print: '<path d="M6 9V3h12v6"/><path d="M6 18H4v-6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6h-2"/><path d="M6 14h12v7H6z"/>'

@@ -1,14 +1,17 @@
 import type {
   BookingLink,
+  DayRoute,
   ForumFinding,
   FreeVisit,
   ItineraryDay,
+  Lodging,
   PaidOption,
   Photo,
   PlanTripResponse,
   RestaurantPick
 } from "@mlt/contracts";
 import { GUIDE_CSS, icon } from "./theme";
+import { stageSummary } from "../skills/itineraryPlanner";
 
 export interface RenderGuideOptions {
   locale: "fr" | "en";
@@ -32,6 +35,19 @@ interface Strings {
   noteFree: string;
   noteOptions: string;
   noteLinks: string;
+  stagesTitle: string;
+  stagesSub: string;
+  stagesDates: string;
+  stagesStage: string;
+  stagesNights: string;
+  stagesLodging: string;
+  stagesPrice: string;
+  nights: (n: number) => string;
+  lodgingTonight: string;
+  lodgingChange: string;
+  lodgingSame: string;
+  routeLabel: string;
+  routeStops: string;
   baseTitle: string;
   baseSub: string;
   baseToBook: string;
@@ -152,6 +168,19 @@ const STRINGS: Record<"fr" | "en", Strings> = {
     noteFree: "Toutes les visites culturelles gratuites sont signalées et différentes chaque jour",
     noteOptions: "Chaque journée propose plusieurs options d'activité payante",
     noteLinks: "Chaque activité est réservable via GetYourGuide ou Viator",
+    stagesTitle: "Vue d'ensemble",
+    stagesSub: "Où vous dormez, nuit après nuit",
+    stagesDates: "Dates",
+    stagesStage: "Étape",
+    stagesNights: "Nuits",
+    stagesLodging: "Hôtel",
+    stagesPrice: "€ / nuit",
+    nights: (n: number) => (n === 1 ? "1 nuit" : `${n} nuits`),
+    lodgingTonight: "Vous dormez ici",
+    lodgingChange: "Changement d'hôtel — les bagages suivent",
+    lodgingSame: "Même hôtel que la veille",
+    routeLabel: "Route du jour",
+    routeStops: "Sur la route",
     baseTitle: "Votre base de séjour",
     baseSub: "Le point de départ de toutes les journées",
     baseToBook: "Hébergement à réserver",
@@ -295,6 +324,19 @@ const STRINGS: Record<"fr" | "en", Strings> = {
     noteFree: "Every free cultural visit is flagged, and they differ each day",
     noteOptions: "Each day offers several paid activity options",
     noteLinks: "Every activity is bookable through GetYourGuide or Viator",
+    stagesTitle: "At a glance",
+    stagesSub: "Where you sleep, night after night",
+    stagesDates: "Dates",
+    stagesStage: "Stage",
+    stagesNights: "Nights",
+    stagesLodging: "Hotel",
+    stagesPrice: "EUR / night",
+    nights: (n: number) => (n === 1 ? "1 night" : `${n} nights`),
+    lodgingTonight: "Tonight you sleep here",
+    lodgingChange: "Hotel change — the bags come along",
+    lodgingSame: "Same hotel as last night",
+    routeLabel: "Today's drive",
+    routeStops: "On the way",
     baseTitle: "Your home base",
     baseSub: "The starting point of every day",
     baseToBook: "Accommodation to book",
@@ -450,7 +492,7 @@ export function renderGuideHtml(plan: PlanTripResponse, options: RenderGuideOpti
 </head>
 <body>
 ${renderCover(t, { destination, brief, days: days.length, travelers, freeVisitCount, optionCount })}
-${renderBase(t, structured, destination)}
+${renderStages(t, days, structured, destination, options.locale)}
 ${renderGroundTransport(t, structured.research?.ground_transport)}
 ${renderCarRental(t, structured.research?.car_rental)}
 ${renderCalendar(t, days, options.locale)}
@@ -516,6 +558,138 @@ function renderCover(
 
 function stat(value: string, label: string): string {
   return `<div><div class="stat-value">${escapeHtml(value)}</div><div class="stat-label">${escapeHtml(label)}</div></div>`;
+}
+
+/**
+ * The overview table of the roadbook: one row per stage, with its nights, its
+ * hotel and what the room costs.
+ *
+ * This is the page the traveler comes back to. A trip that never changes hotel
+ * has nothing to tabulate, so it keeps the single "your base" card instead.
+ */
+function renderStages(
+  t: Strings,
+  days: ItineraryDay[],
+  structured: any,
+  destination: string,
+  locale: "fr" | "en"
+): string {
+  const rows = stageSummary(days);
+  if (rows.length < 2) return renderBase(t, structured, destination);
+
+  const short = (date: string | null) =>
+    date
+      ? new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-GB", { day: "2-digit", month: "2-digit", timeZone: "UTC" }).format(
+          new Date(`${date}T00:00:00Z`)
+        )
+      : "";
+
+  const body = rows
+    .map((row) => {
+      const dates = [short(row.dates[0] ?? null), short(row.dates[row.dates.length - 1] ?? null)].filter(Boolean);
+      const span = dates.length === 2 && dates[0] !== dates[1] ? `${dates[0]} – ${dates[1]}` : dates[0] ?? "";
+      const price =
+        row.price_note ??
+        (row.price_from
+          ? row.price_to && row.price_to !== row.price_from
+            ? `${row.price_from}–${row.price_to} €`
+            : `${row.price_from} €`
+          : "—");
+      return `<tr>
+        <td>${escapeHtml(span)}</td>
+        <td><strong>${escapeHtml(row.stage)}</strong></td>
+        <td>${row.nights}</td>
+        <td>${escapeHtml(row.lodging ?? "—")}</td>
+        <td>${escapeHtml(price)}</td>
+      </tr>`;
+    })
+    .join("");
+
+  return `<section class="band band-deep">
+  <div class="inner">
+    <h2 class="section-title">${escapeHtml(t.stagesTitle)}</h2>
+    <div class="section-rule"></div>
+    <p class="section-sub">${escapeHtml(t.stagesSub)}</p>
+    <div class="info-card">
+      <table class="stages">
+        <thead><tr>
+          <th>${escapeHtml(t.stagesDates)}</th>
+          <th>${escapeHtml(t.stagesStage)}</th>
+          <th>${escapeHtml(t.stagesNights)}</th>
+          <th>${escapeHtml(t.stagesLodging)}</th>
+          <th>${escapeHtml(t.stagesPrice)}</th>
+        </tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>
+  </div>
+</section>`;
+}
+
+/** The drive that opens a day: where from, how long, what to stop for. */
+function renderRoute(t: Strings, route: DayRoute | null | undefined): string {
+  if (!route?.to) return "";
+  const heading = [route.from, route.to].filter(Boolean).join(" → ");
+
+  return `<div class="route">
+    <div class="chips">
+      <span class="chip">${icon(ROUTE_ICONS[route.mode] ?? "car")}${escapeHtml(heading)}</span>
+      ${route.duration ? `<span class="chip chip-price">${icon("clock")}${escapeHtml(route.duration)}</span>` : ""}
+      ${route.distance_km ? `<span class="chip">${escapeHtml(`${route.distance_km} km`)}</span>` : ""}
+      ${route.departure_time ? `<span class="chip">${icon("clock")}${escapeHtml(route.departure_time)}</span>` : ""}
+    </div>
+    ${route.road_note ? `<p class="muted" style="margin:.5rem 0 0">${escapeHtml(route.road_note)}</p>` : ""}
+    ${
+      (route.stops ?? []).length
+        ? `<p class="muted" style="margin:.35rem 0 0"><strong>${escapeHtml(t.routeStops)} :</strong> ${escapeHtml(
+            route.stops.join(" · ")
+          )}</p>`
+        : ""
+    }
+  </div>`;
+}
+
+const ROUTE_ICONS: Record<string, string> = {
+  car: "car",
+  train: "car",
+  bus: "car",
+  boat: "boat",
+  plane: "plane",
+  foot: "walk"
+};
+
+/**
+ * The bed at the end of the day, inside the day itself.
+ *
+ * The traveler reads the guide one day at a time, so the hotel belongs there
+ * and not in a block at the front — and the night the bags move is flagged.
+ */
+function renderLodging(t: Strings, lodging: Lodging | null | undefined): string {
+  if (!lodging?.name) return "";
+
+  const price =
+    lodging.price_note ??
+    (lodging.price_per_night_eur
+      ? lodging.price_max_per_night_eur && lodging.price_max_per_night_eur !== lodging.price_per_night_eur
+        ? `${lodging.price_per_night_eur}–${lodging.price_max_per_night_eur} € / nuit`
+        : `${lodging.price_per_night_eur} € / nuit`
+      : null);
+
+  return `<div class="lodging${lodging.is_change ? " lodging-change" : ""}">
+    ${lodging.photo?.url ? `<div class="lodging-photo">${photoTag(lodging.photo, "lodging-photo-fallback")}</div>` : ""}
+    <div class="lodging-body">
+      <div class="kicker">${escapeHtml(lodging.is_change ? t.lodgingChange : t.lodgingSame)}</div>
+      <h4 class="resto-name">${escapeHtml(lodging.name)}</h4>
+      ${lodging.town ? `<p class="muted" style="margin:.2rem 0 .5rem">${escapeHtml(lodging.town)}</p>` : ""}
+      <div class="chips">
+        ${price ? `<span class="chip chip-price">${icon("wallet")}${escapeHtml(price)}</span>` : ""}
+        ${lodging.nights ? `<span class="chip">${icon("bed")}${escapeHtml(t.nights(lodging.nights))}</span>` : ""}
+        ${lodging.rating ? `<span class="chip">${icon("check")}${escapeHtml(`${lodging.rating}/5`)}</span>` : ""}
+      </div>
+      ${lodging.why ? `<p class="tl-detail">${escapeHtml(lodging.why)}</p>` : ""}
+      ${renderBookingButtons(lodging.booking_links ?? [], true)}
+    </div>
+  </div>`;
 }
 
 function renderBase(t: Strings, structured: any, destination: string): string {
@@ -1124,13 +1298,15 @@ function renderDay(t: Strings, day: ItineraryDay, locale: "fr" | "en"): string {
     ${subtitle ? `<p class="day-sub">${escapeHtml(subtitle)}</p>` : ""}
   </header>
   <div class="day-body">
+    ${renderRoute(t, day.route)}
     ${renderLuggage(t, day.luggage_storage)}
-    ${day.travel_note ? `<div class="chips">${chip("car", `${t.travelNote} · ${day.travel_note}`)}</div>` : ""}
+    ${!day.route && day.travel_note ? `<div class="chips">${chip("car", `${t.travelNote} · ${day.travel_note}`)}</div>` : ""}
     <div class="day-columns">
       <div class="day-main">${timeline}</div>
       ${renderDayRestaurants(t, day.restaurants ?? [])}
     </div>
     ${renderFreeVisits(t, day.free_visits ?? [])}
+    ${renderLodging(t, day.lodging)}
     ${
       options.length
         ? `<details class="fold">

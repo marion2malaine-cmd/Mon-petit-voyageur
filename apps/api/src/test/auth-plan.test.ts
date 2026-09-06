@@ -28,7 +28,7 @@ describe("auth + plan flow", () => {
     resetConfigCache();
   });
 
-  it("registers and plans a trip", async () => {
+  it("registers, and refuses to plan without the AI rather than serve a generic guide", async () => {
     const registerRes = await app.inject({
       method: "POST",
       url: "/api/auth/register",
@@ -46,9 +46,7 @@ describe("auth + plan flow", () => {
     const planRes = await app.inject({
       method: "POST",
       url: "/api/trips/plan",
-      headers: {
-        cookie: `mlt_token=${cookie?.value}`
-      },
+      headers: { cookie: `mlt_token=${cookie?.value}` },
       payload: {
         message: "Je veux partir 6 jours en septembre, budget 1500 €, départ de Lyon, mer et calme",
         locale: "fr"
@@ -60,31 +58,28 @@ describe("auth + plan flow", () => {
     const { job_id } = planRes.json();
     expect(job_id).toBeTypeOf("string");
 
-    let data: any = null;
-    for (let attempt = 0; attempt < 200 && !data; attempt += 1) {
+    let job: any = null;
+    for (let attempt = 0; attempt < 200 && !job; attempt += 1) {
       const pollRes = await app.inject({ method: "GET", url: `/api/trips/plan/${job_id}`, headers: { cookie: `mlt_token=${cookie?.value}` } });
       expect(pollRes.statusCode).toBe(200);
-      const job = pollRes.json();
-      if (job.status === "error") throw new Error(job.error);
-      if (job.status === "done") data = job.result;
-      else await new Promise((resolve) => setTimeout(resolve, 50));
+      const polled = pollRes.json();
+      if (polled.status === "running") await new Promise((resolve) => setTimeout(resolve, 50));
+      else job = polled;
     }
-    expect(data).toBeTruthy();
-    expect(data.traveler_summary).toBeTypeOf("string");
-    expect(Array.isArray(data.trace)).toBe(true);
-    expect(data.trace.some((step: any) => step.skill === "travel-brief-parser")).toBe(true);
 
+    // No LLM key is configured here. The traveler is told so, and gets no
+    // template-generated program passed off as a real one.
+    expect(job.status).toBe("error");
+    expect(job.error).toContain("IA");
+    expect(job.error).toContain("générique");
+
+    // A failed run saves no trip.
     const listRes = await app.inject({
       method: "GET",
       url: "/api/trips",
-      headers: {
-        cookie: `mlt_token=${cookie?.value}`
-      }
+      headers: { cookie: `mlt_token=${cookie?.value}` }
     });
-
     expect(listRes.statusCode).toBe(200);
-    const trips = listRes.json();
-    expect(Array.isArray(trips)).toBe(true);
-    expect(trips.length).toBeGreaterThan(0);
+    expect(listRes.json()).toEqual([]);
   });
 });

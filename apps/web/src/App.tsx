@@ -91,6 +91,11 @@ const text = {
     paceSlow: "Tranquille",
     paceModerate: "Équilibré",
     paceFast: "Soutenu",
+    shapeLabel: "Forme du voyage",
+    shapeBase: "Séjour — une ville, on rayonne",
+    shapeRoadtrip: "Itinérant — on change d'hôtel en route",
+    lodgingChange: "Nouvel hôtel",
+    lodgingSame: "Même hôtel",
     budgetLabel: "Budget total (€)",
     durationLabel: "Durée (jours)",
     travelersLabel: "Voyageurs",
@@ -141,7 +146,36 @@ const text = {
     onSite: "sur place",
     crossing: "Traversée en bateau depuis",
     carModel: "Modèle type",
-    perPersonShort: "€ / pers."
+    perPersonShort: "€ / pers.",
+    googleLogin: "Continuer avec Google",
+    orDivider: "ou",
+    planTitle: "Choisissez votre formule",
+    planSub: "Essai gratuit de 7 jours, sans engagement. Annulable à tout moment.",
+    planMonthlyName: "Mensuel",
+    planMonthlyPrice: "5,99 €",
+    planMonthlyPer: "/ mois",
+    planAnnualName: "Annuel",
+    planAnnualPrice: "49 €",
+    planAnnualPer: "/ an",
+    planAnnualNote: "Économisez 32 % — soit 4,08 €/mois",
+    planPopular: "Le plus choisi",
+    planFeatures: [
+      "Voyages illimités générés par l'IA",
+      "Guide illustré en PDF, jour par jour",
+      "Liens de réservation au meilleur prix",
+      "Envoi du guide par email"
+    ],
+    planTrialCta: "Démarrer l'essai gratuit",
+    planCta: "S'abonner",
+    planTrialUsedNote: "Essai déjà utilisé — l'abonnement démarre immédiatement.",
+    planReassurance: "Sans engagement — résiliez en un clic depuis votre espace, à tout moment.",
+    manageBilling: "Gérer mon abonnement",
+    subscriptionRequired: "Votre essai est terminé. Choisissez une formule pour continuer à planifier.",
+    trialActiveBadge: "Essai en cours",
+    subActiveBadge: "Abonnement actif",
+    checkoutError: "Le paiement n'a pas pu démarrer. Réessayez.",
+    checkoutSuccess: "Bienvenue ! Votre accès est activé.",
+    billingSoon: "Le paiement sera bientôt disponible."
   },
   en: {
     title: "My Little Traveler",
@@ -218,6 +252,11 @@ const text = {
     paceSlow: "Relaxed",
     paceModerate: "Balanced",
     paceFast: "Packed",
+    shapeLabel: "Shape of the trip",
+    shapeBase: "Stay — one town, day trips around",
+    shapeRoadtrip: "Road trip — a new hotel along the way",
+    lodgingChange: "New hotel",
+    lodgingSame: "Same hotel",
     budgetLabel: "Total budget (€)",
     durationLabel: "Duration (days)",
     travelersLabel: "Travelers",
@@ -268,7 +307,36 @@ const text = {
     onSite: "on the spot",
     crossing: "Boat crossing from",
     carModel: "Typical model",
-    perPersonShort: "€ / pers."
+    perPersonShort: "€ / pers.",
+    googleLogin: "Continue with Google",
+    orDivider: "or",
+    planTitle: "Choose your plan",
+    planSub: "7-day free trial, no commitment. Cancel anytime.",
+    planMonthlyName: "Monthly",
+    planMonthlyPrice: "€5.99",
+    planMonthlyPer: "/ month",
+    planAnnualName: "Annual",
+    planAnnualPrice: "€49",
+    planAnnualPer: "/ year",
+    planAnnualNote: "Save 32% — €4.08/mo",
+    planPopular: "Most popular",
+    planFeatures: [
+      "Unlimited AI-generated trips",
+      "Illustrated PDF guide, day by day",
+      "Booking links at the best price",
+      "Guide sent by email"
+    ],
+    planTrialCta: "Start free trial",
+    planCta: "Subscribe",
+    planTrialUsedNote: "Trial already used — the subscription starts right away.",
+    planReassurance: "No commitment — cancel anytime, in one click from your account.",
+    manageBilling: "Manage my subscription",
+    subscriptionRequired: "Your trial has ended. Pick a plan to keep planning.",
+    trialActiveBadge: "Trial active",
+    subActiveBadge: "Subscription active",
+    checkoutError: "Checkout could not start. Please try again.",
+    checkoutSuccess: "Welcome! Your access is active.",
+    billingSoon: "Payments will be available soon."
   }
 } as const;
 
@@ -426,6 +494,12 @@ function TravelerApp() {
   const [message, setMessage] = useState("");
   const [styles, setStyles] = useState<string[]>([]);
   const [pace, setPace] = useState("moderate");
+  // A road trip is a different guide: one stage per night, the drive between
+  // them, a hotel that changes. The traveler says which one they want.
+  const [tripShape, setTripShape] = useState("base");
+  // When the AI cannot write the program the traveler gets nothing rather than
+  // a generic guide, so the reason has to be readable, not an alert box.
+  const [planError, setPlanError] = useState("");
   const [budgetInput, setBudgetInput] = useState("");
   const [duration, setDuration] = useState("");
   const [travelers, setTravelers] = useState("2");
@@ -453,6 +527,8 @@ function TravelerApp() {
   const [guideError, setGuideError] = useState("");
   const [guideSent, setGuideSent] = useState("");
   const [emailTo, setEmailTo] = useState("");
+  const [billingBusy, setBillingBusy] = useState(false);
+  const [billingMsg, setBillingMsg] = useState("");
 
   useEffect(() => {
     api
@@ -463,6 +539,45 @@ function TravelerApp() {
       })
       .catch(() => null);
   }, []);
+
+  // After returning from Stripe Checkout or Google, refresh the account and
+  // clean the URL so a reload does not re-trigger the message.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkout = params.get("checkout");
+    const login = params.get("login");
+    if (!checkout && !login) return;
+    if (checkout === "success") setBillingMsg(text[locale].checkoutSuccess);
+    api.me().then((u) => { setUser(u); setLocale(u.preferred_language); }).catch(() => null);
+    params.delete("checkout");
+    params.delete("login");
+    const rest = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (rest ? `?${rest}` : ""));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleCheckout(plan: "monthly" | "annual") {
+    setBillingBusy(true);
+    setBillingMsg("");
+    try {
+      const { url } = await api.checkout(plan);
+      window.location.href = url;
+    } catch (error) {
+      const raw = (error as Error).message;
+      setBillingMsg(/billing_not_configured/.test(raw) ? t.billingSoon : t.checkoutError);
+      setBillingBusy(false);
+    }
+  }
+
+  async function handleManageBilling() {
+    setBillingBusy(true);
+    try {
+      const { url } = await api.billingPortal();
+      window.location.href = url;
+    } catch {
+      setBillingBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -501,6 +616,7 @@ function TravelerApp() {
     if (!canSubmit) return;
 
     setPlanning(true);
+    setPlanError("");
     try {
       const response = await api.planTrip({
         message:
@@ -515,7 +631,8 @@ function TravelerApp() {
           duration_days: duration ? Number(duration) : null,
           travelers_count: travelers ? Number(travelers) : null,
           departure_city: departure.trim() || null,
-          month: month || null
+          month: month || null,
+          trip_shape: (tripShape || null) as any
         }
       });
       setResult(response);
@@ -523,7 +640,15 @@ function TravelerApp() {
       setTrips(list);
     } catch (error) {
       const message = (error as Error).message;
-      alert(/planning_interrupted/.test(message) ? t.planningInterrupted : /fetch/i.test(message) ? t.serverDown : message);
+      if (/subscription_required/.test(message)) {
+        // The trial ran out mid-session: refresh the account so the paywall shows.
+        setPlanError(t.subscriptionRequired);
+        api.me().then(setUser).catch(() => null);
+      } else {
+        setPlanError(
+          /planning_interrupted/.test(message) ? t.planningInterrupted : /fetch/i.test(message) ? t.serverDown : message
+        );
+      }
     } finally {
       setPlanning(false);
     }
@@ -681,6 +806,11 @@ function TravelerApp() {
                 <option value="en">EN</option>
               </select>
             </label>
+            {user.billing_enabled && (user.subscription_status === "active" || user.subscription_status === "trialing") && (
+              <button className="ghost sub-badge" onClick={handleManageBilling} disabled={billingBusy} title={t.manageBilling}>
+                {user.subscription_status === "trialing" ? t.trialActiveBadge : t.subActiveBadge}
+              </button>
+            )}
             <button className="ghost" onClick={handleLogout}>
               {t.logout}
             </button>
@@ -777,6 +907,16 @@ function TravelerApp() {
                   {authError && <p className="error-text">{authError}</p>}
                   <button type="submit">{isRegisterMode ? t.register : t.login}</button>
                 </form>
+                <div className="auth-divider"><span>{t.orDivider}</span></div>
+                <a className="google-btn" href={api.googleLoginUrl()}>
+                  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.26 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z" />
+                  </svg>
+                  {t.googleLogin}
+                </a>
                 <button className="link" onClick={() => setRegisterMode((v) => !v)}>
                   {isRegisterMode ? t.login : t.register}
                 </button>
@@ -803,6 +943,15 @@ function TravelerApp() {
             </div>
             <p className="footer-copy">© 2026 {t.title}. {t.footerRights}</p>
           </footer>
+        </main>
+            ) : user.billing_enabled && !user.has_access ? (
+        <main className="layout paywall-page">
+          <section className="card paywall">
+            <h2>{t.planTitle}</h2>
+            <p className="section-sub">{user.subscription_status === "past_due" || user.trial_used ? t.subscriptionRequired : t.planSub}</p>
+            <PricingPlans t={t} trialUsed={user.trial_used} busy={billingBusy} onChoose={handleCheckout} />
+            {billingMsg && <p className="error-text">{billingMsg}</p>}
+          </section>
         </main>
             ) : page === "trips" ? (
         <main className="layout trips-page">
@@ -921,6 +1070,13 @@ function TravelerApp() {
                   </select>
                 </label>
                 <label>
+                  {t.shapeLabel}
+                  <select value={tripShape} onChange={(e) => setTripShape(e.target.value)}>
+                    <option value="base">{t.shapeBase}</option>
+                    <option value="roadtrip">{t.shapeRoadtrip}</option>
+                  </select>
+                </label>
+                <label>
                   {t.departureLabel}
                   <input type="text" value={departure} onChange={(e) => setDeparture(e.target.value)} placeholder="Paris" />
                 </label>
@@ -950,6 +1106,7 @@ function TravelerApp() {
               <button type="submit" disabled={!canSubmit}>
                 {planning ? t.loading : t.planTrip}
               </button>
+              {planError && <p className="error-text">{planError}</p>}
             </form>
           </section>
 
@@ -1220,6 +1377,15 @@ function TravelerApp() {
                         <PhotoCredit photo={day.photo} />
                         <strong>{day.title}</strong>
                         {day.theme && <span className="tag">{day.theme}</span>}
+                        {day.route?.to && (
+                          <p className="day-route">
+                            <small>
+                              {[day.route.from, day.route.to].filter(Boolean).join(" → ")}
+                              {day.route.duration ? ` · ${day.route.duration}` : ""}
+                              {day.route.distance_km ? ` · ${day.route.distance_km} km` : ""}
+                            </small>
+                          </p>
+                        )}
                         <p>
                           <small>
                             {t.morning}: {day.morning}
@@ -1229,6 +1395,23 @@ function TravelerApp() {
                             {t.evening}: {day.evening}
                           </small>
                         </p>
+                        {day.lodging?.name && (
+                          <p className={`day-facet day-lodging${day.lodging.is_change ? " day-lodging-change" : ""}`}>
+                            <em>{day.lodging.is_change ? t.lodgingChange : t.lodgingSame}</em>
+                            <small>
+                              {day.lodging.name}
+                              {day.lodging.town ? ` · ${day.lodging.town}` : ""}
+                              {day.lodging.price_per_night_eur
+                                ? ` · ${day.lodging.price_per_night_eur}${
+                                    day.lodging.price_max_per_night_eur &&
+                                    day.lodging.price_max_per_night_eur !== day.lodging.price_per_night_eur
+                                      ? `–${day.lodging.price_max_per_night_eur}`
+                                      : ""
+                                  } € / ${locale === "fr" ? "nuit" : "night"}`
+                                : ""}
+                            </small>
+                          </p>
+                        )}
                         {(day.free_visits ?? []).length > 0 && (
                           <p className="day-facet">
                             <em>{t.freeVisitsLabel}</em>
@@ -1368,6 +1551,59 @@ function PhotoCredit({ photo }: { photo: any }) {
         </>
       )}
     </small>
+  );
+}
+
+/** The two subscription plans, shown on the paywall. */
+function PricingPlans({
+  t,
+  trialUsed,
+  busy,
+  onChoose
+}: {
+  t: (typeof text)["fr"] | (typeof text)["en"];
+  trialUsed: boolean;
+  busy: boolean;
+  onChoose: (plan: "monthly" | "annual") => void;
+}) {
+  const cta = trialUsed ? t.planCta : t.planTrialCta;
+  return (
+    <div className="pricing">
+      <div className="pricing-grid">
+        <article className="plan-card">
+          <h3>{t.planMonthlyName}</h3>
+          <p className="plan-price">
+            <strong>{t.planMonthlyPrice}</strong> <span>{t.planMonthlyPer}</span>
+          </p>
+          <ul className="plan-features">
+            {t.planFeatures.map((f) => (
+              <li key={f}>{f}</li>
+            ))}
+          </ul>
+          <button type="button" onClick={() => onChoose("monthly")} disabled={busy}>
+            {cta}
+          </button>
+        </article>
+        <article className="plan-card is-featured">
+          <span className="plan-badge">{t.planPopular}</span>
+          <h3>{t.planAnnualName}</h3>
+          <p className="plan-price">
+            <strong>{t.planAnnualPrice}</strong> <span>{t.planAnnualPer}</span>
+          </p>
+          <p className="plan-save">{t.planAnnualNote}</p>
+          <ul className="plan-features">
+            {t.planFeatures.map((f) => (
+              <li key={f}>{f}</li>
+            ))}
+          </ul>
+          <button type="button" onClick={() => onChoose("annual")} disabled={busy}>
+            {cta}
+          </button>
+        </article>
+      </div>
+      {trialUsed && <p className="plan-note">{t.planTrialUsedNote}</p>}
+      <p className="plan-reassurance">{t.planReassurance}</p>
+    </div>
   );
 }
 

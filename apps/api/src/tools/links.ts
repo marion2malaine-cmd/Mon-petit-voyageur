@@ -59,17 +59,32 @@ export function buildSearchLinks(input: LinkBuilderInput): SearchLink[] {
     });
   }
 
+  // Google Flights only pre-fills its form from the phrasing it parses itself:
+  // "Flights from X to Y on <date> through <date>". Anything else opens an
+  // empty search.
+  const gfOrigin = input.originCode ?? input.originCity ?? "Paris";
+  const gfDestination = input.destinationCode ?? city;
   const gfQuery = encodeURIComponent(
-    `flights from ${input.originCity ?? "Paris"} to ${city}${input.departureDate ? ` on ${input.departureDate}` : ""}`
+    `Flights from ${gfOrigin} to ${gfDestination}` +
+      (input.departureDate ? ` on ${input.departureDate}` : "") +
+      (input.departureDate && input.returnDate ? ` through ${input.returnDate}` : "")
   );
   links.push({
     provider: "google-flights",
     label: fr ? "Voir sur Google Flights" : "View on Google Flights",
-    url: `https://www.google.com/travel/flights?q=${gfQuery}`,
+    url: `https://www.google.com/travel/flights?q=${gfQuery}&hl=${fr ? "fr" : "en"}&curr=EUR`,
     category: "flights"
   });
 
-  const bookingParams = new URLSearchParams({ ss: city, group_adults: String(adults) });
+  // Booking.com only applies the dates when the search is complete: without
+  // no_rooms/group_children it drops the whole set and opens on today.
+  const bookingParams = new URLSearchParams({
+    ss: city,
+    group_adults: String(adults),
+    group_children: "0",
+    no_rooms: "1",
+    lang: fr ? "fr" : "en-gb"
+  });
   if (input.departureDate) bookingParams.set("checkin", input.departureDate);
   if (input.returnDate) bookingParams.set("checkout", input.returnDate);
   links.push({
@@ -251,7 +266,7 @@ export function buildCrossingLinks(
     {
       provider: "local-agency",
       label: fr ? `Traversée depuis ${fromPort} — opérateurs du port` : `Crossing from ${fromPort} — port operators`,
-      url: `https://www.google.com/search?q=${encodeURIComponent(fr ? `${boatQuery} billet traversée horaires` : `${boatQuery} ticket timetable`)}`
+      url: buildDirectUrl(fr ? `${boatQuery} billet traversée horaires` : `${boatQuery} ticket timetable`)
     },
     {
       provider: "viator",
@@ -305,16 +320,26 @@ export function buildGetYourGuideUrl(query: string, locale: "fr" | "en"): string
 }
 
 /**
- * A site-restricted web search that always resolves and lands on the right
- * page of a site whose own search is unreliable.
+ * A link that opens the page itself, not a list of results.
  *
- * Several travel sites ignore their `?q=` parameter (GetYourGuide, Civitatis)
- * or require a city slug that 404s for anything but a plain city name
- * (Nannybag, Radical Storage). Rather than guess slugs, the traveler is sent
- * through a search scoped to that site — verified to land on the correct page.
+ * DuckDuckGo's `\\` prefix redirects straight to the first result, so the
+ * traveler lands on the GetYourGuide page for their city, on the museum's own
+ * ticket office, on the Nannybag page for the town — one click, no search page
+ * to read through. Verified on getyourguide.fr, nannybag.com and a museum
+ * ticket office.
+ *
+ * This is what makes a search usable as a link: guessing the sites' own URLs is
+ * not an option (GetYourGuide and Civitatis ignore their `?q=` and show
+ * whatever city the session is anchored on — a Hanoi query landed on Bologna;
+ * Nannybag and Radical Storage 404 on any slug but a plain city name).
  */
+export function buildDirectUrl(query: string): string {
+  return `https://duckduckgo.com/?q=${encodeURIComponent(`\\ ${query}`)}`;
+}
+
+/** The same, restricted to one site: lands on that site's own page. */
 export function buildSiteSearchUrl(host: string, query: string): string {
-  return `https://www.google.com/search?q=${encodeURIComponent(`site:${host} ${query}`)}`;
+  return buildDirectUrl(`site:${host} ${query}`);
 }
 
 /**
@@ -359,7 +384,7 @@ function buildTicketLinksRaw(
       : {
           provider: "official",
           label: fr ? "Billetterie officielle" : "Official ticket office",
-          url: `https://www.google.com/search?q=${encodeURIComponent(officialQuery)}`
+          url: buildDirectUrl(officialQuery)
         },
     {
       provider: "tiqets",
@@ -415,7 +440,9 @@ export function buildLocalAndForumLinks(
 ): BookingLink[] {
   const fr = locale === "fr";
   const city = destinationCity.trim();
-  const subject = `${activityTitle} ${city}`.trim();
+  const subject = activityTitle.toLowerCase().includes(city.toLowerCase())
+    ? activityTitle.trim()
+    : `${activityTitle} ${city}`.trim();
 
   const localQuery = fr
     ? `${subject} agence locale réservation sur place tarif`
@@ -425,7 +452,7 @@ export function buildLocalAndForumLinks(
     {
       provider: "local-agency",
       label: fr ? "Agences locales et tarif sur place" : "Local agencies and on-site price",
-      url: `https://www.google.com/search?q=${encodeURIComponent(localQuery)}`
+      url: buildDirectUrl(localQuery)
     },
     {
       provider: "forum",
@@ -445,7 +472,7 @@ export function buildLocalAndForumLinks(
   links.push({
     provider: "reddit",
     label: fr ? "Retours voyageurs (Reddit)" : "Traveler reports (Reddit)",
-    url: `https://www.google.com/search?q=${encodeURIComponent(`site:reddit.com ${subject}`)}`
+    url: buildSiteSearchUrl("reddit.com", subject)
   });
 
   return links;
@@ -542,9 +569,9 @@ export function buildTransferLinks(destinationCity: string, locale: "fr" | "en")
       // surfaces the airport-to-centre options and their fares.
       provider: "official",
       label: fr ? "Options et tarifs aéroport → centre" : "Airport → centre options and fares",
-      url: `https://www.google.com/search?q=${encodeURIComponent(
+      url: buildDirectUrl(
         fr ? `aéroport ${city} centre-ville transport prix` : `${city} airport city centre transport price`
-      )}`
+      )
     }
   ];
 }
@@ -553,4 +580,34 @@ export function buildTransferLinks(destinationCity: string, locale: "fr" | "en")
 function toSkyscannerDate(date?: string | null): string | null {
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
   return date.slice(2).replace(/-/g, "");
+}
+
+/**
+ * Booking routes for the night's address, cheapest first.
+ *
+ * A named establishment is booked either on its own site — where it keeps the
+ * whole price — or on Booking; both are reached by a link that lands on the
+ * page itself rather than on a list of hotels in the region.
+ */
+export function buildLodgingLinks(name: string, town: string, locale: "fr" | "en"): BookingLink[] {
+  const fr = locale === "fr";
+  const subject = name.toLowerCase().includes(town.toLowerCase()) ? name.trim() : `${name} ${town}`.trim();
+
+  return [
+    {
+      provider: "official",
+      label: fr ? "Site de l'établissement" : "The property's own site",
+      url: buildDirectUrl(fr ? `${subject} réservation site officiel` : `${subject} official website booking`)
+    },
+    {
+      provider: "booking",
+      label: fr ? "Voir sur Booking" : "See on Booking",
+      url: buildSiteSearchUrl(`booking.${fr ? "com/fr" : "com"}`, subject)
+    },
+    {
+      provider: "google-maps",
+      label: fr ? "Situer sur la carte" : "Locate on the map",
+      url: buildMapUrl(name, town)
+    }
+  ];
 }

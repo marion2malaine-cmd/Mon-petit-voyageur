@@ -3,12 +3,36 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import type { StructuredTripBrief, PlanTripResponse } from "@mlt/contracts";
 
+export type SubscriptionStatus =
+  | "none"
+  | "trialing"
+  | "active"
+  | "past_due"
+  | "canceled";
+
 export interface UserRecord {
   id: number;
   email: string;
   password_hash: string;
   preferred_language: "fr" | "en";
   created_at: string;
+  // Billing. Filled by Stripe webhooks; "none" until the user subscribes.
+  google_id: string | null;
+  stripe_customer_id: string | null;
+  subscription_status: SubscriptionStatus;
+  subscription_plan: string | null;
+  current_period_end: string | null;
+  // 1 once a free trial has been consumed, so a second checkout starts paid.
+  trial_used: number;
+}
+
+export interface BillingUpdate {
+  userId: number;
+  stripeCustomerId?: string | null;
+  subscriptionStatus?: SubscriptionStatus;
+  subscriptionPlan?: string | null;
+  currentPeriodEnd?: string | null;
+  trialUsed?: boolean;
 }
 
 export interface TripRunInsert {
@@ -23,10 +47,14 @@ export interface TripRunInsert {
 
 export interface AppDb {
   raw: Database.Database;
-  createUser(input: { email: string; passwordHash: string; preferredLanguage: "fr" | "en" }): UserRecord;
+  createUser(input: { email: string; passwordHash: string; preferredLanguage: "fr" | "en"; googleId?: string }): UserRecord;
   upsertUser(input: { email: string; passwordHash: string; preferredLanguage: "fr" | "en" }): UserRecord;
   findUserByEmail(email: string): UserRecord | null;
   findUserById(id: number): UserRecord | null;
+  findUserByGoogleId(googleId: string): UserRecord | null;
+  findUserByStripeCustomerId(customerId: string): UserRecord | null;
+  linkGoogleId(userId: number, googleId: string): void;
+  updateBilling(input: BillingUpdate): void;
   createTrip(input: {
     userId: number;
     title: string;
@@ -93,13 +121,34 @@ export function initDb(sqlitePath: string): AppDb {
     CREATE INDEX IF NOT EXISTS idx_trip_runs_trip_id ON trip_runs(trip_id);
   `);
 
+  // Billing columns are added in place so existing databases keep their data.
+  const userColumns = new Set(
+    (db.prepare("PRAGMA table_info(users)").all() as { name: string }[]).map((c) => c.name)
+  );
+  const addColumn = (name: string, definition: string) => {
+    if (!userColumns.has(name)) db.exec(`ALTER TABLE users ADD COLUMN ${name} ${definition}`);
+  };
+  addColumn("google_id", "TEXT");
+  addColumn("stripe_customer_id", "TEXT");
+  addColumn("subscription_status", "TEXT NOT NULL DEFAULT 'none'");
+  addColumn("subscription_plan", "TEXT");
+  addColumn("current_period_end", "TEXT");
+  addColumn("trial_used", "INTEGER NOT NULL DEFAULT 0");
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id) WHERE google_id IS NOT NULL");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_users_stripe_customer ON users(stripe_customer_id)");
+
   return {
     raw: db,
     createUser(input) {
       const stmt = db.prepare(
-        "INSERT INTO users(email, password_hash, preferred_language) VALUES(?, ?, ?)"
+        "INSERT INTO users(email, password_hash, preferred_language, google_id) VALUES(?, ?, ?, ?)"
       );
-      const result = stmt.run(input.email.toLowerCase(), input.passwordHash, input.preferredLanguage);
+      const result = stmt.run(
+        input.email.toLowerCase(),
+        input.passwordHash,
+        input.preferredLanguage,
+        input.googleId ?? null
+      );
       return this.findUserById(Number(result.lastInsertRowid))!;
     },
     upsertUser(input) {
@@ -128,6 +177,37 @@ export function initDb(sqlitePath: string): AppDb {
       const stmt = db.prepare("SELECT * FROM users WHERE id = ? LIMIT 1");
       const row = stmt.get(id) as UserRecord | undefined;
       return row ?? null;
+    },
+    findUserByGoogleId(googleId) {
+      const row = db.prepare("SELECT * FROM users WHERE google_id = ? LIMIT 1").get(googleId) as
+        | UserRecord
+        | undefined;
+      return row ?? null;
+    },
+    findUserByStripeCustomerId(customerId) {
+      const row = db
+        .prepare("SELECT * FROM users WHERE stripe_customer_id = ? LIMIT 1")
+        .get(customerId) as UserRecord | undefined;
+      return row ?? null;
+    },
+    linkGoogleId(userId, googleId) {
+      db.prepare("UPDATE users SET google_id = ? WHERE id = ?").run(googleId, userId);
+    },
+    updateBilling(input) {
+      const sets: string[] = [];
+      const values: unknown[] = [];
+      const push = (column: string, value: unknown) => {
+        sets.push(`${column} = ?`);
+        values.push(value);
+      };
+      if (input.stripeCustomerId !== undefined) push("stripe_customer_id", input.stripeCustomerId);
+      if (input.subscriptionStatus !== undefined) push("subscription_status", input.subscriptionStatus);
+      if (input.subscriptionPlan !== undefined) push("subscription_plan", input.subscriptionPlan);
+      if (input.currentPeriodEnd !== undefined) push("current_period_end", input.currentPeriodEnd);
+      if (input.trialUsed !== undefined) push("trial_used", input.trialUsed ? 1 : 0);
+      if (sets.length === 0) return;
+      values.push(input.userId);
+      db.prepare(`UPDATE users SET ${sets.join(", ")} WHERE id = ?`).run(...values);
     },
     createTrip(input) {
       const stmt = db.prepare(

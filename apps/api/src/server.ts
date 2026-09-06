@@ -2,11 +2,13 @@ import type { z } from "zod";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
+import rateLimit from "@fastify/rate-limit";
 import jwt from "@fastify/jwt";
-import { randomUUID } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import {
   AuthLoginRequestSchema,
   AuthRegisterRequestSchema,
+  BillingCheckoutRequestSchema,
   GuideEmailRequestSchema,
   PlanTripRequestSchema,
   type PlanTripResponse,
@@ -14,7 +16,9 @@ import {
 } from "@mlt/contracts";
 import { getConfig } from "./config";
 import { hashPassword, verifyPassword } from "./auth";
-import { initDb } from "./db";
+import { initDb, type UserRecord } from "./db";
+import { Billing, hasActiveAccess } from "./billing";
+import { startGoogleLogin, completeGoogleLogin } from "./googleAuth";
 import { createTools } from "./tools";
 import { loadSkillRegistry } from "./skills/registry";
 import { createOrchestrator } from "./orchestrator/orchestrator";
@@ -55,6 +59,22 @@ export function buildServer() {
   const skillRegistry = loadSkillRegistry();
   const orchestrator = createOrchestrator(config, tools, skillRegistry);
   const mailer = new Mailer(config);
+  const billing = new Billing(config);
+
+  /** The account as the web app needs it, with its billing state. */
+  function serializeUser(user: UserRecord) {
+    return {
+      id: user.id,
+      email: user.email,
+      preferred_language: user.preferred_language,
+      subscription_status: user.subscription_status ?? "none",
+      subscription_plan: user.subscription_plan ?? null,
+      current_period_end: user.current_period_end ?? null,
+      trial_used: !!user.trial_used,
+      billing_enabled: billing.isConfigured,
+      has_access: hasActiveAccess(user, billing.isConfigured)
+    };
+  }
 
   /**
    * Session cookie attributes.
@@ -76,11 +96,50 @@ export function buildServer() {
     }
   });
 
+  // Keep the raw JSON body around: Stripe verifies its webhook signature
+  // against the exact bytes it sent, so the parsed object is not enough.
+  app.addContentTypeParser("application/json", { parseAs: "buffer" }, (req, body, done) => {
+    (req as any).rawBody = body;
+    const text = body.toString("utf8");
+    try {
+      done(null, text ? JSON.parse(text) : {});
+    } catch (error) {
+      done(error as Error);
+    }
+  });
+
+  // Only known front-ends may make credentialed requests: reflecting any origin
+  // (origin: true) with credentials lets any site the user visits call the API
+  // with their session. The web app, its www variant and the iOS app (Capacitor)
+  // are allowed; localhost dev origins only outside production.
+  const allowedOrigins = new Set<string>([
+    config.APP_URL,
+    config.APP_URL.replace("https://", "https://www."),
+    "capacitor://localhost"
+  ]);
+  if (config.NODE_ENV !== "production") {
+    allowedOrigins.add("http://localhost:5180");
+    allowedOrigins.add("http://localhost:5173");
+  }
+
   app.register(cors, {
-    origin: true,
+    // A missing Origin (server-to-server calls like the Stripe webhook, curl,
+    // the iOS webview) is not a browser cross-origin request, so it is allowed.
+    origin(origin, cb) {
+      if (!origin || allowedOrigins.has(origin)) return cb(null, true);
+      cb(null, false);
+    },
     credentials: true,
     // The PDF download reads its file name from this header.
     exposedHeaders: ["Content-Disposition"]
+  });
+
+  // Baseline rate limit against brute force and cost abuse. Auth and planning
+  // routes tighten it further per-route below.
+  app.register(rateLimit, {
+    global: true,
+    max: 120,
+    timeWindow: "1 minute"
   });
 
   app.register(cookie);
@@ -118,7 +177,10 @@ export function buildServer() {
 
   app.get("/api/health", async () => ({ ok: true }));
 
-  app.post("/api/auth/register", async (request, reply) => {
+  // Tighter limit on account creation and login: brute force / enumeration.
+  const authRateLimit = { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } };
+
+  app.post("/api/auth/register", authRateLimit, async (request, reply) => {
     const parsed = AuthRegisterRequestSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.flatten() });
@@ -139,14 +201,10 @@ export function buildServer() {
     const token = await reply.jwtSign({ userId: user.id, email: user.email });
     reply.setCookie("mlt_token", token, sessionCookieOptions);
 
-    return {
-      id: user.id,
-      email: user.email,
-      preferred_language: user.preferred_language
-    };
+    return serializeUser(user);
   });
 
-  app.post("/api/auth/login", async (request, reply) => {
+  app.post("/api/auth/login", authRateLimit, async (request, reply) => {
     const parsed = AuthLoginRequestSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.flatten() });
@@ -165,11 +223,7 @@ export function buildServer() {
     const token = await reply.jwtSign({ userId: user.id, email: user.email });
     reply.setCookie("mlt_token", token, sessionCookieOptions);
 
-    return {
-      id: user.id,
-      email: user.email,
-      preferred_language: user.preferred_language
-    };
+    return serializeUser(user);
   });
 
   app.post("/api/auth/logout", async (_request, reply) => {
@@ -186,11 +240,133 @@ export function buildServer() {
       return reply.code(401).send({ error: "Unauthorized" });
     }
 
-    return {
-      id: user.id,
-      email: user.email,
-      preferred_language: user.preferred_language
-    };
+    return serializeUser(user);
+  });
+
+  // --- Billing (Stripe) ---------------------------------------------------
+
+  // Starts a Checkout session for the chosen plan and returns its URL. The web
+  // app redirects the browser there.
+  app.post("/api/billing/checkout", { preHandler: (app as any).authenticate }, async (request: any, reply) => {
+    if (!billing.isConfigured) {
+      return reply.code(503).send({
+        error: "billing_not_configured",
+        message: "Le paiement n'est pas encore configuré (clés Stripe manquantes)."
+      });
+    }
+    const parsed = BillingCheckoutRequestSchema.safeParse(request.body ?? {});
+    if (!parsed.success) {
+      return reply.code(400).send({ error: parsed.error.flatten() });
+    }
+    const user = db.findUserById(request.user.userId);
+    if (!user) return reply.code(401).send({ error: "Unauthorized" });
+
+    const result = await billing.createCheckoutSession({ user, plan: parsed.data.plan, db });
+    if ("error" in result) {
+      return reply.code(400).send({ error: result.error, message: "Impossible de démarrer le paiement." });
+    }
+    return { url: result.url };
+  });
+
+  // Opens the Stripe billing portal so the traveler can update or cancel.
+  app.post("/api/billing/portal", { preHandler: (app as any).authenticate }, async (request: any, reply) => {
+    const user = db.findUserById(request.user.userId);
+    if (!user) return reply.code(401).send({ error: "Unauthorized" });
+    const result = await billing.createPortalSession(user);
+    if ("error" in result) {
+      return reply.code(400).send({ error: result.error, message: "Espace de gestion indisponible." });
+    }
+    return { url: result.url };
+  });
+
+  // Stripe calls this after every billing event. The signature is verified
+  // against the raw body, and the user's subscription state is refreshed from
+  // the source of truth (Stripe) rather than trusted from the payload alone.
+  app.post("/api/billing/webhook", async (request: any, reply) => {
+    const event = billing.constructEvent((request as any).rawBody, request.headers["stripe-signature"]);
+    if (!event) {
+      return reply.code(400).send({ error: "invalid_signature" });
+    }
+
+    const customerId =
+      (event.data.object as any)?.customer ??
+      ((event.data.object as any)?.id && event.type.startsWith("customer.subscription")
+        ? (event.data.object as any).customer
+        : undefined);
+
+    if (typeof customerId === "string") {
+      const user = db.findUserByStripeCustomerId(customerId);
+      if (user) {
+        const state = await billing.syncSubscription(customerId);
+        if (state) {
+          db.updateBilling({
+            userId: user.id,
+            subscriptionStatus: state.status,
+            subscriptionPlan: state.plan,
+            currentPeriodEnd: state.currentPeriodEnd,
+            trialUsed: state.trialUsed || undefined
+          });
+        }
+      }
+    }
+
+    return { received: true };
+  });
+
+  // --- Google sign-in -----------------------------------------------------
+
+  // The OAuth state cookie is short-lived and only needs to survive the round
+  // trip to Google; it is readable by the callback on the same site.
+  const oauthStateCookieOptions = { ...sessionCookieOptions, maxAge: 600 };
+
+  app.get("/api/auth/google", async (_request, reply) => {
+    const state = randomUUID();
+    const url = startGoogleLogin(config, state);
+    if (!url) {
+      return reply.code(503).send({ error: "google_not_configured" });
+    }
+    reply.setCookie("mlt_oauth_state", state, oauthStateCookieOptions);
+    return reply.redirect(url);
+  });
+
+  app.get("/api/auth/google/callback", async (request: any, reply) => {
+    const code = request.query?.code as string | undefined;
+    // Reject any callback whose state does not match the one we set: this is
+    // the CSRF guard for the login flow.
+    const state = request.query?.state as string | undefined;
+    const expectedState = request.cookies?.mlt_oauth_state as string | undefined;
+    reply.clearCookie("mlt_oauth_state", { path: "/" });
+    if (!code || !state || !expectedState || !safeEqual(state, expectedState)) {
+      return reply.redirect(`${config.APP_URL}/?login=google_error`);
+    }
+
+    const profile = await completeGoogleLogin(config, code);
+    if (!profile) return reply.redirect(`${config.APP_URL}/?login=google_error`);
+
+    // Match on the Google id first, then on the email so an existing password
+    // account is linked rather than duplicated.
+    let user = db.findUserByGoogleId(profile.googleId);
+    if (!user) {
+      const byEmail = db.findUserByEmail(profile.email);
+      if (byEmail) {
+        db.linkGoogleId(byEmail.id, profile.googleId);
+        user = db.findUserById(byEmail.id);
+      } else {
+        // No usable password for a Google account: a random hash keeps the
+        // NOT NULL column honest while password login stays impossible.
+        const passwordHash = await hashPassword(randomUUID() + randomUUID());
+        user = db.createUser({
+          email: profile.email,
+          passwordHash,
+          preferredLanguage: "fr",
+          googleId: profile.googleId
+        });
+      }
+    }
+
+    const token = await reply.jwtSign({ userId: user!.id, email: user!.email });
+    reply.setCookie("mlt_token", token, sessionCookieOptions);
+    return reply.redirect(`${config.APP_URL}/?login=google`);
   });
 
   /**
@@ -200,13 +376,27 @@ export function buildServer() {
    * The trip itself is saved as soon as the plan exists, so a lost job never
    * loses a finished plan.
    */
-  app.post("/api/trips/plan", { preHandler: (app as any).authenticate }, async (request: any, reply) => {
+  app.post(
+    "/api/trips/plan",
+    { preHandler: (app as any).authenticate, config: { rateLimit: { max: 8, timeWindow: "1 minute" } } },
+    async (request: any, reply) => {
     const parsed = PlanTripRequestSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: parsed.error.flatten() });
     }
 
     const userId = request.user?.userId as number;
+
+    // Planning is the paid feature: without an active plan or a running trial,
+    // the traveler is sent to checkout instead. Open while Stripe is off.
+    const planUser = db.findUserById(userId);
+    if (!planUser || !hasActiveAccess(planUser, billing.isConfigured)) {
+      return reply.code(402).send({
+        error: "subscription_required",
+        message: "Votre essai est terminé ou aucun abonnement n'est actif. Choisissez une formule pour continuer."
+      });
+    }
+
     const runId = randomUUID();
     const job: PlanJob = { userId, status: "running", startedAt: Date.now() };
     planJobs.set(runId, job);
@@ -496,6 +686,14 @@ export function buildServer() {
   });
 
   return app;
+}
+
+/** Constant-time string compare that never throws on length mismatch. */
+function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
 }
 
 function buildGuideFilename(title: string): string {

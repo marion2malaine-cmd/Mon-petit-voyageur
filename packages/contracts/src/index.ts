@@ -37,6 +37,7 @@ export const StructuredTripBriefSchema = z.object({
   interests: z.array(z.string()).default([]),
   dislikes: z.array(z.string()).default([]),
   pace: z.enum(["slow", "moderate", "fast"]).default("moderate"),
+  trip_shape: z.enum(["base", "roadtrip"]).default("base"),
   accommodation_preferences: z.array(z.string()).default([]),
   transport_preferences: z.array(z.string()).default([]),
   climate_preferences: z.array(z.string()).default([]),
@@ -123,6 +124,8 @@ export const StayOptionSchema = z.object({
   photo_url: z.string().nullable().default(null)
 });
 
+export type StayOption = z.infer<typeof StayOptionSchema>;
+
 export const SearchLinkSchema = z.object({
   provider: z.string(),
   label: z.string(),
@@ -142,6 +145,8 @@ export const BookingLinkSchema = z.object({
     "thefork",
     "tripadvisor",
     "google-maps",
+    "booking",
+    "airbnb",
     "discovercars",
     "rentalcars",
     "kayak",
@@ -439,6 +444,49 @@ export const LuggageStorageSchema = z.object({
 });
 export type LuggageStorage = z.infer<typeof LuggageStorageSchema>;
 
+/**
+ * Where the traveler sleeps that night.
+ *
+ * A roadbook names the hotel of every stage with its price, because that is the
+ * decision of the day — not a single "base" listed once at the front of the
+ * guide and never mentioned again.
+ */
+export const LodgingSchema = z.object({
+  name: z.string(),
+  town: z.string().nullable().default(null),
+  // A range reads honestly for a hotel booked months ahead: "55-75 EUR".
+  price_per_night_eur: z.number().nonnegative().nullable().default(null),
+  price_max_per_night_eur: z.number().nonnegative().nullable().default(null),
+  price_note: z.string().nullable().default(null),
+  kind: z.enum(["hotel", "guesthouse", "homestay", "ecolodge", "resort", "apartment", "boat"]).default("hotel"),
+  why: z.string().default(""),
+  // True on the first night of a stage: the guide flags the move so the
+  // traveler knows the bags go back in the car.
+  is_change: z.boolean().default(false),
+  nights: z.number().int().positive().nullable().default(null),
+  rating: z.number().min(0).max(5).nullable().default(null),
+  address: z.string().nullable().default(null),
+  coordinates: GeoPointSchema.nullable().default(null),
+  booking_links: z.array(BookingLinkSchema).default([]),
+  photo: PhotoSchema.nullable().default(null)
+});
+export type Lodging = z.infer<typeof LodgingSchema>;
+
+/** The drive of the day: where from, where to, how long, on what road. */
+export const DayRouteSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  // As a traveler reads it: "7 h 30", "2 h 15".
+  duration: z.string().nullable().default(null),
+  distance_km: z.number().nonnegative().nullable().default(null),
+  mode: z.enum(["car", "train", "bus", "boat", "plane", "foot"]).default("car"),
+  // "QL4C puis DT217 le long du canyon": what makes the drive worth it.
+  road_note: z.string().default(""),
+  departure_time: z.string().nullable().default(null),
+  stops: z.array(z.string()).default([])
+});
+export type DayRoute = z.infer<typeof DayRouteSchema>;
+
 export const TimelineStepSchema = z.object({
   time: z.string(),
   label: z.string(),
@@ -461,6 +509,12 @@ export const ItineraryDaySchema = z.object({
   paid_options: z.array(PaidOptionSchema).default([]),
   restaurants: z.array(RestaurantPickSchema).default([]),
   travel_note: z.string().nullable().default(null),
+  // The stage this day belongs to ("Mèo Vạc"), the drive that got there and
+  // the bed at the end of it. On a single-base trip the stage never changes
+  // and the lodging simply repeats.
+  stage: z.string().nullable().default(null),
+  route: DayRouteSchema.nullable().default(null),
+  lodging: LodgingSchema.nullable().default(null),
   center: GeoPointSchema.nullable().default(null),
   practical_tips: z.array(z.string()).default([]),
   free_day_cost_eur: z.number().nonnegative().nullable().default(null),
@@ -521,6 +575,12 @@ export const ItineraryOutlineDaySchema = z.object({
   // restaurant lookup searches. "Gorges de Samaria et Omalos" is an area; "Omalos"
   // is where one eats.
   meal_town: z.string().nullable().default(null),
+  // The stage of that night and the drive to reach it: planned in the outline
+  // so the whole trip is a coherent route rather than 20 unrelated days.
+  stage: z.string().nullable().default(null),
+  route_from: z.string().nullable().default(null),
+  route_duration: z.string().nullable().default(null),
+  lodging_name: z.string().nullable().default(null),
   free_visit_names: z.array(z.string()).default([]),
   paid_option_titles: z.array(z.string()).default([]),
   // One category per paid option title, same order: the outline plans the mix
@@ -591,6 +651,9 @@ export const TravelStyleSchema = z.enum([
 ]);
 export type TravelStyle = z.infer<typeof TravelStyleSchema>;
 
+export const TripShapeSchema = z.enum(["base", "roadtrip"]);
+export type TripShape = z.infer<typeof TripShapeSchema>;
+
 // The upfront traveler questionnaire: explicit answers take precedence over
 // whatever is inferred from the free-text message.
 export const TripPreferencesSchema = z.object({
@@ -602,7 +665,10 @@ export const TripPreferencesSchema = z.object({
   duration_days: z.number().int().positive().nullable().default(null),
   travelers_count: z.number().int().positive().nullable().default(null),
   departure_city: z.string().nullable().default(null),
-  month: z.string().nullable().default(null)
+  month: z.string().nullable().default(null),
+  // A stay sleeps in one town; a road trip moves, and its guide is a roadbook:
+  // one stage per night, the drive between them, a different hotel most nights.
+  trip_shape: TripShapeSchema.nullable().default(null)
 });
 export type TripPreferences = z.infer<typeof TripPreferencesSchema>;
 
@@ -632,6 +698,31 @@ export const PlanTripResponseSchema = z.object({
   trace: z.array(PlanTraceStepSchema)
 });
 export type PlanTripResponse = z.infer<typeof PlanTripResponseSchema>;
+
+export const SubscriptionStatusSchema = z.enum(["none", "trialing", "active", "past_due", "canceled"]);
+export type SubscriptionStatus = z.infer<typeof SubscriptionStatusSchema>;
+
+// What the app needs to decide between the paywall and the planner.
+export const AuthUserSchema = z.object({
+  id: z.number().int().positive(),
+  email: z.string().email(),
+  preferred_language: z.enum(["fr", "en"]),
+  subscription_status: SubscriptionStatusSchema.default("none"),
+  subscription_plan: z.string().nullable().default(null),
+  current_period_end: z.string().nullable().default(null),
+  trial_used: z.boolean().default(false),
+  // True while Stripe is not configured: the client then treats the app as open.
+  billing_enabled: z.boolean().default(false),
+  has_access: z.boolean().default(true)
+});
+export type AuthUser = z.infer<typeof AuthUserSchema>;
+
+export const BillingPlanSchema = z.enum(["monthly", "annual"]);
+export type BillingPlan = z.infer<typeof BillingPlanSchema>;
+
+export const BillingCheckoutRequestSchema = z.object({
+  plan: BillingPlanSchema.default("monthly")
+});
 
 export const AuthRegisterRequestSchema = z.object({
   email: z.string().email(),

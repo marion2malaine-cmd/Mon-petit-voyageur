@@ -78,6 +78,7 @@ export function mergePreferencesIntoBrief(
   if (prefs.pace) merged.pace = prefs.pace;
   if (prefs.departure_city) merged.departure_city = prefs.departure_city;
   if (prefs.month) merged.date_window = prefs.month;
+  if (prefs.trip_shape) merged.trip_shape = prefs.trip_shape;
 
   if (prefs.travel_styles.length) {
     const styles = new Set<TravelStyle>([

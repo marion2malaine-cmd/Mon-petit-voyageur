@@ -15,6 +15,7 @@
     "@fastify/cookie": "^10.0.1",
     "@fastify/cors": "^10.0.1",
     "@fastify/jwt": "^9.0.1",
+    "@fastify/rate-limit": "^10.3.0",
     "@mlt/contracts": "1.0.0",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^11.7.2",
@@ -24,6 +25,7 @@
     "nodemailer": "^9.0.3",
     "openai": "^4.86.1",
     "puppeteer-core": "^24.43.1",
+    "stripe": "^17.7.0",
     "zod": "^3.24.1",
     "zod-to-json-schema": "^3.25.2"
   },

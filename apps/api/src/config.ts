@@ -70,7 +70,26 @@ const EnvSchema = z.object({
   SMTP_SECURE: z.coerce.boolean().default(false),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
-  SMTP_FROM: z.string().optional()
+  SMTP_FROM: z.string().optional(),
+  // Where the web app lives, used to build Stripe/Google redirect URLs. In
+  // production set this to https://monpetitvoyageur.com.
+  APP_URL: z.string().default("http://localhost:5173"),
+  // Stripe. Without STRIPE_SECRET_KEY the billing endpoints report the feature
+  // as unconfigured (like SMTP) and access is granted to everyone, so the app
+  // keeps working before Stripe is set up. Set the two price ids to the
+  // recurring prices created in the Stripe dashboard (price_...).
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_PRICE_MONTHLY: z.string().optional(),
+  STRIPE_PRICE_ANNUAL: z.string().optional(),
+  // Free trial length, in days, applied once per account (trial_used guards it).
+  TRIAL_DAYS: z.coerce.number().int().min(0).max(90).default(7),
+  // Google sign-in (OAuth 2.0). Create credentials at
+  // https://console.cloud.google.com → APIs & Services → Credentials.
+  // The redirect URI must be <API origin>/api/auth/google/callback.
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_REDIRECT_URI: z.string().optional()
 });
 
 export type AppConfig = z.infer<typeof EnvSchema>;
@@ -86,6 +105,18 @@ export function getConfig(): AppConfig {
   const parsed = EnvSchema.safeParse(process.env);
   if (!parsed.success) {
     throw new Error(`Invalid environment configuration: ${parsed.error.message}`);
+  }
+
+  // A default or weak signing secret in production means anyone can forge a
+  // session token, so fail fast rather than boot insecurely.
+  if (
+    parsed.data.NODE_ENV === "production" &&
+    (parsed.data.JWT_SECRET === "dev-super-secret-change-me" || parsed.data.JWT_SECRET.length < 32)
+  ) {
+    throw new Error(
+      "JWT_SECRET must be a strong random value (32+ characters) in production. " +
+        "Generate one with: node -e \"console.log(require('node:crypto').randomBytes(48).toString('base64url'))\""
+    );
   }
 
   cachedConfig = parsed.data;

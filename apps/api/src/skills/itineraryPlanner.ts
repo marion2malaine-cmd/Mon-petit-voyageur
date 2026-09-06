@@ -1,14 +1,19 @@
 import {
+  DayRouteSchema,
   ItineraryDaysBatchSchema,
   ItineraryOutlineSchema,
+  LodgingSchema,
   type ForumFinding,
+  type Lodging,
+  type StayOption,
   type ItineraryByDay,
   type ItineraryDay,
   type ItineraryOutline,
   type StructuredTripBrief
 } from "@mlt/contracts";
 import type { SkillExecutor } from "./executor";
-import { runItineraryBuilder, type HandlerContext } from "./handlers";
+import type { HandlerContext } from "./handlers";
+import { buildLodgingLinks } from "../tools/links";
 import type { SkillRunResult } from "./types";
 import type { GygOffer, PlaceResult } from "../tools/serpapi";
 import type { ActivityCategory, PaidOption } from "@mlt/contracts";
@@ -27,11 +32,24 @@ const ACTIVITY_BUDGET_SHARE = 0.2;
 // A rich day (timeline, free visits, options, tables) costs roughly 800-1000
 // output tokens. Two days per call keeps every response far below the model's
 // output ceiling, which is what previously truncated whole itineraries.
-const DAYS_PER_BATCH = 2;
-const MAX_PARALLEL_BATCHES = 3;
+// One day per call, not two.
+//
+// A full day is a big JSON object: a narrative, a timeline, 3 to 5 free
+// visits, 3 paid options each carrying its cheaper local alternative, 3
+// restaurants, the route and the hotel of the night. Two of them together run
+// against the 8k output ceiling, and a truncated answer is the one failure a
+// retry cannot fix — the same prompt truncates again at the same place. So the
+// answer is made small enough that it always fits.
+const DAYS_PER_BATCH = 1;
+// More calls, so more of them run at once to keep the wait the same.
+const MAX_PARALLEL_BATCHES = 5;
 // Beyond three weeks the outline itself no longer fits in one answer, so it is
 // requested slice by slice.
-const OUTLINE_CHUNK_DAYS = 21;
+// The outline of a whole trip does not fit in one answer: 21 days of names ran
+// past the 8k output ceiling, the JSON came back cut in half, and the traveler
+// got the local generator for the entire guide. Slicing keeps every call well
+// inside the budget, and a slice that fails costs a few days, not the trip.
+const OUTLINE_CHUNK_DAYS = 7;
 
 export interface PlanItineraryInput {
   brief: StructuredTripBrief;
@@ -43,6 +61,38 @@ export interface PlanItineraryInput {
 }
 
 /**
+ * The program could not be written by the AI.
+ *
+ * The traveler is told, and gets nothing rather than a guide made of template
+ * sentences: `message` is what the app shows them.
+ */
+export class ItineraryUnavailableError extends Error {
+  constructor(
+    readonly cause_: "no_llm" | "no_destination" | "outline" | "days",
+    locale: "fr" | "en",
+    readonly days: number[] = []
+  ) {
+    super(ITINERARY_ERRORS[locale][cause_](days));
+    this.name = "ItineraryUnavailableError";
+  }
+}
+
+const ITINERARY_ERRORS: Record<"fr" | "en", Record<"no_llm" | "no_destination" | "outline" | "days", (days: number[]) => string>> = {
+  fr: {
+    no_llm: () => "L'IA n'est pas configurée : impossible d'écrire le programme. Aucun guide générique n'est produit.",
+    no_destination: () => "Aucune destination n'a pu être retenue : précisez-la et relancez.",
+    outline: () => "L'IA n'a pas réussi à composer le déroulé du voyage. Relancez la génération dans un instant.",
+    days: (days) => `L'IA n'a pas écrit ${days.length === 1 ? `la journée ${days[0]}` : `les journées ${days.join(", ")}`}. Relancez la génération plutôt que de partir avec un programme incomplet.`
+  },
+  en: {
+    no_llm: () => "The AI is not configured: the program cannot be written. No generic guide is produced.",
+    no_destination: () => "No destination could be settled on: name it and run again.",
+    outline: () => "The AI could not lay out the trip. Run the generation again in a moment.",
+    days: (days) => `The AI did not write ${days.length === 1 ? `day ${days[0]}` : `days ${days.join(", ")}`}. Run the generation again rather than travelling with an incomplete program.`
+  }
+};
+
+/**
  * Builds the day-by-day program in two phases.
  *
  * Phase 1 produces an outline that assigns each day its theme, its area and
@@ -50,27 +100,21 @@ export interface PlanItineraryInput {
  * prevents a visit, a table or an activity from appearing twice in the trip.
  * Phase 2 expands those names into full days, in small parallel batches.
  *
- * Any failure falls back to the local generator, so a plan is always returned.
+ * There is no local fallback: a day the model did not write is asked for
+ * again, and if it still does not come the plan fails loudly. A guide made of
+ * template sentences — "Croisière autour de <destination>" — is worse than no
+ * guide, because it looks finished.
  */
 export async function planItinerary(
   executor: SkillExecutor,
   input: PlanItineraryInput,
   ctx: HandlerContext
-): Promise<SkillRunResult<ItineraryByDay> & { source: "llm" | "fallback" }> {
-  const fallback = async () => ({
-    ...(await runItineraryBuilder({ brief: input.brief, selectedDestination: input.destination }, ctx)),
-    source: "fallback" as const
-  });
-
-  if (!executor.hasLlm || !input.destination) {
-    return fallback();
-  }
+): Promise<SkillRunResult<ItineraryByDay> & { source: "llm" }> {
+  if (!executor.hasLlm) throw new ItineraryUnavailableError("no_llm", input.locale);
+  if (!input.destination) throw new ItineraryUnavailableError("no_destination", input.locale);
 
   const outline = await buildOutline(executor, input);
-
-  if (!outline?.days?.length) {
-    return fallback();
-  }
+  if (!outline?.days?.length) throw new ItineraryUnavailableError("outline", input.locale);
 
   // Real data before the days are written: rated restaurants for every area
   // of the outline, and what travelers wrote on the forums. Left to itself the
@@ -86,61 +130,26 @@ export async function planItinerary(
   const offers = ((gyg.data as any)?.offers ?? []) as GygOffer[];
   const placesByName = assignRestaurants(outline, restaurants.byArea, input.brief, input.remainingBudgetEur);
   const activityBudget = activityBudgetPerPerson(input.brief, input.remainingBudgetEur);
+  const real = { findings, placesByName, activityBudget };
 
-  let days = await expandDays(executor, outline, input, { findings, placesByName, activityBudget });
-  if (!days.length) {
-    return fallback();
+  let days = await expandDays(executor, outline, input, real);
+
+  // A batch can fail for reasons that pass — a rate limit, an answer cut at
+  // the token ceiling. The days it owed are asked for again, alone, before
+  // anyone gives up on them.
+  let missing = outline.days.filter((day) => !days.some((expanded) => expanded.day === day.day));
+  if (missing.length) {
+    console.warn(`[itinerary] ${missing.length}/${outline.days.length} days missing, asking again`);
+    const retried = await expandDays(executor, { ...outline, days: missing }, input, real);
+    days = [...days, ...retried].sort((left, right) => left.day - right.day);
+    missing = outline.days.filter((day) => !days.some((expanded) => expanded.day === day.day));
   }
 
-  // One failed batch should not cost the traveler the nine days that worked:
-  // only the missing days are taken from the local generator.
-  if (days.length < outline.days.length) {
-    const missing = outline.days.filter((day) => !days.some((expanded) => expanded.day === day.day));
-    console.warn(`[itinerary] ${missing.length}/${outline.days.length} days fell back to the local generator`);
-
-    const local = await runItineraryBuilder(
-      { brief: input.brief, selectedDestination: input.destination },
-      ctx
-    );
-    for (const outlineDay of missing) {
-      const localDay = local.output.itinerary_by_day.find((day) => day.day === outlineDay.day);
-      if (localDay) {
-        const day = { ...localDay, title: outlineDay.title, theme: outlineDay.theme, area: outlineDay.area };
-        // The local generator writes generic tables; the real ones assigned
-        // to that day are better even without a written reason.
-        const real = outlineDay.restaurant_names
-          .map((name) => placesByName.get(nameKey(name)))
-          .filter((place): place is PlaceResult => !!place);
-        if (real.length) {
-          day.restaurants = real.map((place, index) => ({
-            name: place.name,
-            meal: index === 0 ? ("lunch" as const) : ("dinner" as const),
-            cuisine: place.cuisine ?? "",
-            price_range: place.price ?? ("€€" as const),
-            area: outlineDay.meal_town ?? outlineDay.area,
-            why:
-              input.locale === "fr"
-                ? `Très bien noté par les voyageurs sur Google Maps (${place.rating ?? "–"} ★, ${place.reviews_count ?? 0} avis).`
-                : `Highly rated by travelers on Google Maps (${place.rating ?? "–"} ★, ${place.reviews_count ?? 0} reviews).`,
-            tags: [],
-            budget_note: null,
-            booking_links: [],
-            photo: null,
-            verified: false,
-            rating: null,
-            reviews_count: null,
-            address: null,
-            phone: null,
-            website: null,
-            maps_url: null
-          }));
-        }
-        days.push(day);
-      }
-    }
-    days = days.sort((left, right) => left.day - right.day);
+  if (missing.length) {
+    throw new ItineraryUnavailableError("days", input.locale, missing.map((day) => day.day));
   }
 
+  normalizeStages(days, outline, input.destination, input.locale);
   enforceUniqueness(days);
   attachRestaurantData(days, placesByName);
   ensureThreeOptions(days, outline, input.locale);
@@ -503,12 +512,12 @@ async function buildOutline(executor: SkillExecutor, input: PlanItineraryInput):
   const totalDays = input.brief.duration_days ?? 7;
 
   if (totalDays <= OUTLINE_CHUNK_DAYS) {
-    const outline = await executor.runLlmOnly(
+    const outline = await withOneRetry(() => executor.runLlmOnly(
       "itinerary-builder",
       ItineraryOutlineSchema,
       { task: "outline", brief: input.brief, destination: input.destination, total_days: totalDays, activity_mix: activityMix(input.brief), remaining_budget_eur: input.remainingBudgetEur ?? null, live_costs: input.liveCosts ?? null },
       input.locale
-    );
+    ));
     if (outline) normalizeDayCount(outline, totalDays);
     return outline;
   }
@@ -519,7 +528,7 @@ async function buildOutline(executor: SkillExecutor, input: PlanItineraryInput):
   for (let from = 1; from <= totalDays; from += OUTLINE_CHUNK_DAYS) {
     const to = Math.min(from + OUTLINE_CHUNK_DAYS - 1, totalDays);
 
-    const slice = await executor.runLlmOnly(
+    const slice = await withOneRetry(() => executor.runLlmOnly(
       "itinerary-builder",
       ItineraryOutlineSchema,
       {
@@ -535,10 +544,15 @@ async function buildOutline(executor: SkillExecutor, input: PlanItineraryInput):
         live_costs: input.liveCosts ?? null
       },
       input.locale
-    );
+    ));
 
     const days = (slice?.days ?? []).filter((day) => day.day >= from && day.day <= to);
-    if (!days.length) break;
+    // One dead slice must not truncate the trip: the days it owed are filled
+    // by the local generator later, and the following slices still run.
+    if (!days.length) {
+      console.warn(`[itinerary] outline slice ${from}-${to} came back empty`);
+      continue;
+    }
 
     usedNames.push(
       ...days.flatMap((day) => [...day.free_visit_names, ...day.paid_option_titles, ...day.restaurant_names])
@@ -822,4 +836,158 @@ async function withOneRetry<T>(call: () => Promise<T | null>): Promise<T | null>
     result = await call();
   }
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// Stages: the stage of every night, the drive that leads to it, the bed
+// ---------------------------------------------------------------------------
+
+/**
+ * Makes the chain of nights coherent, whatever the model returned.
+ *
+ * A roadbook is read one night at a time: the traveler wants to know where
+ * they sleep tonight, what it costs, and whether the bags move. Models fill
+ * that unevenly — a stage named on day 3 and forgotten on day 4, a lodging on
+ * the first night of a stage only. So the outline's stages are the truth, the
+ * days inherit them, and what is still missing is carried forward from the
+ * night before.
+ *
+ * `is_change` and `nights` are always recomputed here rather than trusted:
+ * they are a property of the chain, not of one day.
+ */
+export function normalizeStages(
+  days: ItineraryDay[],
+  outline: ItineraryOutline,
+  destination: string,
+  locale: "fr" | "en"
+): void {
+  const outlineByDay = new Map(outline.days.map((day) => [day.day, day]));
+  let previousStage: string | null = null;
+  let previousLodging: Lodging | null = null;
+
+  for (const day of days) {
+    const planned = outlineByDay.get(day.day);
+    const stage = firstText(day.stage, planned?.stage, day.area, previousStage, destination);
+    day.stage = stage;
+
+    // A drive the model forgot to write, on a day the stage changes, is worse
+    // than no drive at all: the traveler has to guess how long the day is.
+    if (day.route) {
+      day.route.from = firstText(day.route.from, previousStage, destination) ?? "";
+      day.route.to = firstText(day.route.to, stage, destination) ?? "";
+      if (!day.route.duration && planned?.route_duration) day.route.duration = planned.route_duration;
+    } else if (planned?.route_from || (previousStage && stage && previousStage !== stage)) {
+      day.route = DayRouteSchema.parse({
+        from: firstText(planned?.route_from, previousStage) ?? "",
+        to: stage ?? "",
+        duration: planned?.route_duration ?? null
+      });
+    }
+
+    const name = firstText(day.lodging?.name, planned?.lodging_name);
+    // A night with no named address at all repeats the night before rather
+    // than showing the traveler a hole in the guide.
+    day.lodging = name
+      ? LodgingSchema.parse({ ...(day.lodging ?? {}), name, town: day.lodging?.town ?? stage })
+      : previousLodging
+        ? { ...previousLodging }
+        : null;
+
+    if (day.lodging) {
+      day.lodging.is_change = !previousLodging || previousLodging.name !== day.lodging.name;
+      day.lodging.booking_links = buildLodgingLinks(day.lodging.name, day.lodging.town ?? stage ?? destination, locale);
+      if (!day.lodging.photo?.query) {
+        day.lodging.photo = { ...(day.lodging.photo ?? EMPTY_PHOTO), query: `${day.lodging.name} ${day.lodging.town ?? destination} hotel` };
+      }
+    }
+
+    previousStage = stage;
+    previousLodging = day.lodging;
+  }
+
+  // How many nights each stage lasts is only knowable once the chain is whole.
+  const nightsByName = new Map<string, number>();
+  for (const day of days) {
+    if (!day.lodging) continue;
+    nightsByName.set(day.lodging.name, (nightsByName.get(day.lodging.name) ?? 0) + 1);
+  }
+  for (const day of days) {
+    if (day.lodging) day.lodging.nights = nightsByName.get(day.lodging.name) ?? 1;
+  }
+}
+
+/**
+ * Puts the real, booked hotel into every day of a trip that has none.
+ *
+ * The named lodging of a stage comes from the model; the single stay of a
+ * city break comes from the live hotel search, which knows its price, its
+ * rating and its picture. Without this the guide of a one-base trip — and of
+ * every trip the local generator had to write — shows no bed at all.
+ */
+export function applyStayAsLodging(days: ItineraryDay[], stay: StayOption | null | undefined, locale: "fr" | "en"): void {
+  if (!stay?.name || days.some((day) => day.lodging?.name)) return;
+
+  days.forEach((day, index) => {
+    day.lodging = LodgingSchema.parse({
+      name: stay.name,
+      town: stay.area ?? day.stage ?? day.area,
+      price_per_night_eur: stay.price_per_night ?? null,
+      rating: stay.rating ?? null,
+      coordinates: stay.coordinates ? { lat: stay.coordinates.lat, lon: stay.coordinates.lon } : null,
+      nights: days.length,
+      // Only the first night is a move; the rest is the same room.
+      is_change: index === 0,
+      booking_links: [
+        ...(stay.booking_url
+          ? [{ provider: "booking" as const, label: locale === "fr" ? "Réserver" : "Book", url: stay.booking_url }]
+          : []),
+        ...buildLodgingLinks(stay.name, stay.area ?? days[0]?.area ?? "", locale)
+      ],
+      photo: stay.photo_url ? { query: stay.name, url: stay.photo_url, thumb_url: null, credit: null, source_url: null } : null
+    });
+  });
+}
+
+const EMPTY_PHOTO = { query: "", url: null, thumb_url: null, credit: null, source_url: null };
+
+function firstText(...values: (string | null | undefined)[]): string | null {
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (trimmed) return trimmed;
+  }
+  return null;
+}
+
+/** The overview table at the front of the guide: one row per stage. */
+export function stageSummary(days: ItineraryDay[]): StageRow[] {
+  const rows: StageRow[] = [];
+  for (const day of days) {
+    const last = rows[rows.length - 1];
+    const name = day.lodging?.name ?? null;
+    if (last && last.stage === day.stage && last.lodging === name) {
+      last.nights += 1;
+      last.dates.push(day.date ?? null);
+      continue;
+    }
+    rows.push({
+      stage: day.stage ?? "",
+      lodging: name,
+      price_from: day.lodging?.price_per_night_eur ?? null,
+      price_to: day.lodging?.price_max_per_night_eur ?? null,
+      price_note: day.lodging?.price_note ?? null,
+      nights: 1,
+      dates: [day.date ?? null]
+    });
+  }
+  return rows;
+}
+
+export interface StageRow {
+  stage: string;
+  lodging: string | null;
+  price_from: number | null;
+  price_to: number | null;
+  price_note: string | null;
+  nights: number;
+  dates: (string | null)[];
 }

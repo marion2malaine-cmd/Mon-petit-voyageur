@@ -28,15 +28,25 @@ async function waitForSavedTrip(startedAt: number, tripId?: number): Promise<Pla
   throw new Error("planning_interrupted");
 }
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8787";
-const DEV_TEST_CREDENTIALS = {
-  email: "marion2malaine@gmail.com",
-  password: "MonPetitVoyageur123!"
-} as const;
+// Only the dev build carries the seed login: `import.meta.env.DEV` is a
+// compile-time constant, so the production bundle keeps the empty branch and
+// the real credentials never ship to the browser or pre-fill the form.
+const DEV_TEST_CREDENTIALS = import.meta.env.DEV
+  ? { email: "marion2malaine@gmail.com", password: "MonPetitVoyageur123!" }
+  : { email: "", password: "" };
+
+export type SubscriptionStatus = "none" | "trialing" | "active" | "past_due" | "canceled";
 
 export interface AuthUser {
   id: number;
   email: string;
   preferred_language: "fr" | "en";
+  subscription_status: SubscriptionStatus;
+  subscription_plan: string | null;
+  current_period_end: string | null;
+  trial_used: boolean;
+  billing_enabled: boolean;
+  has_access: boolean;
 }
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
@@ -120,7 +130,18 @@ export const api = {
     http<{ sent: boolean; to: string; filename: string }>(`/api/trips/${tripId}/guide/email`, {
       method: "POST",
       body: JSON.stringify({ locale, embed: true, ...(to ? { to } : {}) })
-    })
+    }),
+  // Starts Stripe Checkout for the chosen plan and returns the URL to send the
+  // browser to.
+  checkout: (plan: "monthly" | "annual") =>
+    http<{ url: string }>("/api/billing/checkout", {
+      method: "POST",
+      body: JSON.stringify({ plan })
+    }),
+  billingPortal: () =>
+    http<{ url: string }>("/api/billing/portal", { method: "POST" }),
+  // Where the browser goes for "Sign in with Google".
+  googleLoginUrl: () => `${API_BASE}/api/auth/google`
 };
 
 /**

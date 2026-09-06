@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildActivityLinks, buildCrossingLinks, buildTicketLinks, withActivityDate } from "../tools/links";
+import { buildActivityLinks, buildCrossingLinks, buildSearchLinks, buildTicketLinks, withActivityDate } from "../tools/links";
 
 describe("dated activity links", () => {
   it("pre-fills the trip date on the platforms that accept it", () => {
@@ -30,5 +30,51 @@ describe("crossing links", () => {
     expect(links[0].label).toContain("Plaka");
     expect(links.find((link) => link.provider === "viator")?.url).toContain("startDate=2026-10-05");
     expect(decodeURIComponent(links[1].url).replace(/\+/g, " ")).toContain("depuis Plaka");
+  });
+});
+
+describe("search links pre-filled from the trip", () => {
+  const links = buildSearchLinks({
+    locale: "fr",
+    originCity: "Paris",
+    originCode: "CDG",
+    destinationCity: "Héraklion",
+    destinationCode: "HER",
+    departureDate: "2026-10-04",
+    returnDate: "2026-10-11",
+    adults: 2
+  });
+  const url = (provider: string) => links.find((l) => l.provider === provider)?.url ?? "";
+
+  it("opens Skyscanner on the route and the dates", () => {
+    expect(url("skyscanner")).toBe("https://www.skyscanner.fr/transport/vols/cdg/her/261004/261011/?adults=2");
+  });
+
+  it("phrases the Google Flights query the way Google parses it", () => {
+    expect(decodeURIComponent(url("google-flights"))).toContain(
+      "Flights from CDG to HER on 2026-10-04 through 2026-10-11"
+    );
+  });
+
+  it("gives Booking.com a complete search so it keeps the dates", () => {
+    const booking = url("booking");
+    for (const part of ["ss=H", "checkin=2026-10-04", "checkout=2026-10-11", "group_adults=2", "no_rooms=1"]) {
+      expect(booking).toContain(part);
+    }
+  });
+});
+
+describe("links that open the page, not a list of results", () => {
+  it("sends the traveler straight to the first result", () => {
+    const links = buildTicketLinks("Palais de Knossos", "Héraklion", "fr");
+    const official = links.find((l) => l.provider === "official")?.url ?? "";
+    expect(official).toContain("duckduckgo.com/?q=");
+    expect(decodeURIComponent(official)).toContain("\\ Palais de Knossos billetterie officielle");
+  });
+
+  it("never names the destination twice in a query", () => {
+    const links = buildActivityLinks("Visite guidée du centre historique de Vietnam", "Vietnam", "fr");
+    const local = decodeURIComponent(links.find((l) => l.provider === "local-agency")?.url ?? "");
+    expect(local).not.toContain("Vietnam Vietnam");
   });
 });

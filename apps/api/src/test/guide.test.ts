@@ -226,7 +226,7 @@ describe("ticket vs experience links", () => {
     expect(cruise.booking_links.some((l) => l.provider === "tiqets")).toBe(false);
     // A reseller passed off as official is dropped: back to the ticket-office search.
     expect(beguinage.official_url).toBeNull();
-    expect(beguinage.booking_links[0].url).toContain("google.com/search");
+    expect(beguinage.booking_links[0].url).toContain("duckduckgo.com/?q=");
   });
 });
 
