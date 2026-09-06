@@ -926,16 +926,14 @@ pre {
   font-size: 0.82rem;
 }
 
-/* The 3D flight while the trip is planned (three.js), same frame as the SVG fallback. */
+/* Rotating Earth and orbiting plane throughout trip generation. */
+.flight-loader { width: 100%; max-width: 520px; flex: none; }
 .plane-3d {
-  flex: none;
   width: 100%;
-  max-width: 520px;
-  height: 150px;
-  border-radius: 14px;
+  height: clamp(280px, 55vw, 340px);
+  border-radius: 18px;
   overflow: hidden;
-  background: linear-gradient(180deg, #cfe3ec 0%, #eef4f6 70%, #fbf6ee 100%);
-  border: 1px solid var(--border);
+  background: radial-gradient(ellipse at center, #205f72 0%, #0b3444 72%);
 }
 .plane-3d canvas { display: block; width: 100% !important; height: 100% !important; }
 
