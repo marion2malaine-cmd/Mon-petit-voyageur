@@ -32,7 +32,9 @@ async function main() {
       pending = runningPlanJobs();
     }
     if (pending) app.log.error({ pending }, "Shutdown grace period over with plans still running");
-    await app.close();
+    app.log.info({ signal }, "Shutting down");
+    // Idle keep-alive connections can hold close() open: never wait for them.
+    await Promise.race([app.close(), new Promise((resolve) => setTimeout(resolve, 5000))]);
     process.exit(0);
   };
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
