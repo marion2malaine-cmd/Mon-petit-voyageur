@@ -137,6 +137,11 @@ export class SkillExecutor {
         // A two-day batch with three options and three tables each runs long;
         // the provider default (4k on DeepSeek) cut it off silently.
         max_tokens: 8192,
+        // deepseek-v4-flash is a reasoning model: left on, its hidden thinking
+        // ate the whole token budget and the visible answer came back empty
+        // (finish_reason=length, 0 chars), so every plan fell back to the
+        // local generator. Structured JSON does not need it.
+        ...(this.llm.provider === "deepseek" ? { thinking: { type: "disabled" } } : {}),
         messages: [
           {
             role: "system",
