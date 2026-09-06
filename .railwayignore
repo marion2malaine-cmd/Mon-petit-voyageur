@@ -1,0 +1,11 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.env
+.env.*
+apps/api/data
+apps/web/ios
+apps/web/.git-old
+*.sqlite
+*.log

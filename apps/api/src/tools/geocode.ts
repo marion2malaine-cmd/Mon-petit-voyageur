@@ -11,6 +11,12 @@ export interface GeoPoint {
 
 const cache = new Map<string, GeoPoint | null>();
 let lastCallAt = 0;
+// Network requests made since the process started (cache hits excluded), so a
+// caller can budget a batch.
+let requestCount = 0;
+export function geocodeRequestCount(): number {
+  return requestCount;
+}
 
 // Answers are kept on disk next to the database: a place geocoded once for a
 // destination never costs Nominatim a request again, whoever plans it next.
@@ -63,6 +69,7 @@ export async function geocodePlace(place: string, destination: string): Promise<
   if (cached !== undefined) return cached;
 
   await respectRateLimit();
+  requestCount += 1;
 
   try {
     const params = new URLSearchParams({ q: query, format: "jsonv2", limit: "1" });
@@ -114,6 +121,7 @@ export async function geocodePlaces(
 export function resetGeocodeCache(): void {
   cache.clear();
   lastCallAt = 0;
+  requestCount = 0;
   diskLoaded = true;
 }
 

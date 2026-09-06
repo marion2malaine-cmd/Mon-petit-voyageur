@@ -8,7 +8,7 @@ import {
   toSearchQuery
 } from "../tools/links";
 import { embedPhoto, scalePhoto } from "../tools/photos";
-import { geocodePlaces } from "../tools/geocode";
+import { geocodePlaces, geocodeRequestCount } from "../tools/geocode";
 import { sanitizeOfficialUrl } from "../tools/links";
 import type { LiveTools } from "../tools";
 
@@ -119,8 +119,17 @@ export async function enrichItinerary(
  * tour) has no address and is never geocoded. The day centre is the average
  * of the visits found.
  */
-export async function locateItinerary(itinerary: ItineraryByDay, destination: string): Promise<boolean> {
+export async function locateItinerary(
+  itinerary: ItineraryByDay,
+  destination: string,
+  maxRequests = Number(process.env.GEOCODE_MAX_PER_PLAN ?? 20)
+): Promise<boolean> {
   let changed = false;
+  // One Nominatim budget for the whole plan: places already in the disk cache
+  // are free, the rest is placed until the budget runs out. A partly placed
+  // map is fine; hammering a free public service is not.
+  const startCount = geocodeRequestCount();
+  const remaining = () => (Number.isFinite(maxRequests) ? Math.max(0, maxRequests - (geocodeRequestCount() - startCount)) : Number.POSITIVE_INFINITY);
 
   for (const day of itinerary.itinerary_by_day ?? []) {
     const slots: { query: string; get: () => any; set: (point: { lat: number; lon: number }) => void }[] = [];
@@ -143,7 +152,8 @@ export async function locateItinerary(itinerary: ItineraryByDay, destination: st
     if (slots.length) {
       const points = await geocodePlaces(
         slots.map((slot) => slot.query),
-        destination
+        destination,
+        remaining()
       );
       for (const slot of slots) {
         const point = points.get(slot.query.trim());

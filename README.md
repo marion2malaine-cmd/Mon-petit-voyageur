@@ -36,6 +36,8 @@ Monorepo TypeScript avec:
 - **Guide illustré téléchargeable** (HTML autonome, imprimable en PDF) reprenant la mise en
   page d'un guide papier, aux couleurs du site. Photos réelles et créditées via Wikipédia,
   Wikimedia Commons et Openverse — aucune clé requise
+- **Travelpayouts Drive** chargé dans `apps/web/index.html` : convertit automatiquement les liens de réservation (Booking, Airbnb, Skyscanner…) en liens affiliés ; Viator garde son affiliation directe
+- **Carte** : visites gratuites, sites payants (billets) et restaurants sans coordonnées sont géocodés via Nominatim, dans la limite de `GEOCODE_MAX_PER_PLAN` requêtes par plan (20), cache disque `data/geocode-cache.json`
 - Authentification email + mot de passe, session JWT cookie httpOnly
 - Orchestrateur central qui enchaîne les 8 skills
 - Vols et hébergements: les outils live sont la source de vérité (prix, liens directs Google Flights / Google Hotels, statut), l'IA n'ajoute que conseils de transport et arbitrages — elle n'invente jamais un prix
@@ -49,12 +51,12 @@ Monorepo TypeScript avec:
   - `get_weather` (Open-Meteo)
   - `get_exchange_rate` (Frankfurter)
 - Liens de réservation générés automatiquement (pré-remplis avec destination, dates, voyageurs):
-  - Vols: Skyscanner, Google Flights
+  - Vols: Skyscanner, Google Flights, Aviasales (marker d'affiliation `TRAVELPAYOUTS_MARKER`)
   - Hébergements: Booking.com, Airbnb
   - Excursions: GetYourGuide, Civitatis, **Viator avec lien d'affiliation** (`VIATOR_AFFILIATE_PID` / `VIATOR_AFFILIATE_MCID`, posé sur chaque lien Viator : activités, billets, page destination)
   - Restaurants: TripAdvisor, TheFork
   - Forums voyageurs: TripAdvisor, Routard
-- **Billets d'abord, puis l'IA organise dans ce qui reste** : dates exactes → 1 recherche ; mois seul → `SERPAPI_FLEX_DATE_SAMPLES` départs échantillonnés (3 par défaut) et les dates les moins chères sont retenues ; aucune date → un départ dans chacun des prochains mois. Le budget restant (budget − vols − hébergement) est transmis à l'itinéraire : gammes de prix des restaurants, enveloppe activités, avertissement si les billets absorbent l'essentiel
+- **Billets d'abord, puis l'IA organise dans ce qui reste** : dates exactes → 1 recherche ; mois seul → **calendrier des prix du mois** (Travelpayouts / Aviasales, gratuit, `TRAVELPAYOUTS_TOKEN`) puis 1 seule recherche live sur le jour le moins cher ; aucune date → mois le moins cher sur les 6 prochains ; sans calendrier, repli sur `SERPAPI_FLEX_DATE_SAMPLES` départs échantillonnés (3). Le mois s'affiche jour par jour dans l'app, jour retenu en vert. Le budget restant (budget − vols − hébergement) est transmis à l'itinéraire : gammes de prix des restaurants, enveloppe activités, avertissement si les billets absorbent l'essentiel
 - Budget défini en amont appliqué aux résultats (badges "dans le budget" / "au-dessus du budget")
 - Dates estimées automatiquement depuis le mois mentionné ("en septembre" → dates concrètes)
 - Persistance SQLite:
