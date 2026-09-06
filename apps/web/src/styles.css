@@ -1748,28 +1748,9 @@ select:focus, input:focus, textarea:focus {
   .brand-logo-dark img { width: 6rem; }
 }
 
-/* Animated postcard logo on the landing hero: the card floats, the plane takes off. */
-.hero-plane { position: relative; width: min(32rem, 86vw); margin: 0 auto 2rem; padding-top: 1rem; overflow: visible; }
-.hero-card { display: block; width: 100%; height: auto; filter: drop-shadow(0 18px 40px rgba(7,54,74,.25)); animation: hero-float 6s ease-in-out infinite; }
-.hero-jet {
-  position: absolute; left: 80.3%; top: calc(1rem + 3.2%); width: 18.7%; height: auto;
-  filter: drop-shadow(0 6px 10px rgba(7,54,74,.25));
-  animation: hero-fly 7s ease-in-out infinite;
-  transform-origin: 50% 50%;
-}
-@keyframes hero-float {
-  0%, 100% { transform: translateY(0) rotate(0); }
-  50% { transform: translateY(-10px) rotate(-1.2deg); }
-}
-@keyframes hero-fly {
-  0%   { transform: translate(0, 0) rotate(0); opacity: 1; }
-  55%  { transform: translate(70%, -90%) rotate(-6deg); opacity: 1; }
-  68%  { transform: translate(110%, -140%) rotate(-8deg); opacity: 0; }
-  70%  { transform: translate(-90%, 120%) rotate(4deg); opacity: 0; }
-  84%  { transform: translate(-40%, 55%) rotate(2deg); opacity: 1; }
-  100% { transform: translate(0, 0) rotate(0); opacity: 1; }
-}
-@media (prefers-reduced-motion: reduce) { .hero-card, .hero-jet { animation: none; } }
+/* Animated postcard logo (animated WebP) on the landing hero. */
+.hero-plane { width: min(34rem, 88vw); margin: 0 auto 2rem; }
+.hero-card { display: block; width: 100%; height: auto; filter: drop-shadow(0 18px 40px rgba(7,54,74,.25)); }
 
 /* Landing hero on white. */
 .hero-landing { color: var(--deep-blue); background: #fff; }

@@ -859,8 +859,7 @@ function TravelerApp() {
             <h1 className="hero-title">{t.title}</h1>
             <p className="hero-tagline">{t.tagline}</p>
             <div className="hero-plane" aria-hidden="true">
-              <img className="hero-card" src="/logo-card.png" alt="" width="900" height="620" />
-              <img className="hero-jet" src="/logo-plane.png" alt="" width="277" height="217" />
+              <img className="hero-card" src="/logo-hero.webp" alt="" width="800" height="534" />
             </div>
             <div className="hero-actions">
               <button onClick={() => document.getElementById("connexion")?.scrollIntoView({ behavior: "smooth" })}>
