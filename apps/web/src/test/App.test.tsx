@@ -12,6 +12,7 @@ vi.mock("../api", () => {
       me: vi.fn().mockRejectedValue(new Error("no session")),
       register: vi.fn(),
       login: vi.fn(),
+      googleLoginUrl: vi.fn(() => "/api/auth/google"),
       logout: vi.fn(),
       planTrip: vi.fn(),
       listTrips: vi.fn().mockResolvedValue([])

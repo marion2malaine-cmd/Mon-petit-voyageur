@@ -777,8 +777,10 @@ function TravelerApp() {
       )}
       {user ? (
         <header className="hero">
-          <div>
-            <h1>{t.title}</h1>
+          <div className="hero-brand">
+            <h1 className="brand-logo brand-logo-dark">
+              <img src="/logo.png" alt={t.title} />
+            </h1>
             <p>{t.subtitle}</p>
           </div>
           <div className="toolbar">
@@ -843,7 +845,9 @@ function TravelerApp() {
               <span className="pill-icon">{featureIcons.compass}</span>
               {t.eyebrow}
             </span>
-            <h1 className="hero-title">{t.title}</h1>
+            <h1 className="hero-title brand-logo brand-logo-hero">
+              <img src="/logo.png" alt={t.title} width="1000" height="667" />
+            </h1>
             <p className="hero-tagline">{t.tagline}</p>
             <div className="hero-actions">
               <button onClick={() => document.getElementById("connexion")?.scrollIntoView({ behavior: "smooth" })}>
@@ -927,7 +931,7 @@ function TravelerApp() {
           <footer className="site-footer">
             <div className="footer-grid">
               <div>
-                <strong>{t.title}</strong>
+                <img className="footer-logo" src="/logo.png" alt={t.title} />
                 <p>{t.footerDesc}</p>
               </div>
               <div>
