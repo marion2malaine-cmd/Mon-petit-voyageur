@@ -1,3 +1,4 @@
+import type { z } from "zod";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
@@ -22,6 +23,16 @@ import { renderGuideHtml } from "./guide/renderGuide";
 import { mapRouteForDay } from "./guide/renderGuide";
 import { stillMapDataUri } from "./guide/staticMap";
 import { Mailer } from "./tools/mailer";
+
+interface PlanJob {
+  userId: number;
+  status: "running" | "done" | "error";
+  startedAt: number;
+  result?: PlanTripResponse & { trip_id: number; run_id: string };
+  error?: string;
+}
+const planJobs = new Map<string, PlanJob>();
+const PLAN_JOB_TTL_MS = 30 * 60 * 1000;
 
 const DEV_SEED_USER = {
   email: "marion2malaine@gmail.com",
@@ -53,7 +64,7 @@ export function buildServer() {
 
   const app = Fastify({
     logger: {
-      level: config.NODE_ENV === "development" ? "info" : "warn"
+      level: config.NODE_ENV === "test" ? "warn" : "info"
     }
   });
 
@@ -172,6 +183,13 @@ export function buildServer() {
     };
   });
 
+  /**
+   * Planning takes one to four minutes. Holding an HTTP request open that long
+   * dies on proxies and on any restart, so the work runs as a job: this call
+   * answers at once with a job id and the client polls the job until done.
+   * The trip itself is saved as soon as the plan exists, so a lost job never
+   * loses a finished plan.
+   */
   app.post("/api/trips/plan", { preHandler: (app as any).authenticate }, async (request: any, reply) => {
     const parsed = PlanTripRequestSchema.safeParse(request.body);
     if (!parsed.success) {
@@ -180,9 +198,46 @@ export function buildServer() {
 
     const userId = request.user?.userId as number;
     const runId = randomUUID();
-    const result = await orchestrator.planTrip(parsed.data);
+    const job: PlanJob = { userId, status: "running", startedAt: Date.now() };
+    planJobs.set(runId, job);
 
-    let tripId = parsed.data.trip_id;
+    void (async () => {
+      try {
+        job.result = await runPlan(parsed.data, userId, runId);
+        job.status = "done";
+      } catch (error) {
+        job.status = "error";
+        job.error = (error as Error).message || "planning_failed";
+        app.log.error({ err: error, run_id: runId }, "Trip planning run failed");
+      }
+      // Finished jobs are kept a while so a slow poll still finds them.
+      setTimeout(() => planJobs.delete(runId), PLAN_JOB_TTL_MS).unref();
+    })();
+
+    return reply.code(202).send({ job_id: runId, status: "running" });
+  });
+
+  app.get("/api/trips/plan/:jobId", { preHandler: (app as any).authenticate }, async (request: any, reply) => {
+    const job = planJobs.get(String(request.params.jobId));
+    if (!job || job.userId !== request.user?.userId) {
+      return reply.code(404).send({ error: "job_not_found" });
+    }
+    return {
+      status: job.status,
+      elapsed_ms: Date.now() - job.startedAt,
+      ...(job.status === "done" ? { result: job.result } : {}),
+      ...(job.status === "error" ? { error: job.error } : {})
+    };
+  });
+
+  async function runPlan(
+    input: z.infer<typeof PlanTripRequestSchema>,
+    userId: number,
+    runId: string
+  ): Promise<PlanTripResponse & { trip_id: number; run_id: string }> {
+    const result = await orchestrator.planTrip(input);
+
+    let tripId = input.trip_id;
     const brief = StructuredTripBriefSchema.parse(result.structured_json?.brief ?? {});
 
     const saveToolResult = await tools.save_trip({
@@ -199,26 +254,16 @@ export function buildServer() {
       trip_id: tripId,
       user_id: userId,
       run_id: runId,
-      input_message: parsed.data.message,
-      locale: parsed.data.locale,
+      input_message: input.message,
+      locale: input.locale,
       trace_json: result.trace,
       status: "ok"
     });
 
-    const response: PlanTripResponse & { trip_id: number; run_id: string } = {
-      ...result,
-      trip_id: tripId,
-      run_id: runId
-    };
+    app.log.info({ run_id: runId, trip_id: tripId, tool_statuses: flattenToolStatuses(result) }, "Trip planning run completed");
 
-    request.log.info({
-      run_id: runId,
-      trip_id: tripId,
-      tool_statuses: flattenToolStatuses(result)
-    }, "Trip planning run completed");
-
-    return response;
-  });
+    return { ...result, trip_id: tripId, run_id: runId };
+  }
 
   app.post("/api/trips", { preHandler: (app as any).authenticate }, async (request: any, reply) => {
     const body = request.body as any;

@@ -55,8 +55,21 @@ describe("auth + plan flow", () => {
       }
     });
 
-    expect(planRes.statusCode).toBe(200);
-    const data = planRes.json();
+    // Planning is a job: the request answers at once, the result is polled.
+    expect(planRes.statusCode).toBe(202);
+    const { job_id } = planRes.json();
+    expect(job_id).toBeTypeOf("string");
+
+    let data: any = null;
+    for (let attempt = 0; attempt < 200 && !data; attempt += 1) {
+      const pollRes = await app.inject({ method: "GET", url: `/api/trips/plan/${job_id}`, headers: { cookie: `mlt_token=${cookie?.value}` } });
+      expect(pollRes.statusCode).toBe(200);
+      const job = pollRes.json();
+      if (job.status === "error") throw new Error(job.error);
+      if (job.status === "done") data = job.result;
+      else await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    expect(data).toBeTruthy();
     expect(data.traveler_summary).toBeTypeOf("string");
     expect(Array.isArray(data.trace)).toBe(true);
     expect(data.trace.some((step: any) => step.skill === "travel-brief-parser")).toBe(true);

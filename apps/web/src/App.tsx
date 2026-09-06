@@ -78,6 +78,7 @@ const text = {
     authSub: "Accédez à vos voyages",
     serverDown: "Serveur injoignable — lance l'API avec « npm run dev » puis réessaie.",
     badCredentials: "Email ou mot de passe incorrect. Pas encore de compte ? Cliquez sur Inscription.",
+    planningInterrupted: "La génération a été interrompue (redémarrage du serveur). Relancez l'agent.",
     flightTag: "Vol",
     stayTag: "Hôtel",
     styleQuestion: "Quel type de voyage ?",
@@ -191,6 +192,7 @@ const text = {
     authSub: "Access your trips",
     serverDown: "Server unreachable — start the API with “npm run dev” and try again.",
     badCredentials: "Wrong email or password. No account yet? Click Sign up.",
+    planningInterrupted: "Planning was interrupted (server restart). Please launch the agent again.",
     flightTag: "Flight",
     stayTag: "Stay",
     styleQuestion: "What kind of trip?",
@@ -480,7 +482,8 @@ function TravelerApp() {
       const list = await api.listTrips();
       setTrips(list);
     } catch (error) {
-      alert((error as Error).message);
+      const message = (error as Error).message;
+      alert(/planning_interrupted/.test(message) ? t.planningInterrupted : /fetch/i.test(message) ? t.serverDown : message);
     } finally {
       setPlanning(false);
     }

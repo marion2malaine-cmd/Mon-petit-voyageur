@@ -1,5 +1,6 @@
 import type { PlanTripResponse, TripPreferences } from "@mlt/contracts";
 
+const PLAN_POLL_MS = 3000;
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8787";
 const DEV_TEST_CREDENTIALS = {
   email: "marion2malaine@gmail.com",
@@ -56,11 +57,26 @@ export const api = {
     http<{ ok: boolean }>("/api/auth/logout", {
       method: "POST"
     }),
-  planTrip: (payload: { message: string; locale: "fr" | "en"; trip_id?: number; preferences?: Partial<TripPreferences> }) =>
-    http<PlanTripResponse & { trip_id: number; run_id: string }>("/api/trips/plan", {
+  // Planning is a job: start it, then poll until the plan is ready.
+  planTrip: async (payload: { message: string; locale: "fr" | "en"; trip_id?: number; preferences?: Partial<TripPreferences> }) => {
+    const started = await http<{ job_id: string }>("/api/trips/plan", {
       method: "POST",
       body: JSON.stringify(payload)
-    }),
+    });
+    for (;;) {
+      await new Promise((resolve) => setTimeout(resolve, PLAN_POLL_MS));
+      let job: { status: string; result?: PlanTripResponse & { trip_id: number; run_id: string }; error?: string };
+      try {
+        job = await http(`/api/trips/plan/${started.job_id}`);
+      } catch (error) {
+        // A blip on one poll is not a failed plan; a vanished job is.
+        if (/job_not_found/.test((error as Error).message)) throw new Error("planning_interrupted");
+        continue;
+      }
+      if (job.status === "done" && job.result) return job.result;
+      if (job.status === "error") throw new Error(job.error || "planning_failed");
+    }
+  },
   listTrips: () => http<any[]>("/api/trips"),
   getGuide: (tripId: number, locale: "fr" | "en", embed: boolean) =>
     http<{ filename: string; html: string }>(
