@@ -18,7 +18,14 @@ import type { SkillDefinition, SkillRunResult } from "./types";
 export interface ExecuteOptions {
   locale: "fr" | "en";
   explicit?: boolean;
+  /**
+   * Go straight to the local handler, even with a model configured: for a
+   * skill whose input holds nothing the model could add (an empty free text
+   * next to a filled questionnaire), the round-trip is pure waiting.
+   */
+  skipLlm?: boolean;
 }
+
 
 export class SkillExecutor {
   private readonly client: OpenAI | null;
@@ -89,9 +96,11 @@ export class SkillExecutor {
 
     const attemptCandidates: Array<() => Promise<SkillRunResult<unknown>>> = [];
 
-    if (this.client) {
+    const useLlm = !!this.client && !options.skipLlm;
+    if (useLlm) {
       attemptCandidates.push(() => this.callLlmSkill(skill, schema, input, options.locale));
     }
+
 
     attemptCandidates.push(() => this.callFallbackHandler(skillName, input, handlerContext));
     attemptCandidates.push(() => this.callFallbackHandler(skillName, input, handlerContext));
@@ -106,7 +115,8 @@ export class SkillExecutor {
           output: parsed.data,
           meta: {
             ...result.meta,
-            source: this.client && index === 0 ? "llm" : "fallback"
+            source: useLlm && index === 0 ? "llm" : "fallback"
+
           }
         };
       }

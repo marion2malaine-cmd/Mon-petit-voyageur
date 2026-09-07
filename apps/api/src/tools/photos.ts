@@ -3,8 +3,19 @@ import type { AppConfig } from "../config";
 
 // Wikimedia asks every API client to identify itself.
 const USER_AGENT = "MonPetitVoyageur/1.0 (https://github.com/mon-petit-voyageur; guide generator)";
-const TIMEOUT_MS = 8000;
-const MAX_PARALLEL = 4;
+// An image source that has not answered in four seconds will not save the
+// guide: every query walks several sources, so a generous timeout multiplies
+// into half a minute of waiting for one card. The next source is tried instead.
+const TIMEOUT_MS = 4000;
+
+// A ten-day guide needs well over a hundred illustrations, and each one is a
+// couple of round-trips to Wikipedia, Openverse or Pexels. At four at a time
+// that was two minutes of the plan spent waiting on images; twelve keeps every
+// source comfortably inside its rate limits and turns those minutes into
+// seconds.
+const MAX_PARALLEL = Number(process.env.PHOTO_MAX_PARALLEL ?? 12);
+
+
 
 // Words that carry no meaning when matching a place name against an article
 // title, plus the generic travel vocabulary the LLM adds to its queries.
@@ -98,8 +109,28 @@ export async function findPhoto(ctx: PhotoContext, query: string): Promise<Photo
     () => fromPexels(normalized, ctx.config.PEXELS_API_KEY)
   ];
 
-  const resolvers = isGenericSubject ? [...libraries, ...encyclopedic] : [...encyclopedic, ...libraries];
+  // Sources are tried in order of what they are good at, and the first image
+  // that really renders wins. Asking the two families at once was measured and
+  // rejected: it doubles the load on Wikipedia and Openverse, which answer
+  // slower under it, and every card ended up waiting longer.
+  const preferred = await firstWorking(isGenericSubject ? [...libraries, ...encyclopedic] : [...encyclopedic, ...libraries]);
 
+
+  // The simplified query may have found it; the card still describes what was
+  // asked for.
+  const found = preferred ? { ...preferred, query: normalized } : emptyPhoto(normalized);
+
+  cache.set(cacheKey, found);
+  return found;
+}
+
+/**
+ * The first source of a family that answers with an image that really renders.
+ *
+ * Sources inside a family stay in order — the full query before the simplified
+ * one — because they are the same family's decreasing degrees of certainty.
+ */
+async function firstWorking(resolvers: (() => Promise<Photo | null>)[]): Promise<Photo | null> {
   for (const resolve of resolvers) {
     try {
       const photo = await resolve();
@@ -107,22 +138,14 @@ export async function findPhoto(ctx: PhotoContext, query: string): Promise<Photo
       // refuses to thumbnail an image wider than its source or too large to
       // process, and answers 400. Validating here means a broken image never
       // reaches the page or the guide — the next source is tried instead.
-      if (photo?.url && (await imageWorks(scalePhoto(photo, MAX_USABLE_WIDTH).url!))) {
-        // The simplified query may have found it; the card still describes
-        // what was asked for.
-        const found = { ...photo, query: normalized };
-        cache.set(cacheKey, found);
-        return found;
-      }
+      if (photo?.url && (await imageWorks(scalePhoto(photo, MAX_USABLE_WIDTH).url!))) return photo;
     } catch {
       // Never let an image lookup break a trip plan.
     }
   }
-
-  const fallback = emptyPhoto(normalized);
-  cache.set(cacheKey, fallback);
-  return fallback;
+  return null;
 }
+
 
 // The widest a card ever displays; validation uses it so the exact URL the
 // page will request is the one that gets checked.
@@ -139,16 +162,27 @@ async function imageWorks(url: string): Promise<boolean> {
   }
 }
 
-/** Resolves many queries with a bounded number of concurrent requests. */
+/**
+ * Resolves many queries with a bounded number of concurrent requests.
+ *
+ * The workers pull from a shared queue rather than advancing in fixed batches:
+ * a batch waited for its slowest image before starting the next one, so a
+ * single ten-second lookup idled eleven workers, and a hundred illustrations
+ * took nearly two minutes instead of the sum of their own times.
+ */
 export async function findPhotos(ctx: PhotoContext, queries: string[]): Promise<Map<string, Photo>> {
   const unique = [...new Set(queries.map((q) => q.trim()).filter(Boolean))];
   const results = new Map<string, Photo>();
 
-  for (let index = 0; index < unique.length; index += MAX_PARALLEL) {
-    const batch = unique.slice(index, index + MAX_PARALLEL);
-    const photos = await Promise.all(batch.map((query) => findPhoto(ctx, query)));
-    batch.forEach((query, position) => results.set(query, photos[position]));
-  }
+  let next = 0;
+  const worker = async () => {
+    for (let index = next++; index < unique.length; index = next++) {
+      const query = unique[index];
+      results.set(query, await findPhoto(ctx, query));
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(MAX_PARALLEL, unique.length) }, worker));
+
 
   return results;
 }

@@ -41,8 +41,11 @@ const ACTIVITY_BUDGET_SHARE = 0.2;
 // retry cannot fix — the same prompt truncates again at the same place. So the
 // answer is made small enough that it always fits.
 const DAYS_PER_BATCH = 1;
-// More calls, so more of them run at once to keep the wait the same.
-const MAX_PARALLEL_BATCHES = 5;
+// More calls, so more of them run at once to keep the wait the same. Eight
+// lets a one-week trip — the common case — go out in a single wave: with five,
+// a 7-day program waited for two full rounds of the model.
+const MAX_PARALLEL_BATCHES = 8;
+
 // Beyond three weeks the outline itself no longer fits in one answer, so it is
 // requested slice by slice.
 // The outline of a whole trip does not fit in one answer: 21 days of names ran
@@ -113,26 +116,33 @@ export async function planItinerary(
   if (!executor.hasLlm) throw new ItineraryUnavailableError("no_llm", input.locale);
   if (!input.destination) throw new ItineraryUnavailableError("no_destination", input.locale);
 
+  const outlineStartedAt = Date.now();
   const outline = await buildOutline(executor, input);
   if (!outline?.days?.length) throw new ItineraryUnavailableError("outline", input.locale);
+  console.info(`[itinerary] outline: ${((Date.now() - outlineStartedAt) / 1000).toFixed(1)}s`);
 
   // Real data before the days are written: rated restaurants for every area
   // of the outline, and what travelers wrote on the forums. Left to itself the
   // model names a "Taverna <village>" per day and quotes forums from memory.
   // Both lookups are tools and may fail; the model's own names then stay,
   // flagged unverified.
+  const lookupsStartedAt = Date.now();
   const [forum, restaurants, gyg] = await Promise.all([
     ctx.tools.search_forum_tips({ destination: input.destination, locale: input.locale }),
     fetchRestaurantsByArea(ctx, outline, input.destination, input.locale),
     ctx.tools.search_getyourguide({ destination: input.destination, locale: input.locale })
   ]);
+  console.info(`[itinerary] forum + restaurants + activities lookups: ${((Date.now() - lookupsStartedAt) / 1000).toFixed(1)}s`);
+
   const findings = ((forum.data as any)?.findings ?? []) as ForumFinding[];
   const offers = ((gyg.data as any)?.offers ?? []) as GygOffer[];
   const placesByName = assignRestaurants(outline, restaurants.byArea, input.brief, input.remainingBudgetEur);
   const activityBudget = activityBudgetPerPerson(input.brief, input.remainingBudgetEur);
   const real = { findings, placesByName, activityBudget };
 
+  const daysStartedAt = Date.now();
   let days = await expandDays(executor, outline, input, real);
+  console.info(`[itinerary] ${days.length}/${outline.days.length} days written: ${((Date.now() - daysStartedAt) / 1000).toFixed(1)}s`);
 
   // A batch can fail for reasons that pass — a rate limit, an answer cut at
   // the token ceiling. The days it owed are asked for again, alone, before

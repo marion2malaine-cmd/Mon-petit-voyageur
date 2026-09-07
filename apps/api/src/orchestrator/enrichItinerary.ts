@@ -44,6 +44,16 @@ export async function enrichItinerary(
 ): Promise<ItineraryByDay> {
   const { destination, locale } = options;
 
+  // Every official site is checked on the network at once: done one after the
+  // other, twenty museums at up to six seconds each held the plan for minutes.
+  await Promise.all(
+    (itinerary.itinerary_by_day ?? []).flatMap((day) =>
+      (day.paid_options ?? []).map(async (option) => {
+        option.official_url = option.kind === "ticket" ? await verifiedOfficialUrl(option.official_url) : null;
+      })
+    )
+  );
+
   for (const day of itinerary.itinerary_by_day ?? []) {
     for (const visit of day.free_visits ?? []) {
       visit.map_url = buildMapUrl(visit.name, destination);
@@ -54,7 +64,7 @@ export async function enrichItinerary(
       // A ticketed place (museum, monument) is booked at its official ticket
       // office; an experience (tour, cruise) on the activity platforms.
       const isTicket = option.kind === "ticket";
-      option.official_url = isTicket ? await verifiedOfficialUrl(option.official_url) : null;
+
       const dated = { date: day.date ?? null, adults: options.travelers ?? null };
       option.booking_links = isTicket
         ? buildTicketLinks(option.title, destination, locale, option.official_url, dated)

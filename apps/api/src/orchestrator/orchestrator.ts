@@ -21,12 +21,23 @@ import { buildExcursions, completeBriefDates, mergePreferencesIntoBrief, runFlig
 import { buildExperienceLinks, buildSearchLinks, buildTransferLinks } from "../tools/links";
 import { resolveAirportCodes } from "../tools/serpapi";
 import { buildCarRentalAdvice } from "../tools/carRental";
+import { buildInternalFlights } from "../tools/internalFlights";
+
 import { enrichItinerary } from "./enrichItinerary";
 import type { SkillDefinition } from "../skills/types";
 import type { AppConfig } from "../config";
 import type { LiveTools } from "../tools";
 
 const VALID_STYLES = new Set(["beach", "culture", "nature", "food", "nightlife", "family", "romantic", "adventure"]);
+
+// What the web app sends when the traveler left the free-text field empty
+// (see handlePlan in apps/web/src/App.tsx): a message that carries no
+// information of its own.
+const DEFAULT_MESSAGES = new Set([
+  "Propose-moi un voyage adapté à mes critères.",
+  "Suggest a trip matching my criteria."
+]);
+
 
 export function createOrchestrator(config: AppConfig, tools: LiveTools, skillRegistry: Map<string, SkillDefinition>) {
   const executor = new SkillExecutor(config, tools, skillRegistry);
@@ -39,21 +50,34 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
    * those results as `live_prices` and its answer keeps the live arrays,
    * links and status verbatim while contributing the transport advice and
    * tradeoff notes. Without an LLM the tool result stands on its own.
+   *
+   * The two halves are separate calls: the live prices fix the dates and the
+   * remaining budget that the itinerary needs, while the advice feeds nothing
+   * else — so it runs alongside the itinerary instead of ahead of it.
    */
-  async function researchWithLivePrices(
+  async function researchLivePrices(brief: StructuredTripBrief, destination: string, locale: "fr" | "en") {
+    const live = await runFlightHotelResearch(
+      { brief, destinationFallback: destination },
+      { locale, tools, flexDateSamples: config.SERPAPI_FLEX_DATE_SAMPLES, aviasalesMarker: config.TRAVELPAYOUTS_MARKER ?? null }
+    );
+    return {
+      output: FlightHotelResearchSchema.parse(live.output),
+      meta: { toolStatuses: live.meta.toolStatuses, source: "tools" as const }
+    };
+  }
+
+  async function adviseOnLivePrices(
+    liveResult: Awaited<ReturnType<typeof researchLivePrices>>,
     brief: StructuredTripBrief,
     destination: string,
     locale: "fr" | "en",
     explicit: boolean
   ) {
-    const live = await runFlightHotelResearch(
-      { brief, destinationFallback: destination },
-      { locale, tools, flexDateSamples: config.SERPAPI_FLEX_DATE_SAMPLES, aviasalesMarker: config.TRAVELPAYOUTS_MARKER ?? null }
-    );
-    const liveOutput = FlightHotelResearchSchema.parse(live.output);
-    const meta = { toolStatuses: live.meta.toolStatuses, source: "tools" as const };
+    const liveOutput = liveResult.output;
+    const meta = liveResult.meta;
 
     try {
+
       const advised = await executor.run(
         "flight-hotel-research",
         FlightHotelResearchSchema,
@@ -102,12 +126,30 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
     const trace: PlanTripResponse["trace"] = [];
     const openVerifications: string[] = [];
 
+    // Where the minutes go, phase by phase, in the server log: the one way to
+    // see which call is slow on a given run without a real plan being timed
+    // by hand.
+    const startedAt = Date.now();
+    let lastLapAt = startedAt;
+    const lap = (label: string) => {
+      const now = Date.now();
+      console.info(`[plan] ${label}: ${((now - lastLapAt) / 1000).toFixed(1)}s (total ${((now - startedAt) / 1000).toFixed(1)}s)`);
+      lastLapAt = now;
+    };
+
+    // An empty free-text field arrives as the app's stock sentence. With a
+    // destination ticked in the questionnaire there is nothing for the model
+    // to read in it, so the brief is assembled locally and one LLM round-trip
+    // is saved.
+    const skipBriefLlm = DEFAULT_MESSAGES.has(validatedInput.message.trim()) && !!validatedInput.preferences?.destination?.trim();
     const briefResult = await executor.run(
       "travel-brief-parser",
       TravelBriefOutputSchema,
       { message: validatedInput.message, preferences: validatedInput.preferences ?? null },
-      { locale }
+      { locale, skipLlm: skipBriefLlm }
     );
+    lap(`brief (${briefResult.meta.source})`);
+
     trace.push({
       skill: "travel-brief-parser",
       status: "ok",
@@ -123,8 +165,14 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
     );
     briefResult.output.structured_trip_brief = brief;
 
+    // A destination ticked in the questionnaire is an answer, not a hint: the
+    // stock "propose-moi un voyage" sentence that comes with it must not send
+    // the matcher looking for somewhere else, which cost a full LLM call for
+    // an answer nobody read.
+    const destinationChosen = !!validatedInput.preferences?.destination?.trim();
     let destinationResult: any = null;
-    if (!brief.destination || intent.wantsDestinationIdeas) {
+    if (!brief.destination || (intent.wantsDestinationIdeas && !destinationChosen)) {
+
       const result = await executor.run(
         "destination-matcher",
         DestinationMatcherOutputSchema,
@@ -132,6 +180,7 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
         { locale }
       );
       destinationResult = result;
+      lap(`destination-matcher (${result.meta.source})`);
       trace.push({
         skill: "destination-matcher",
         status: "ok",
@@ -139,6 +188,7 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
         tool_statuses: result.meta.toolStatuses
       });
     } else {
+
       trace.push({
         skill: "destination-matcher",
         status: "skipped",
@@ -158,31 +208,48 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
 
     // Tickets first. The real fare and stay decide the dates (when only a
     // month was given) and what is left of the budget; everything else is
-    // organised inside that, so the research cannot run alongside the rest.
-    const researchResult = shouldRunResearch
-      ? await researchWithLivePrices(brief, destinationResolved!, locale, intent.wantsLiveResearch || !!brief.budget_total).catch(
-          (error) => {
-            trace.push({ skill: "flight-hotel-research", status: "skipped", reason: (error as Error).message, tool_statuses: {} });
-            return null;
-          }
-        )
+    // organised inside that, so the live search cannot run alongside the rest.
+    // Only the tools run here: the model's advice on those prices comes later,
+    // in the parallel block, because nothing downstream waits for it.
+    const liveResearch = shouldRunResearch
+      ? await researchLivePrices(brief, destinationResolved!, locale).catch((error) => {
+          trace.push({ skill: "flight-hotel-research", status: "skipped", reason: (error as Error).message, tool_statuses: {} });
+          return null;
+        })
       : null;
-    if (researchResult?.output.chosen_dates) {
-      brief.exact_dates = { start: researchResult.output.chosen_dates.start, end: researchResult.output.chosen_dates.end, estimated: false };
+    if (liveResearch) lap("live prices (tools)");
+    if (liveResearch?.output.chosen_dates) {
+      brief.exact_dates = { start: liveResearch.output.chosen_dates.start, end: liveResearch.output.chosen_dates.end, estimated: false };
       briefResult.output.structured_trip_brief = brief;
     }
-    const remainingBudgetEur = researchResult?.output.remaining_budget_eur ?? null;
-    const liveCosts = researchResult?.output.live_costs ?? null;
+    const remainingBudgetEur = liveResearch?.output.remaining_budget_eur ?? null;
+    const liveCosts = liveResearch?.output.live_costs ?? null;
 
-    // With the tickets known these four skills no longer depend on one
+    // With the tickets known these five skills no longer depend on one
     // another, so they run concurrently: the plan's wall-clock is the slowest
     // one (the itinerary), not the sum.
-    const [budgetResult, entryResult, itineraryResult, packingResult] = await Promise.all([
-      executor.run("budget-estimator", BudgetEstimateSchema, { brief, live_costs: liveCosts, remaining_budget_eur: remainingBudgetEur }, { locale }),
+    const timed = <T>(label: string, work: Promise<T>): Promise<T> =>
+      work.then((value) => {
+        console.info(`[plan] ${label} done at ${((Date.now() - startedAt) / 1000).toFixed(1)}s`);
+        return value;
+      });
+    const [researchResult, budgetResult, entryResult, itineraryResult, packingResult] = await Promise.all([
+      liveResearch
+        ? timed(
+            "flight-hotel advice",
+            adviseOnLivePrices(liveResearch, brief, destinationResolved!, locale, intent.wantsLiveResearch || !!brief.budget_total).catch(
+              () => liveResearch
+            )
+          )
+        : Promise.resolve(null),
+
+      timed("budget-estimator", executor.run("budget-estimator", BudgetEstimateSchema, { brief, live_costs: liveCosts, remaining_budget_eur: remainingBudgetEur }, { locale })),
+
 
       wantsEntry
-        ? executor
+        ? timed("entry-requirements", executor
             .run(
+
               "entry-requirements-checker",
               EntryRequirementsSchema,
               { brief, destinationFallback: destinationResolved, nationality: "FR" },
@@ -196,16 +263,18 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
               );
               trace.push({ skill: "entry-requirements-checker", status: "skipped", reason: (error as Error).message, tool_statuses: {} });
               return null;
-            })
+            }))
         : Promise.resolve(null),
 
       // The day-by-day program is itself several calls (outline, then day
       // batches). It throws when the AI could not write the program: no
       // generic guide is ever served, the run fails with that message.
-      planItinerary(executor, { brief, destination: destinationResolved, locale, remainingBudgetEur, liveCosts }, { locale, tools }),
+      timed("itinerary", planItinerary(executor, { brief, destination: destinationResolved, locale, remainingBudgetEur, liveCosts }, { locale, tools })),
 
-      executor.run("packing-checklist", PackingChecklistSchema, { brief, destinationFallback: destinationResolved }, { locale })
+      timed("packing-checklist", executor.run("packing-checklist", PackingChecklistSchema, { brief, destinationFallback: destinationResolved }, { locale }))
     ]);
+    lap("parallel skills");
+
 
     // Traces are pushed in a stable order once everything has resolved.
     if (researchResult) {
@@ -232,10 +301,31 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
       locale
     );
 
+    // The closing summary only reads titles and totals, none of which the
+    // enrichment below changes, so the model writes it while the photos and
+    // links are being resolved instead of after. The input is copied because
+    // the enrichment mutates these objects in place.
+    const exportPromise = executor.run(
+      "trip-summary-export",
+      TripSummaryExportSchema,
+      structuredClone({
+        brief,
+        destination: destinationResult?.output ?? null,
+        budget: budgetResult.output,
+        research: researchResult?.output ?? null,
+        entry: entryResult?.output ?? null,
+        itinerary: itineraryResult.output,
+        packing: packingResult.output,
+        openVerifications
+      }),
+      { locale }
+    );
+
     // URLs and photos must never come from the LLM (it invents plausible-looking
     // dead links and image URLs): both are rebuilt locally from the titles it
     // produced, so every link in the guide resolves to a real search page.
     if (destinationResolved) {
+
       const styles = (brief.traveler_types ?? []).filter((s: string) => VALID_STYLES.has(s)) as TravelStyle[];
 
       if (!itineraryResult.output.suggested_excursions?.length) {
@@ -348,6 +438,16 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
         });
         researchResult.output.search_links = searchLinks;
 
+        // Flights between the stages of the trip itself (several US states,
+        // or any day the program flies): one link set per leg, never a live
+        // search, so the traveler can price them without spending a credit.
+        researchResult.output.internal_flights = buildInternalFlights(itineraryResult.output.itinerary_by_day ?? [], {
+          locale,
+          travelers: brief.travelers_count,
+          multiState: (brief.states_to_visit ?? 1) > 1
+        });
+
+
         const flightLink = searchLinks.find((l) => l.provider === "skyscanner")?.url ?? null;
         const stayLink = searchLinks.find((l) => l.provider === "booking")?.url ?? null;
         // A live result carries the engine's own deep link to that exact fare
@@ -361,22 +461,11 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
       }
     }
 
-    const exportResult = await executor.run(
-      "trip-summary-export",
-      TripSummaryExportSchema,
-      {
-        brief,
-        destination: destinationResult?.output ?? null,
-        budget: budgetResult.output,
-        research: researchResult?.output ?? null,
-        entry: entryResult?.output ?? null,
-        itinerary: itineraryResult.output,
-        packing: packingResult.output,
-        openVerifications
-      },
-      { locale }
-    );
+    lap("enrichment (links, photos, car)");
+    const exportResult = await exportPromise;
+    lap(`trip-summary-export (${exportResult.meta.source})`);
     trace.push({ skill: "trip-summary-export", status: "ok", source: exportResult.meta.source, tool_statuses: exportResult.meta.toolStatuses });
+
 
     // The UI depends on these exact keys: rebuild structured_json from the real
     // skill outputs instead of trusting the export skill's own aggregation.
