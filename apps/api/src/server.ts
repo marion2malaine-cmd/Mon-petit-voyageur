@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import { registerAdmin } from "./admin";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
@@ -24,10 +25,12 @@ import { loadSkillRegistry } from "./skills/registry";
 import { createOrchestrator } from "./orchestrator/orchestrator";
 import { embedItineraryPhotos, locateItinerary, resolveItineraryPhotos } from "./orchestrator/enrichItinerary";
 import { renderGuideHtml } from "./guide/renderGuide";
-import { mapRouteForDay } from "./guide/renderGuide";
+import { journeyLegs, mapRouteForDay } from "./guide/renderGuide";
 import { stillMapDataUri } from "./guide/staticMap";
 import { renderPdf } from "./guide/pdf";
 import { Mailer } from "./tools/mailer";
+import { editTrip } from "./tripEdits";
+import { registerPremium, premiumAccess } from "./premium";
 
 interface PlanJob {
   userId: number;
@@ -76,6 +79,7 @@ export function buildServer() {
       current_period_end: user.current_period_end ?? null,
       trial_used: !!user.trial_used,
       billing_enabled: billing.isConfigured,
+      has_premium: premiumAccess(user, compEmails),
       has_access: hasActiveAccess(user, billing.isConfigured, compEmails)
     };
   }
@@ -119,7 +123,8 @@ export function buildServer() {
   const allowedOrigins = new Set<string>([
     config.APP_URL,
     config.APP_URL.replace("https://", "https://www."),
-    "capacitor://localhost"
+    "capacitor://localhost",
+    "https://localhost"
   ]);
   if (config.NODE_ENV !== "production") {
     allowedOrigins.add("http://localhost:5180");
@@ -180,6 +185,7 @@ export function buildServer() {
   });
 
   app.get("/api/health", async () => ({ ok: true }));
+  registerAdmin(app, db);
 
   // Tighter limit on account creation and login: brute force / enumeration.
   const authRateLimit = { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } };
@@ -248,6 +254,7 @@ export function buildServer() {
   });
 
   // --- Billing (Stripe) ---------------------------------------------------
+  registerPremium(app, db, config, compEmails);
 
   // Starts a Checkout session for the chosen plan and returns its URL. The web
   // app redirects the browser there.
@@ -520,7 +527,7 @@ export function buildServer() {
     // Photos are resolved on first use, then stored on the trip so the next
     // download or send is instant.
     if (itinerary?.itinerary_by_day && destination) {
-      const resolved = await resolveItineraryPhotos(itinerary, tools, locale, destination);
+      const resolved = await resolveItineraryPhotos(itinerary, tools, locale, destination, (plan.structured_json as any)?.research);
       const located = await locateItinerary(itinerary, destination);
       if (resolved || located) {
         db.updateTrip({ userId, tripId, plan });
@@ -534,15 +541,20 @@ export function buildServer() {
     if (options.embed) {
       const copy = (renderable.structured_json as any)?.itinerary;
       if (copy?.itinerary_by_day) {
-        await embedItineraryPhotos(copy);
+        await embedItineraryPhotos(copy, (renderable.structured_json as any)?.research);
       }
     }
 
     // The still map is fetched here with the server token and inlined: the
     // browser token is URL-restricted and would not answer an <img> request
     // from a downloaded file.
-    const routes = ((renderable.structured_json as any)?.itinerary?.itinerary_by_day ?? []).map(mapRouteForDay);
-    const staticMapSrc = await stillMapDataUri(routes, config.MAPBOX_SERVER_TOKEN ?? config.MAPBOX_ACCESS_TOKEN);
+    const guideDays = (renderable.structured_json as any)?.itinerary?.itinerary_by_day ?? [];
+    const routes = guideDays.map(mapRouteForDay);
+    const staticMapSrc = await stillMapDataUri(
+      routes,
+      config.MAPBOX_SERVER_TOKEN ?? config.MAPBOX_ACCESS_TOKEN,
+      journeyLegs(guideDays)
+    );
 
     return {
       trip,
@@ -611,6 +623,19 @@ export function buildServer() {
     research.chosen_stay_index = index;
     db.updateTrip({ userId: request.user.userId, tripId, plan });
     return { chosen_stay_index: index, stay: research.recommended_stays[index] };
+  });
+
+  app.patch("/api/trips/:id/itinerary", { preHandler: (app as any).authenticate }, async (request: any, reply) => {
+    const tripId = Number(request.params.id);
+    const trip = db.getTrip(request.user.userId, tripId) as any;
+    if (!trip) return reply.code(404).send({ error: "Trip not found" });
+    try {
+      const plan = editTrip(trip.plan_json, request.body);
+      db.updateTrip({ userId: request.user.userId, tripId, plan });
+      return { ...plan, trip_id: tripId };
+    } catch {
+      return reply.code(400).send({ error: "invalid_itinerary_edit" });
+    }
   });
 
   // Emails the guide as an attachment. The recipient defaults to the signed-in
