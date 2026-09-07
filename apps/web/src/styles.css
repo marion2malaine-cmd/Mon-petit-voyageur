@@ -1771,3 +1771,39 @@ select:focus, input:focus, textarea:focus {
 .landing { background: #fff; }
 .landing .hero-landing, .landing .how-section { background: #fff; }
 .landing .site-footer { background: #fff; }
+
+/* A one-line explanation under a question whose answer changes the plan
+   (how many US states to cross, and so whether internal flights are searched). */
+.field-hint {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--muted-fg);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+/* The flights between two stages of the trip: never a live price, always the
+   comparator pre-filled on that exact leg. */
+.internal-flights {
+  margin: 0.6rem 0 1rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: var(--primary-pale);
+}
+.internal-flights-title {
+  margin: 0 0 0.4rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.internal-flight {
+  margin: 0.25rem 0;
+  font-size: 0.85rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: baseline;
+}
+.internal-flight a {
+  color: var(--deep-blue);
+}

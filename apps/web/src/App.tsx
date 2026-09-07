@@ -7,6 +7,8 @@ import TripMap, { routesFromItinerary } from "./TripMap";
 import Plane3D from "./Plane3D";
 import { LegalPage } from "./LegalPage";
 import type { LegalDoc } from "./legalContent";
+import { DESTINATION_CATALOGUE, US_COUNTRY_NAME, US_STATES, placeLabel } from "./destinations";
+
 
 type Locale = "fr" | "en";
 
@@ -86,6 +88,9 @@ const text = {
     planningInterrupted: "La génération a été interrompue (redémarrage du serveur). Relancez l'agent.",
     flightTag: "Vol",
     stayTag: "Hôtel",
+    internalFlightsTitle: "Vols internes entre étapes",
+    dayShort: "Jour",
+
     styleQuestion: "Quel type de voyage ?",
     paceLabel: "Rythme",
     paceSlow: "Tranquille",
@@ -102,6 +107,24 @@ const text = {
     departureLabel: "Ville de départ",
     destinationLabel: "Destination",
     destinationPlaceholder: "Laisser vide pour une suggestion",
+    continentLabel: "Continent",
+    countryLabel: "Pays",
+    stateLabel: "État",
+    cityLabel: "Ville",
+    anyDestination: "Peu importe — surprenez-moi",
+    anyCountry: "Peu importe dans ce continent",
+    anyState: "Peu importe dans le pays",
+    anyCity: "Peu importe — toute la région",
+    pickContinentFirst: "Choisissez d'abord un continent",
+    pickCountryFirst: "Choisissez d'abord un pays",
+    pickStateFirst: "Choisissez d'abord un État",
+
+    statesCountLabel: "Combien d'États voulez-vous visiter ?",
+    statesCountAny: "Un seul, à définir",
+    oneState: "1 État",
+    severalStates: "États",
+    statesCountHint: "Au-delà d'un État, les vols internes entre étapes sont recherchés.",
+
     monthLabel: "Mois de départ",
     anyMonth: "Indifférent",
     freeTextLabel: "Précisions (destination, envies...)",
@@ -247,6 +270,9 @@ const text = {
     planningInterrupted: "Planning was interrupted (server restart). Please launch the agent again.",
     flightTag: "Flight",
     stayTag: "Stay",
+    internalFlightsTitle: "Domestic flights between stages",
+    dayShort: "Day",
+
     styleQuestion: "What kind of trip?",
     paceLabel: "Pace",
     paceSlow: "Relaxed",
@@ -263,6 +289,24 @@ const text = {
     departureLabel: "Departure city",
     destinationLabel: "Destination",
     destinationPlaceholder: "Leave empty for a suggestion",
+    continentLabel: "Continent",
+    countryLabel: "Country",
+    stateLabel: "State",
+    cityLabel: "City",
+    anyDestination: "Anywhere — surprise me",
+    anyCountry: "Anywhere on this continent",
+    anyState: "Anywhere in the country",
+    anyCity: "Anywhere — the whole region",
+    pickContinentFirst: "Pick a continent first",
+    pickCountryFirst: "Pick a country first",
+    pickStateFirst: "Pick a state first",
+
+    statesCountLabel: "How many states do you want to visit?",
+    statesCountAny: "Just one, to be decided",
+    oneState: "1 state",
+    severalStates: "states",
+    statesCountHint: "Beyond one state, domestic flights between stages are searched.",
+
     monthLabel: "Departure month",
     anyMonth: "Flexible",
     freeTextLabel: "Details (destination, wishes...)",
@@ -365,17 +409,11 @@ function formatElapsed(seconds: number): string {
   return minutes ? `${minutes} min ${String(rest).padStart(2, "0")} s` : `${rest} s`;
 }
 
-const DESTINATION_SUGGESTIONS = [
-  "Lisbonne", "Porto", "Séville", "Barcelone", "Madrid", "Rome", "Florence", "Naples", "Sicile",
-  "Athènes", "Crète", "Santorin", "Istanbul", "Marrakech", "Amsterdam", "Copenhague",
-  "Vienne", "Prague", "Budapest", "Dublin", "Édimbourg", "Londres", "Berlin", "Cracovie",
-  "Malte", "Chypre", "Madère", "Açores", "Canaries", "Baléares", "Corse", "Sardaigne",
-  "Côte d'Azur", "Pays basque", "Bretagne", "Provence", "Alpes",
-  "New York", "Montréal", "Québec", "Californie", "Islande", "Norvège", "Laponie",
-  "Maroc", "Tunisie", "Égypte", "Jordanie", "Cap-Vert", "Sénégal", "La Réunion", "Maurice",
-  "Thaïlande", "Vietnam", "Japon", "Bali", "Sri Lanka", "Inde du Nord",
-  "Mexique", "Costa Rica", "Pérou", "Brésil", "Argentine", "Guadeloupe", "Martinique"
-];
+// How many US states a trip may cross, offered as a question of its own the
+// moment the United States are picked: it decides whether the program is one
+// state explored in depth or a route with domestic flights between stages.
+const US_STATE_COUNTS = [1, 2, 3, 4, 5] as const;
+
 
 const FEATURES = [
   {
@@ -504,7 +542,15 @@ function TravelerApp() {
   const [duration, setDuration] = useState("");
   const [travelers, setTravelers] = useState("2");
   const [departure, setDeparture] = useState("");
-  const [destination, setDestination] = useState("");
+  // The destination is browsed continent → country (or US state) → city; the
+  // deepest answer given is what the plan is built on, so a traveler who stops
+  // at "Asie" still gets a trip.
+  const [continentKey, setContinentKey] = useState("");
+  const [countryName, setCountryName] = useState("");
+  const [stateName, setStateName] = useState("");
+  const [cityName, setCityName] = useState("");
+  const [statesCount, setStatesCount] = useState("");
+
   const [month, setMonth] = useState("");
   // ?demo-plane shows the wait screen without planning: for checking the animation.
   const [planning, setPlanning] = useState(false);
@@ -592,10 +638,57 @@ function TravelerApp() {
     api.listTrips().then(setTrips).catch(() => setTrips([]));
   }, [user]);
 
+  const continent = DESTINATION_CATALOGUE.find((entry) => entry.key === continentKey) ?? null;
+  const country = continent?.countries.find((entry) => entry.name === countryName) ?? null;
+  const isUnitedStates = countryName === US_COUNTRY_NAME;
+  const usState = isUnitedStates ? US_STATES.find((entry) => entry.name === stateName) ?? null : null;
+  // Inside the United States the second list is the state, so the cities come
+  // from it; everywhere else they come from the country.
+  const cityOptions = isUnitedStates ? usState?.cities ?? [] : country?.cities ?? [];
+
+  // The most precise place the traveler named. A city beats its state, a state
+  // beats the country, and an untouched continent beats nothing at all: the
+  // destination matcher then chooses inside it.
+  const destination = useMemo(() => {
+    if (cityName) return cityName;
+    if (isUnitedStates) return stateName ? `${stateName}, ${US_COUNTRY_NAME}` : countryName;
+    return countryName || "";
+  }, [cityName, countryName, stateName, isUnitedStates]);
+
+  // A continent with no country picked is a hint for the free text, not a
+  // destination: the AI is told where to look and stays free to choose.
+  const continentHint = useMemo(() => {
+    if (destination || !continent) return "";
+    return locale === "fr" ? `Je veux partir en ${continent.fr}.` : `I want to travel to ${continent.en}.`;
+  }, [destination, continent, locale]);
+
   const canSubmit = useMemo(
-    () => (!!message.trim() || styles.length > 0) && !planning,
-    [message, styles, planning]
+    () => (!!message.trim() || styles.length > 0 || !!destination || !!continentHint) && !planning,
+    [message, styles, planning, destination, continentHint]
   );
+
+  // Changing a level clears the ones below it, so the form never sends a city
+  // that belongs to another country.
+  function handleContinentChange(value: string) {
+    setContinentKey(value);
+    setCountryName("");
+    setStateName("");
+    setCityName("");
+    setStatesCount("");
+  }
+
+  function handleCountryChange(value: string) {
+    setCountryName(value);
+    setStateName("");
+    setCityName("");
+    if (value !== US_COUNTRY_NAME) setStatesCount("");
+  }
+
+  function handleStateChange(value: string) {
+    setStateName(value);
+    setCityName("");
+  }
+
 
   function toggleStyle(key: string) {
     setStyles((current) => (current.includes(key) ? current.filter((s) => s !== key) : [...current, key]));
@@ -628,14 +721,17 @@ function TravelerApp() {
     try {
       const response = await api.planTrip({
         message:
-          message.trim() ||
+          [message.trim(), continentHint].filter(Boolean).join(" ") ||
           (locale === "fr" ? "Propose-moi un voyage adapté à mes critères." : "Suggest a trip matching my criteria."),
+
         locale,
         preferences: {
           travel_styles: styles as any,
           pace: (pace || null) as any,
           budget_total: budgetInput ? Number(budgetInput) : null,
           destination: destination.trim() || null,
+          states_count: isUnitedStates && statesCount ? Number(statesCount) : null,
+
           duration_days: duration ? Number(duration) : null,
           travelers_count: travelers ? Number(travelers) : null,
           departure_city: departure.trim() || null,
@@ -1055,20 +1151,69 @@ function TravelerApp() {
                   <input type="number" min={100} step={50} value={budgetInput} onChange={(e) => setBudgetInput(e.target.value)} placeholder="1500" />
                 </label>
                 <label>
-                  {t.destinationLabel}
-                  <input
-                    type="text"
-                    list="destination-suggestions"
-                    value={destination}
-                    onChange={(e) => setDestination(e.target.value)}
-                    placeholder={t.destinationPlaceholder}
-                  />
-                  <datalist id="destination-suggestions">
-                    {DESTINATION_SUGGESTIONS.map((city) => (
-                      <option key={city} value={city} />
+                  {t.continentLabel}
+                  <select value={continentKey} onChange={(e) => handleContinentChange(e.target.value)}>
+                    <option value="">{t.anyDestination}</option>
+                    {DESTINATION_CATALOGUE.map((entry) => (
+                      <option key={entry.key} value={entry.key}>
+                        {entry[locale]}
+                      </option>
                     ))}
-                  </datalist>
+                  </select>
                 </label>
+                <label>
+                  {t.countryLabel}
+                  <select value={countryName} onChange={(e) => handleCountryChange(e.target.value)} disabled={!continent}>
+                    <option value="">{continent ? t.anyCountry : t.pickContinentFirst}</option>
+                    {(continent?.countries ?? []).map((entry) => (
+                      <option key={entry.name} value={entry.name}>
+                        {placeLabel(entry, locale)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {isUnitedStates && (
+                  <label>
+                    {t.stateLabel}
+                    <select value={stateName} onChange={(e) => handleStateChange(e.target.value)}>
+                      <option value="">{t.anyState}</option>
+                      {US_STATES.map((entry) => (
+                        <option key={entry.name} value={entry.name}>
+                          {placeLabel(entry, locale)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                <label>
+                  {t.cityLabel}
+                  <select value={cityName} onChange={(e) => setCityName(e.target.value)} disabled={!cityOptions.length}>
+                    <option value="">
+                      {cityOptions.length ? t.anyCity : isUnitedStates ? t.pickStateFirst : t.pickCountryFirst}
+                    </option>
+
+                    {cityOptions.map((entry) => (
+                      <option key={entry.name} value={entry.name}>
+                        {placeLabel(entry, locale)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {isUnitedStates && (
+                  <label>
+                    {t.statesCountLabel}
+                    <select value={statesCount} onChange={(e) => setStatesCount(e.target.value)}>
+                      <option value="">{t.statesCountAny}</option>
+                      {US_STATE_COUNTS.map((count) => (
+                        <option key={count} value={String(count)}>
+                          {count === 1 ? t.oneState : `${count} ${t.severalStates}`}
+                        </option>
+                      ))}
+                    </select>
+                    <small className="field-hint">{t.statesCountHint}</small>
+                  </label>
+                )}
+
                 <label>
                   {t.durationLabel}
                   <input type="number" min={2} max={90} value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="7" />
@@ -1192,8 +1337,26 @@ function TravelerApp() {
                   </div>
                 </div>
               )}
+              {(research?.internal_flights ?? []).length > 0 && (
+                <div className="internal-flights">
+                  <p className="internal-flights-title">{t.internalFlightsTitle}</p>
+                  {(research.internal_flights as any[]).map((leg) => (
+                    <p key={`${leg.day}-${leg.from}-${leg.to}`} className="internal-flight">
+                      <strong>
+                        {t.dayShort} {leg.day} · {leg.from} → {leg.to}
+                      </strong>
+                      {leg.search_links.map((link: any) => (
+                        <a key={link.url} href={link.url} target="_blank" rel="noreferrer">
+                          {link.label} ↗
+                        </a>
+                      ))}
+                    </p>
+                  ))}
+                </div>
+              )}
               <div className="compact-grid">
                 {(research?.recommended_flights ?? []).slice(0, 3).map((f: any, idx: number) => (
+
                   <article key={`flight-${idx}`}>
                     <span className="tag">{t.flightTag}</span>
                     <br />

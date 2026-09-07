@@ -3,6 +3,8 @@ import type {
   DayRoute,
   ForumFinding,
   FreeVisit,
+  InternalFlight,
+
   ItineraryDay,
   Lodging,
   PaidOption,
@@ -48,6 +50,8 @@ interface Strings {
   lodgingSame: string;
   routeLabel: string;
   routeStops: string;
+  internalFlight: string;
+
   baseTitle: string;
   baseSub: string;
   baseToBook: string;
@@ -181,6 +185,8 @@ const STRINGS: Record<"fr" | "en", Strings> = {
     lodgingSame: "Même hôtel que la veille",
     routeLabel: "Route du jour",
     routeStops: "Sur la route",
+    internalFlight: "Vol interne — comparer",
+
     baseTitle: "Votre base de séjour",
     baseSub: "Le point de départ de toutes les journées",
     baseToBook: "Hébergement à réserver",
@@ -337,6 +343,8 @@ const STRINGS: Record<"fr" | "en", Strings> = {
     lodgingSame: "Same hotel as last night",
     routeLabel: "Today's drive",
     routeStops: "On the way",
+    internalFlight: "Domestic flight — compare",
+
     baseTitle: "Your home base",
     baseSub: "The starting point of every day",
     baseToBook: "Accommodation to book",
@@ -497,7 +505,8 @@ ${renderGroundTransport(t, structured.research?.ground_transport)}
 ${renderCarRental(t, structured.research?.car_rental)}
 ${renderCalendar(t, days, options.locale)}
 ${renderMap(t, days, destination, options.mapboxToken ?? null, options.staticMapSrc ?? null)}
-${renderDays(t, days, options.locale)}
+${renderDays(t, days, options.locale, structured.research?.internal_flights ?? [])}
+
 ${renderExcursions(t, itinerary.suggested_excursions ?? [])}
 ${renderBookingLadder(t, structured, destination)}
 ${renderFreeHighlights(t, itinerary.free_culture_highlights ?? [], days)}
@@ -649,7 +658,29 @@ function renderRoute(t: Strings, route: DayRoute | null | undefined): string {
   </div>`;
 }
 
+/**
+ * The comparator links of a flight between two stages of the trip.
+ *
+ * These legs are never priced live — each live search costs a credit of a
+ * small monthly plan — so the guide hands the traveler the pre-filled search
+ * instead of a fare it would have had to invent.
+ */
+function renderInternalFlight(t: Strings, flight: InternalFlight | null): string {
+  if (!flight?.search_links?.length) return "";
+  const heading = [flight.from, flight.to].filter(Boolean).join(" → ");
+
+  return `<div class="route route-flight">
+    <div class="chips">
+      <span class="chip">${icon("plane")}${escapeHtml(`${t.internalFlight} · ${heading}`)}</span>
+      ${flight.search_links
+        .map((link) => `<a class="chip chip-link" href="${escapeHtml(link.url)}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>`)
+        .join("")}
+    </div>
+  </div>`;
+}
+
 const ROUTE_ICONS: Record<string, string> = {
+
   car: "car",
   train: "car",
   bus: "car",
@@ -1239,10 +1270,18 @@ function renderLeafletScript(payload: string): string {
 </script>`;
 }
 
-function renderDays(t: Strings, days: ItineraryDay[], locale: "fr" | "en"): string {
+function renderDays(
+  t: Strings,
+  days: ItineraryDay[],
+  locale: "fr" | "en",
+  internalFlights: InternalFlight[] = []
+): string {
   if (!days.length) return "";
 
-  const cards = days.map((day) => renderDay(t, day, locale)).join("");
+  // A flown leg is read inside its own day, next to the drive it replaces.
+  const flightsByDay = new Map(internalFlights.map((flight) => [flight.day, flight]));
+  const cards = days.map((day) => renderDay(t, day, locale, flightsByDay.get(day.day) ?? null)).join("");
+
 
   return `<section class="band band-cream">
   <div class="inner">
@@ -1259,7 +1298,8 @@ function renderDays(t: Strings, days: ItineraryDay[], locale: "fr" | "en"): stri
  * the tables of the day in a panel beside it. Alternatives and the plan B
  * fold away so the page reads calmly.
  */
-function renderDay(t: Strings, day: ItineraryDay, locale: "fr" | "en"): string {
+function renderDay(t: Strings, day: ItineraryDay, locale: "fr" | "en", internalFlight: InternalFlight | null = null): string {
+
   const dateLabel = day.date
     ? new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-GB", {
         weekday: "long",
@@ -1299,6 +1339,8 @@ function renderDay(t: Strings, day: ItineraryDay, locale: "fr" | "en"): string {
   </header>
   <div class="day-body">
     ${renderRoute(t, day.route)}
+    ${renderInternalFlight(t, internalFlight)}
+
     ${renderLuggage(t, day.luggage_storage)}
     ${!day.route && day.travel_note ? `<div class="chips">${chip("car", `${t.travelNote} · ${day.travel_note}`)}</div>` : ""}
     <div class="day-columns">

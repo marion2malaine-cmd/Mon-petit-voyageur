@@ -79,6 +79,17 @@ export function mergePreferencesIntoBrief(
   if (prefs.departure_city) merged.departure_city = prefs.departure_city;
   if (prefs.month) merged.date_window = prefs.month;
   if (prefs.trip_shape) merged.trip_shape = prefs.trip_shape;
+  if (prefs.states_count) {
+    merged.states_to_visit = prefs.states_count;
+    // Several states is a route by definition, whatever the shape field says.
+    if (prefs.states_count > 1) merged.trip_shape = "roadtrip";
+    const note =
+      locale === "fr"
+        ? `Voyage aux États-Unis à travers ${prefs.states_count} État${prefs.states_count > 1 ? "s" : ""}`
+        : `Trip across ${prefs.states_count} US state${prefs.states_count > 1 ? "s" : ""}`;
+    if (!merged.constraints.includes(note)) merged.constraints = [...merged.constraints, note];
+  }
+
 
   if (prefs.travel_styles.length) {
     const styles = new Set<TravelStyle>([

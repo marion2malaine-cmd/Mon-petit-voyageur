@@ -376,7 +376,13 @@ svg {
 .car-option.is-recommended { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary) inset; }
 .car-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.5rem; }
 .car-head h4 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+/* The comparator links of a flight between two stages: a chip the traveler
+   taps, so it has to read as clickable next to the plain informative ones. */
+.chip-link { color: var(--primary); text-decoration: none; font-weight: 600; }
+.chip-link:hover { text-decoration: underline; }
+.route-flight { margin-top: -0.4rem; }
 .chip-warn { background: #f4e3d7; border-color: #dbbfa6; color: #7a4a22; }
+
 .chip-warn svg { color: #7a4a22; }
 
 .alert {

@@ -78,3 +78,33 @@ describe("links that open the page, not a list of results", () => {
     expect(local).not.toContain("Vietnam Vietnam");
   });
 });
+
+describe("buildInternalFlights", () => {
+  it("links every flown leg and, across several states, every change of stage between two airports", async () => {
+    const { buildInternalFlights } = await import("../tools/internalFlights");
+    const day = (day: number, from: string, to: string, mode: string | null) =>
+      ({ day, date: `2026-10-0${day}`, route: { from, to, mode, duration: null, distance_km: null, departure_time: null, stops: [], road_note: null } }) as any;
+
+    const legs = buildInternalFlights(
+      [day(1, "", "Miami", null), day(3, "Miami", "Key West", "car"), day(5, "Key West", "Las Vegas", "plane"), day(7, "Las Vegas", "San Francisco", null)],
+      { locale: "fr", travelers: 2, multiState: true }
+    );
+
+    expect(legs.map((leg) => `${leg.from}→${leg.to}`)).toEqual(["Key West→Las Vegas", "Las Vegas→San Francisco"]);
+
+    expect(legs[0].from_code).toBe("EYW");
+    expect(legs[0].to_code).toBe("LAS");
+    expect(legs[0].search_links.map((link) => link.provider)).toEqual(["skyscanner", "google-flights"]);
+    expect(legs[0].search_links[0].url).toContain("/eyw/las/261005/?adults=2");
+    expect(legs[0].search_links.every((link) => link.category === "flights")).toBe(true);
+  });
+
+  it("keeps a one-state trip on the road unless the model flew a leg", async () => {
+    const { buildInternalFlights } = await import("../tools/internalFlights");
+    const days = [
+      { day: 2, date: null, route: { from: "Los Angeles", to: "San Francisco", mode: "car" } },
+      { day: 4, date: null, route: { from: "San Francisco", to: "San Diego", mode: "avion" } }
+    ] as any;
+    expect(buildInternalFlights(days, { locale: "en", multiState: false }).map((leg) => leg.day)).toEqual([4]);
+  });
+});

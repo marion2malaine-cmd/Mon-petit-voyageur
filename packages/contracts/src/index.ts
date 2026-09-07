@@ -38,7 +38,12 @@ export const StructuredTripBriefSchema = z.object({
   dislikes: z.array(z.string()).default([]),
   pace: z.enum(["slow", "moderate", "fast"]).default("moderate"),
   trip_shape: z.enum(["base", "roadtrip"]).default("base"),
+  // United States only: how many states the trip should cross. Above one the
+  // program is a multi-state route with a domestic flight between distant
+  // stages, and the app builds the search links for those legs.
+  states_to_visit: z.number().int().positive().nullable().default(null),
   accommodation_preferences: z.array(z.string()).default([]),
+
   transport_preferences: z.array(z.string()).default([]),
   climate_preferences: z.array(z.string()).default([]),
   must_have: z.array(z.string()).default([]),
@@ -259,9 +264,25 @@ export const GroundTransportSchema = z.object({
 });
 export type GroundTransport = z.infer<typeof GroundTransportSchema>;
 
+// A flight inside the destination country, between two stages of the program
+// (Miami to Las Vegas on day 5). Never priced live — each would cost a search
+// credit — but linked to the comparators pre-filled with that exact leg.
+export const InternalFlightSchema = z.object({
+  day: z.number().int().positive(),
+  date: z.string().nullable().default(null),
+  from: z.string(),
+  to: z.string(),
+  from_code: z.string().nullable().default(null),
+  to_code: z.string().nullable().default(null),
+  search_links: z.array(SearchLinkSchema).default([])
+});
+export type InternalFlight = z.infer<typeof InternalFlightSchema>;
+
 export const FlightHotelResearchSchema = z.object({
   recommended_flights: z.array(FlightOptionSchema).default([]),
   recommended_stays: z.array(StayOptionSchema).default([]),
+  internal_flights: z.array(InternalFlightSchema).default([]),
+
   car_rental: CarRentalAdviceSchema.nullable().default(null),
   ground_transport: GroundTransportSchema.nullable().default(null),
   search_links: z.array(SearchLinkSchema).default([]),
@@ -668,9 +689,13 @@ export const TripPreferencesSchema = z.object({
   month: z.string().nullable().default(null),
   // A stay sleeps in one town; a road trip moves, and its guide is a roadbook:
   // one stage per night, the drive between them, a different hotel most nights.
-  trip_shape: TripShapeSchema.nullable().default(null)
+  trip_shape: TripShapeSchema.nullable().default(null),
+  // Asked only when the destination is in the United States: the number of
+  // states to visit, which decides whether domestic flights are searched.
+  states_count: z.number().int().positive().nullable().default(null)
 });
 export type TripPreferences = z.infer<typeof TripPreferencesSchema>;
+
 
 export const PlanTripRequestSchema = z.object({
   message: z.string().min(1),

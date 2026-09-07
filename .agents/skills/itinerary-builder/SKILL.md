@@ -115,6 +115,17 @@ Build the stages as a real route: never two long drives in a row, no
 backtracking, and a two-night stage wherever the region deserves it. The chain
 of stages is the spine of the guide — get it right before anything else.
 
+`brief.states_to_visit` is set for a trip in the United States: it is the
+number of states the traveler wants to cross. Honour it exactly — three states
+means three, not two and not five — and give each state enough nights to be
+worth the journey. Between two states that are a day's drive apart or more
+(Florida to Nevada, New York to California), the move is a **flight**: set the
+day's `route.mode` to `"plane"`, name the two cities in `route.from` and
+`route.to`, and write the flying time in `route.duration`. The application
+then builds the search links for that leg. Inside one state, or between
+neighbouring ones, keep the car and say what the drive is like.
+
+
 Each entry of `days` holds `day`, `date`, `title`, `theme`, `area`, `meal_town`
 (the single town or village where that day's lunch and dinner are taken —
 "Omalos", not "Gorges de Samaria et Omalos"; it is what the restaurant lookup
