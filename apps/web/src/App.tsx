@@ -14,6 +14,7 @@ import { DESTINATION_CATALOGUE, US_COUNTRY_NAME, US_STATES, placeLabel } from ".
 import { ABOUT, EYEBROW, FAQ, FEATURES, STEPS } from "./homeContent";
 import { applySeo, appOnlySeo, homeSeo, isKnownPath, legalSeo, notFoundSeo } from "./seo";
 import { getLegalDocs } from "./legalContent";
+import { safeLink } from "./safeLink";
 
 
 type Locale = "fr" | "en";
@@ -1375,7 +1376,7 @@ function TravelerApp() {
                         {t.dayShort} {leg.day} · {leg.from} → {leg.to}
                       </strong>
                       {leg.search_links.map((link: any) => (
-                        <a key={link.url} href={link.url} target="_blank" rel="noreferrer">
+                        <a key={link.url} href={safeLink(link.url)} target="_blank" rel="noreferrer">
                           {link.label} ↗
                         </a>
                       ))}
@@ -1403,7 +1404,7 @@ function TravelerApp() {
                         .join(" · ") || "-"}
                     </small>
                     {f.booking_url && (
-                      <a className="book-link" href={f.booking_url} target="_blank" rel="noreferrer">
+                      <a className="book-link" href={safeLink(f.booking_url)} target="_blank" rel="noreferrer">
                         {t.book} ↗
                       </a>
                     )}
@@ -1423,7 +1424,7 @@ function TravelerApp() {
                       {[s.rating ? `${s.rating} ★` : null, s.area, (s.notes ?? [])[0]].filter(Boolean).join(" · ") || "-"}
                     </small>
                     {s.booking_url && (
-                      <a className="book-link" href={s.booking_url} target="_blank" rel="noreferrer">
+                      <a className="book-link" href={safeLink(s.booking_url)} target="_blank" rel="noreferrer">
                         {t.book} ↗
                       </a>
                     )}
@@ -1482,7 +1483,7 @@ function TravelerApp() {
                     </details>
                     <div className="link-chips">
                       {(carRental.recommended.booking_links ?? []).map((link: any) => (
-                        <a key={link.url} className="chip" href={link.url} target="_blank" rel="noreferrer">
+                        <a key={link.url} className="chip" href={safeLink(link.url)} target="_blank" rel="noreferrer">
                           {link.label} ↗
                         </a>
                       ))}
@@ -1505,7 +1506,7 @@ function TravelerApp() {
                             <span className="tag">{finding.source || "Forum"}</span>
                             <strong>{finding.title}</strong>
                             {finding.snippet && <small>{finding.snippet}</small>}
-                            <a className="book-link" href={finding.url} target="_blank" rel="noreferrer">
+                            <a className="book-link" href={safeLink(finding.url)} target="_blank" rel="noreferrer">
                               {t.readThread} ↗
                             </a>
                           </li>
@@ -1516,7 +1517,7 @@ function TravelerApp() {
                   <h4>{t.bookingLinks}</h4>
                   <div className="link-chips">
                     {searchLinks.map((link: any) => (
-                      <a key={link.url} className="chip" href={link.url} target="_blank" rel="noreferrer">
+                      <a key={link.url} className="chip" href={safeLink(link.url)} target="_blank" rel="noreferrer">
                         {link.label} ↗
                       </a>
                     ))}
@@ -1549,7 +1550,7 @@ function TravelerApp() {
                           )}
                         </p>
                         {exc.booking_url && (
-                          <a className="book-link" href={exc.booking_url} target="_blank" rel="noreferrer">
+                          <a className="book-link" href={safeLink(exc.booking_url)} target="_blank" rel="noreferrer">
                             {t.book} ↗
                           </a>
                         )}
@@ -1564,7 +1565,7 @@ function TravelerApp() {
                   <h4>{t.experiences}</h4>
                   <div className="link-chips">
                     {experienceLinks.map((link: any) => (
-                      <a key={link.url} className="chip" href={link.url} target="_blank" rel="noreferrer">
+                      <a key={link.url} className="chip" href={safeLink(link.url)} target="_blank" rel="noreferrer">
                         {link.label} ↗
                       </a>
                     ))}
@@ -1680,7 +1681,7 @@ function TravelerApp() {
                                       )}
                                       <div className="link-chips">
                                         {(option.booking_links ?? []).map((link: any) => (
-                                          <a key={link.url} className="chip" href={link.url} target="_blank" rel="noreferrer">
+                                          <a key={link.url} className="chip" href={safeLink(link.url)} target="_blank" rel="noreferrer">
                                             {link.label} ↗
                                           </a>
                                         ))}
@@ -1758,7 +1759,7 @@ function PhotoCredit({ photo }: { photo: any }) {
   return (
     <small className="photo-credit">
       {photo.source_url ? (
-        <a href={photo.source_url} target="_blank" rel="noopener noreferrer">{photo.credit}</a>
+        <a href={safeLink(photo.source_url)} target="_blank" rel="noopener noreferrer">{photo.credit}</a>
       ) : (
         photo.credit
       )}

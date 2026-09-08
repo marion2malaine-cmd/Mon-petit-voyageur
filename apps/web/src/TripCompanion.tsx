@@ -1,8 +1,8 @@
+import { safeLink } from "./safeLink";
 import { useState } from "react";
 import { api } from "./api";
 
 const escape = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
-const safeLink = (s: unknown) => typeof s === "string" && /^https?:\/\//i.test(s) ? s : undefined;
 
 export default function TripCompanion({ result, onChange, locale }: { result: any; onChange: (p: any) => void; locale: "fr" | "en" }) {
   const fr = locale === "fr";
