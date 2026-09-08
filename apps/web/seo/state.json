@@ -1,0 +1,397 @@
+{
+  "site": "https://www.monpetitvoyageur.com",
+  "updated": "2026-09-08",
+  "positioning": "Mon Petit Voyageur = planification de voyages et de road trips assistée par IA, budget d'abord, tout réservable via liens (éditeur MARA LABS, Lille).",
+  "clusters": {
+    "planificateur-ia": "Pages commerciales : ce qu'est le service, à qui il s'adresse, comment l'IA intervient.",
+    "road-trips": "Voyage itinérant : étapes, hôtels, temps de route, voiture, vols internes.",
+    "budgets": "Méthode budget d'abord, répartition, postes oubliés, prix en direct.",
+    "conseils-pratiques": "Guides informationnels : organiser/préparer un voyage avec l'IA, limites de l'IA.",
+    "destinations": "Aucune page pour l'instant : une destination ne justifie pas une page sans utilité réelle (voir backlog).",
+    "comparatifs": "Aucune page : données concurrentes à vérifier au moment de la rédaction, jamais inventées."
+  },
+  "pages": {
+    "/": {
+      "type": "home",
+      "cluster": "planificateur-ia",
+      "intent": "mon petit voyageur (marque) + planificateur voyage ia",
+      "secondaryKeywords": [
+        "agence de voyage intelligente",
+        "voyage sur mesure ia",
+        "créer mon voyage"
+      ],
+      "created": "2026-07-02",
+      "lastOptimized": "2026-09-08",
+      "title": "Mon Petit Voyageur · Planificateur de voyage et road trip IA",
+      "h1": "Mon Petit Voyageur",
+      "faqVisible": 7,
+      "linksTo": [
+        "/budget-voyage",
+        "/organiser-un-voyage-avec-l-ia",
+        "/planificateur-road-trip-ia",
+        "/planificateur-voyage-ia"
+      ],
+      "linkedFrom": [
+        "/planificateur-voyage-ia",
+        "/planificateur-road-trip-ia",
+        "/budget-voyage",
+        "/organiser-un-voyage-avec-l-ia"
+      ],
+      "indexable": true,
+      "inSitemap": true,
+      "rendering": "CSR React + coquille HTML statique pré-rendue dans #root (contenu lisible sans JS)",
+      "changes": [
+        {
+          "date": "2026-09-08",
+          "what": "title spécifique, meta description, canonical, Open Graph/Twitter, JSON-LD Organization+WebSite+SoftwareApplication+FAQPage, coquille HTML pré-rendue (H1, tagline, définition « Qu'est-ce que Mon Petit Voyageur ? », 6 fonctionnalités, 4 étapes, FAQ 7 questions, liens guides), eyebrow « Planificateur de voyage et road trip par IA », tagline enrichie, sections About + FAQ dans la landing React (src/homeContent.ts partagé entre React et index.html), colonne Guides dans le footer React"
+        },
+        {
+          "date": "2026-09-08",
+          "what": "src/seo.ts : mise à jour du <head> côté client — title/canonical propres aux pages légales (?legal=privacy|terms|sales), noindex sur /admin et /mobile et sur tout chemin inconnu, lang synchronisé FR/EN ; liens légaux du footer React en vrais <a href> ; H1 dupliqué de l'en-tête connecté remplacé par un <div>"
+        }
+      ],
+      "openIssues": [
+        "H1 = marque seule (« Mon Petit Voyageur ») : choix design (titre serif géant) ; le positionnement est porté par le title, la tagline et l'eyebrow.",
+        "Google Fonts chargé par @import CSS (chaîne bloquante) : à passer en <link rel=preload>/preconnect ou en polices locales (CWV).",
+        "Bundle JS principal lourd (three.js, mapbox) chargé sur la landing : mesurer LCP/INP réels après déploiement.",
+        "Images lourdes : /logo-hero.webp ≈ 1,95 Mo (image LCP du hero) et /logo.png ≈ 568 Ko. À recompresser / redimensionner (cible < 200 Ko) : voir backlog images-poids.",
+        "?legal=privacy|terms|sales : vues SPA (canonical propre posé par src/seo.ts, pas de HTML statique) : acceptable, non stratégique.",
+        "Email de contact affiché contact@monpetitvoyageur.fr alors que le domaine est .com : à confirmer par Marion (boîte existante ?) avant tout changement.",
+        "Racine https://monpetitvoyageur.com : alerte TLS (SSL IONOS non activé), voir backlog apex-https."
+      ],
+      "nextOpportunities": [
+        "Mention MARA LABS + Lille dans le footer visible de la landing React (déjà présent dans la coquille statique et la section « Qu'est-ce que Mon Petit Voyageur ? »).",
+        "Version anglaise indexable (/en/) seulement si une demande anglophone est mesurée dans Search Console."
+      ]
+    },
+    "/budget-voyage": {
+      "type": "guide",
+      "created": "2026-09-08",
+      "changes": [],
+      "openIssues": [],
+      "nextOpportunities": [],
+      "cluster": "budgets",
+      "intent": "budget voyage",
+      "secondaryKeywords": [
+        "calculer budget voyage",
+        "répartir budget vacances",
+        "voyage dans le budget",
+        "prévoir budget voyage"
+      ],
+      "lastOptimized": "2026-09-08",
+      "title": "Budget voyage : fixer son enveloppe et la répartir sans mauvaise surprise | Mon Petit Voyageur",
+      "h1": "Budget voyage : comment fixer et répartir votre enveloppe",
+      "linksTo": [
+        "/",
+        "/organiser-un-voyage-avec-l-ia",
+        "/planificateur-road-trip-ia",
+        "/planificateur-voyage-ia",
+        "/#connexion",
+        "/?legal=privacy",
+        "/?legal=terms",
+        "/?legal=sales"
+      ],
+      "indexable": true,
+      "inSitemap": true,
+      "linkedFrom": [
+        "/",
+        "/organiser-un-voyage-avec-l-ia",
+        "/planificateur-road-trip-ia",
+        "/planificateur-voyage-ia"
+      ]
+    },
+    "/organiser-un-voyage-avec-l-ia": {
+      "type": "guide",
+      "created": "2026-09-08",
+      "changes": [],
+      "openIssues": [],
+      "nextOpportunities": [],
+      "cluster": "conseils-pratiques",
+      "intent": "comment organiser un voyage avec l'ia",
+      "secondaryKeywords": [
+        "préparer voyage ia",
+        "planifier voyage intelligence artificielle",
+        "intelligence artificielle voyage",
+        "créer itinéraire vacances ia",
+        "préparer un voyage"
+      ],
+      "lastOptimized": "2026-09-08",
+      "title": "Comment organiser un voyage avec l'IA : méthode, limites et bonnes pratiques | Mon Petit Voyageur",
+      "h1": "Comment organiser un voyage avec l'IA (sans se faire piéger)",
+      "linksTo": [
+        "/",
+        "/budget-voyage",
+        "/planificateur-road-trip-ia",
+        "/planificateur-voyage-ia",
+        "/#connexion",
+        "/?legal=privacy",
+        "/?legal=terms",
+        "/?legal=sales"
+      ],
+      "indexable": true,
+      "inSitemap": true,
+      "linkedFrom": [
+        "/",
+        "/budget-voyage",
+        "/planificateur-road-trip-ia",
+        "/planificateur-voyage-ia"
+      ]
+    },
+    "/planificateur-road-trip-ia": {
+      "type": "guide",
+      "created": "2026-09-08",
+      "changes": [],
+      "openIssues": [],
+      "nextOpportunities": [],
+      "cluster": "road-trips",
+      "intent": "planificateur road trip",
+      "secondaryKeywords": [
+        "itinéraire road trip",
+        "organiser road trip",
+        "planificateur road trip ia",
+        "roadbook",
+        "road trip étapes hôtel"
+      ],
+      "lastOptimized": "2026-09-08",
+      "title": "Planificateur de road trip IA : étapes, hôtels et temps de route | Mon Petit Voyageur",
+      "h1": "Planifiez votre road trip avec l'IA : étapes, hôtels, temps de route",
+      "linksTo": [
+        "/",
+        "/budget-voyage",
+        "/organiser-un-voyage-avec-l-ia",
+        "/planificateur-voyage-ia",
+        "/#connexion",
+        "/?legal=privacy",
+        "/?legal=terms",
+        "/?legal=sales"
+      ],
+      "indexable": true,
+      "inSitemap": true,
+      "linkedFrom": [
+        "/",
+        "/budget-voyage",
+        "/organiser-un-voyage-avec-l-ia",
+        "/planificateur-voyage-ia"
+      ]
+    },
+    "/planificateur-voyage-ia": {
+      "type": "landing",
+      "created": "2026-09-08",
+      "changes": [],
+      "openIssues": [],
+      "nextOpportunities": [],
+      "cluster": "planificateur-ia",
+      "intent": "planificateur voyage ia",
+      "secondaryKeywords": [
+        "organisateur voyage ia",
+        "assistant voyage ia",
+        "application organisation voyage",
+        "créer itinéraire voyage avec ia",
+        "générateur itinéraire voyage"
+      ],
+      "lastOptimized": "2026-09-08",
+      "title": "Planificateur de voyage IA : itinéraire sur mesure dans votre budget | Mon Petit Voyageur",
+      "h1": "Le planificateur de voyage IA qui organise tout, dans votre budget",
+      "linksTo": [
+        "/",
+        "/budget-voyage",
+        "/organiser-un-voyage-avec-l-ia",
+        "/planificateur-road-trip-ia",
+        "/#connexion",
+        "/?legal=privacy",
+        "/?legal=terms",
+        "/?legal=sales"
+      ],
+      "indexable": true,
+      "inSitemap": true,
+      "linkedFrom": [
+        "/",
+        "/budget-voyage",
+        "/organiser-un-voyage-avec-l-ia",
+        "/planificateur-road-trip-ia"
+      ]
+    }
+  },
+  "intents": {
+    "budget voyage": "/budget-voyage",
+    "comment organiser un voyage avec l'ia": "/organiser-un-voyage-avec-l-ia",
+    "planificateur road trip": "/planificateur-road-trip-ia",
+    "planificateur voyage ia": "/planificateur-voyage-ia"
+  },
+  "comparatifs": [],
+  "backlog": [
+    {
+      "id": "deploy-seo-v1",
+      "title": "Fusionner la PR SEO : Railway reconstruit frontend-web depuis Dockerfile.web",
+      "score": 95,
+      "impact": 5,
+      "commercial": 4,
+      "geo": 5,
+      "effort": 1,
+      "risk": 2,
+      "status": "open",
+      "note": "Vérifié le 2026-09-08 par l'API Railway : le rattachement GitHub EXISTE déjà. frontend-web et backend-api sont liés à marion2malaine-cmd/Mon-petit-voyageur, branche main, avec RAILWAY_DOCKERFILE_PATH=Dockerfile.web et Dockerfile.api, et un déclencheur par environnement (production, staging). Les watchPatterns de frontend-web couvrent apps/web/**, donc la fusion de la PR SEO déclenchera le build. `railway up` reste interdit. Preuve ensuite : curl -A GPTBot sur /sitemap.xml, /robots.txt, /planificateur-voyage-ia, /inexistant (404)."
+    },
+    {
+      "id": "search-console",
+      "title": "Créer la propriété Search Console sc-domain:monpetitvoyageur.com et soumettre le sitemap",
+      "score": 90,
+      "impact": 5,
+      "commercial": 3,
+      "geo": 2,
+      "effort": 1,
+      "risk": 0,
+      "status": "open",
+      "note": "Action Marion (validation DNS TXT chez IONOS). Sans Search Console, aucune mesure impressions/CTR/position possible."
+    },
+    {
+      "id": "apex-https",
+      "title": "Activer le SSL IONOS de la racine monpetitvoyageur.com (https:// racine → erreur TLS aujourd'hui)",
+      "score": 80,
+      "impact": 4,
+      "commercial": 3,
+      "geo": 1,
+      "effort": 1,
+      "risk": 0,
+      "status": "open",
+      "note": "http:// racine redirige en 302 vers www ; https:// racine échoue (alerte TLS). Action Marion dans IONOS Domaines & SSL. Idéal : 301."
+    },
+    {
+      "id": "images-poids",
+      "title": "Recompresser logo-hero.webp (1,95 Mo, image LCP) et logo.png (568 Ko) sous 200 Ko",
+      "score": 70,
+      "impact": 4,
+      "commercial": 2,
+      "geo": 1,
+      "effort": 1,
+      "risk": 1,
+      "status": "open",
+      "note": "cwebp -q 80 -resize 1720 0 ; logo.png → webp/png optimisé ; vérifier le rendu sur la home et les pages guides (og:image)."
+    },
+    {
+      "id": "cwv-fonts",
+      "title": "Polices : remplacer l'@import Google Fonts par preconnect + link, ou polices auto-hébergées",
+      "score": 60,
+      "impact": 3,
+      "commercial": 2,
+      "geo": 1,
+      "effort": 2,
+      "risk": 1,
+      "status": "open"
+    },
+    {
+      "id": "faq-home",
+      "title": "FAQ visible sur la home (Qu'est-ce que MPV ? Gratuit ? L'IA invente-t-elle des prix ?)",
+      "score": 55,
+      "impact": 3,
+      "commercial": 3,
+      "geo": 4,
+      "effort": 2,
+      "risk": 1,
+      "status": "done",
+      "note": "Fait le 2026-09-08 : 7 questions visibles sur la home (src/homeContent.ts) = FAQPage JSON-LD dans index.html, test seo.test.ts."
+    },
+    {
+      "id": "comparatif-planificateurs-ia",
+      "title": "Comparatif « meilleurs planificateurs de voyage IA » avec fonctionnalités et prix vérifiés le jour de la rédaction",
+      "score": 45,
+      "impact": 4,
+      "commercial": 4,
+      "geo": 4,
+      "effort": 4,
+      "risk": 3,
+      "status": "open",
+      "note": "Interdit d'inventer ; chaque ligne doit citer la page source consultée et sa date. À ne lancer que si un run dispose du temps pour vérifier 4-6 outils."
+    },
+    {
+      "id": "destinations-pilotes",
+      "title": "Deux pages destination pilotes (ex. road trip Ouest américain, itinéraire Crète) seulement si contenu spécifique réel",
+      "score": 35,
+      "impact": 3,
+      "commercial": 3,
+      "geo": 3,
+      "effort": 4,
+      "risk": 3,
+      "status": "idea",
+      "note": "Jamais de ferme programmatique : une page = données concrètes (étapes, temps de route, saison, postes de budget), pas de texte générique."
+    }
+  ],
+  "kpi": {
+    "searchConsole": null,
+    "note": "Aucune donnée Search Console disponible le 2026-09-08 (propriété non créée). Renseigner impressions/clics/CTR/position par URL dès que possible."
+  },
+  "history": [
+    {
+      "date": "2026-09-08",
+      "url": "site",
+      "action": "audit",
+      "justification": "Premier audit : SPA CSR, title générique « Mon Petit Voyageur », aucune meta description, canonical, OG, JSON-LD, robots.txt, sitemap.xml ; toutes les URLs répondent 200 (soft 404) ; contenu invisible sans JavaScript ; racine https en erreur TLS."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "/",
+      "action": "optimisation",
+      "justification": "Title/description/canonical/OG/JSON-LD + coquille HTML pré-rendue pour rendre la home lisible par les crawlers sans JS ; footer Guides."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "/planificateur-voyage-ia",
+      "action": "création",
+      "justification": "Intention commerciale principale « planificateur voyage ia » non couverte (home = marque). Page pilier + FAQ (GEO : qu'est-ce que / à quoi sert MPV)."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "/planificateur-road-trip-ia",
+      "action": "création",
+      "justification": "Intention « planificateur / itinéraire / organiser road trip » distincte, fonctionnalité réelle (mode itinérant, roadbook, voiture, vols internes)."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "/budget-voyage",
+      "action": "création",
+      "justification": "Intention informationnelle « budget voyage » alignée sur le positionnement budget d'abord ; aucun chiffre inventé, méthode + fonctionnement réel."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "/organiser-un-voyage-avec-l-ia",
+      "action": "création",
+      "justification": "Intention informationnelle « comment organiser un voyage avec l'IA » (cible GEO), distincte de la page pilier commerciale ; limites de l'IA expliquées honnêtement."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "/robots.txt, /sitemap.xml, /llms.txt, /404",
+      "action": "technique",
+      "justification": "Fichiers absents ; serveur node remplace vite preview : vrais 404, 301 .html et slash final, cache assets, gzip, noindex sur hôte non canonique."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "/, /?legal=*, /admin, /mobile",
+      "action": "technique",
+      "justification": "Head côté client (src/seo.ts) : canonical et title spécifiques des pages légales, noindex des écrans connectés et des chemins inconnus (complète server.mjs qui renvoie déjà 404), lang FR/EN. Verrou .run.lock ajouté au .gitignore ; launch.json web-preview = node apps/web/server.mjs."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "site",
+      "action": "mesure",
+      "justification": "Vérification locale du build : 22 tests verts, build OK, server.mjs sur :4180 — / 200 (1 H1, FAQPage, définition), /robots.txt 200 text/plain, /sitemap.xml 200 xml (5 URL), /llms.txt 200, 4 guides 200, /slug/ et /slug.html 301, /index.html 301, /inexistant 404, X-Robots-Tag noindex hors hôte canonique. Prod toujours sur l'ancienne version (sitemap.xml renvoie le HTML de la SPA) : déploiement à faire par Marion."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "documentation",
+      "action": "technique",
+      "justification": "Consigne de Marion : ne plus utiliser `railway up` (téléverse le dossier courant, donc le travail non commité, d'où des erreurs de build). Déploiement par les Dockerfiles construits par Railway depuis le dépôt. README.md, ROUTINE.md, backlog et mémoire projet corrigés."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "site",
+      "action": "mesure",
+      "justification": "Troisième exécution simultanée de la routine (session 05:33) transformée en vérification indépendante du résultat fusionné : build production OK (7 fichiers SEO écrits), 22 tests verts, contrôle dist (6 HTML : 1 H1, title/description uniques, canonical, JSON-LD valides, 5 URL sitemap toutes présentes), server.mjs sur :4181 (200/301/404 et X-Robots-Tag noindex hors hôte canonique conformes), DOM 375 px et 1280 px sans débordement, /admin noindex. Prod toujours ancienne version (sitemap.xml = HTML SPA). Prompt planifié réécrit par Marion à 05:52-05:54 (1 309 lignes) : c'est la source de vérité ; l'annexe opératoire y pointe vers seo/ROUTINE.md."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "infrastructure",
+      "action": "mesure",
+      "justification": "Vérification directe de Railway (GraphQL) : rattachement GitHub déjà en place sur les deux services, branche main, Dockerfiles corrects. La note de mémoire qui le disait absent était périmée. Cause réelle des échecs de déploiement identifiée : main ne compile pas, apps/api/src/server.ts importe ./admin, ./tripEdits et journeyLegs qui n'ont jamais été commités (déploiement Railway 18b1e9d2, commit 5cf0d230, FAILED). Corrigé dans la PR 2."
+    }
+  ]
+}

@@ -5,10 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "build": "tsc -p tsconfig.json --noEmit && NODE_ENV=production vite build && node seo/build.mjs",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node server.mjs",
+    "seo:build": "node seo/build.mjs",
+    "seo:sync": "node seo/build.mjs --sync"
   },
   "dependencies": {
     "@capacitor/core": "^8.4.1",

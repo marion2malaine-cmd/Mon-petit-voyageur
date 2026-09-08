@@ -450,7 +450,7 @@ button.link:not(:disabled):hover {
   max-width: 1200px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr;
   gap: 2rem;
   padding-bottom: 1.8rem;
   border-bottom: 1px solid var(--border);
@@ -1806,4 +1806,63 @@ select:focus, input:focus, textarea:focus {
 }
 .internal-flight a {
   color: var(--deep-blue);
+}
+
+/* ---------- Home: definition and FAQ (crawler-readable sections) ---------- */
+.about-section,
+.faq-section {
+  padding-top: 6rem !important;
+  padding-bottom: 6rem !important;
+}
+.about-text {
+  max-width: 46rem;
+  margin: 0 auto;
+}
+.about-text p {
+  font-size: 1.12rem;
+  line-height: 1.65;
+  color: var(--muted-fg);
+  margin: 0 0 1.1rem;
+}
+.faq-section { background: #f4f2ec; }
+.faq-list {
+  max-width: 46rem;
+  margin: 0 auto;
+  display: grid;
+  gap: 1rem;
+}
+.faq-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.3rem 1.5rem;
+}
+.faq-item dt {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.35rem;
+  color: var(--deep-blue);
+  margin: 0 0 0.5rem;
+}
+.faq-item dd {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--muted-fg);
+}
+
+/* Static pre-rendered landing (index.html): anchor CTAs styled like the React buttons. */
+.hero-actions .button-link {
+  display: inline-block;
+  font-size: 1.05rem;
+  padding: 0.85rem 1.7rem;
+  border-radius: 10px;
+  background: var(--terracotta);
+  color: #fff;
+  font-weight: 500;
+  text-decoration: none;
+}
+.hero-actions .button-link.secondary {
+  background: #fff;
+  color: var(--foreground);
+  border: 1px solid var(--border);
 }

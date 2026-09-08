@@ -8,6 +8,9 @@ import Plane3D from "./Plane3D";
 import { LegalPage } from "./LegalPage";
 import type { LegalDoc } from "./legalContent";
 import { DESTINATION_CATALOGUE, US_COUNTRY_NAME, US_STATES, placeLabel } from "./destinations";
+import { ABOUT, EYEBROW, FAQ, FEATURES, STEPS } from "./homeContent";
+import { applySeo, appOnlySeo, homeSeo, isKnownPath, legalSeo, notFoundSeo } from "./seo";
+import { getLegalDocs } from "./legalContent";
 
 
 type Locale = "fr" | "en";
@@ -64,7 +67,7 @@ const text = {
     evening: "Soir",
     eyebrow: "Votre agence de voyage intelligente",
     tagline:
-      "Créez votre voyage sur mesure avec l'intelligence artificielle. De la destination parfaite aux réservations au meilleur prix.",
+      "Le planificateur de voyage IA qui crée votre itinéraire sur mesure : destination, vols, hôtels, activités et restaurants au meilleur prix, dans votre budget.",
     ctaStart: "Commencer mon voyage",
     ctaHow: "Découvrir comment ça marche",
     featuresTitle: "Une expérience complète de A à Z",
@@ -76,6 +79,7 @@ const text = {
     ctaCardBtn: "Créer mon voyage",
     footerDesc: "Votre compagnon de voyage intelligent pour des aventures inoubliables.",
     footerLinks: "Liens utiles",
+    footerGuides: "Guides",
     footerPrivacy: "Politique de confidentialité",
     footerTerms: "Conditions d'utilisation",
     footerSales: "Conditions générales de vente",
@@ -246,7 +250,7 @@ const text = {
     evening: "Evening",
     eyebrow: "Your intelligent travel agency",
     tagline:
-      "Create your tailor-made trip with artificial intelligence. From the perfect destination to bookings at the best price.",
+      "The AI travel planner that builds your tailor-made itinerary: destination, flights, hotels, activities and restaurants at the best price, within your budget.",
     ctaStart: "Start my trip",
     ctaHow: "See how it works",
     featuresTitle: "A complete experience from A to Z",
@@ -258,6 +262,7 @@ const text = {
     ctaCardBtn: "Create my trip",
     footerDesc: "Your intelligent travel companion for unforgettable adventures.",
     footerLinks: "Useful links",
+    footerGuides: "Guides",
     footerPrivacy: "Privacy policy",
     footerTerms: "Terms of use",
     footerSales: "Terms of sale",
@@ -415,56 +420,14 @@ function formatElapsed(seconds: number): string {
 const US_STATE_COUNTS = [1, 2, 3, 4, 5] as const;
 
 
-const FEATURES = [
-  {
-    icon: "compass",
-    fr: { title: "Destination optimale", desc: "Notre IA analyse vos préférences et trouve la destination parfaite selon votre budget, style et période." },
-    en: { title: "Optimal destination", desc: "Our AI analyzes your preferences and finds the perfect destination for your budget, style and dates." }
-  },
-  {
-    icon: "plane",
-    fr: { title: "Billets au meilleur prix", desc: "Comparaison des vols en temps réel et liens directs Skyscanner et Google Flights pré-remplis." },
-    en: { title: "Tickets at the best price", desc: "Real-time flight comparison with pre-filled Skyscanner and Google Flights links." }
-  },
-  {
-    icon: "map",
-    fr: { title: "Itinéraire sur mesure", desc: "Planning jour par jour personnalisé selon votre typologie de voyage, avec options de repli météo." },
-    en: { title: "Tailor-made itinerary", desc: "Day-by-day plan personalized to your travel style, with weather backup options." }
-  },
-  {
-    icon: "bed",
-    fr: { title: "Hébergements dans le budget", desc: "Sélection dans votre enveloppe, avec recherches Booking et Airbnb pré-remplies." },
-    en: { title: "Stays within budget", desc: "Picks within your envelope, with pre-filled Booking and Airbnb searches." }
-  },
-  {
-    icon: "ticket",
-    fr: { title: "Excursions & activités", desc: "Suggestions concrètes avec durée et prix par personne, réservables sur GetYourGuide et Civitatis." },
-    en: { title: "Tours & activities", desc: "Concrete suggestions with duration and per-person price, bookable on GetYourGuide and Civitatis." }
-  },
-  {
-    icon: "dining",
-    fr: { title: "Restaurants & bonnes tables", desc: "Les meilleures adresses locales via TheFork et TripAdvisor, réservation en un clic." },
-    en: { title: "Restaurants & great tables", desc: "The best local spots via TheFork and TripAdvisor, one-click booking." }
-  }
-] as const;
-
-const STEPS = [
-  {
-    fr: { title: "Répondez au questionnaire", desc: "Partagez vos préférences : budget, style de voyage, période, durée et ville de départ." },
-    en: { title: "Answer the questionnaire", desc: "Share your preferences: budget, travel style, dates, duration and departure city." }
-  },
-  {
-    fr: { title: "Découvrez votre itinéraire personnalisé", desc: "Notre IA génère un planning complet avec vols, hébergements, activités et tous les détails pratiques." },
-    en: { title: "Discover your personalized itinerary", desc: "Our AI generates a full plan with flights, stays, activities and all the practical details." }
-  },
-  {
-    fr: { title: "Réservez au meilleur tarif", desc: "Chaque proposition est accompagnée de liens pré-remplis : Skyscanner, Booking, GetYourGuide, TheFork." },
-    en: { title: "Book at the best price", desc: "Every suggestion comes with pre-filled links: Skyscanner, Booking, GetYourGuide, TheFork." }
-  },
-  {
-    fr: { title: "Partez l'esprit tranquille", desc: "Checklist de valise, formalités d'entrée et vérifications restantes : rien n'est oublié." },
-    en: { title: "Leave with peace of mind", desc: "Packing checklist, entry requirements and open verifications: nothing is forgotten." }
-  }
+// Static SEO guides generated by apps/web/seo (served at these URLs by server.mjs).
+// Linked from the footer so no guide is orphaned; keep in sync with seo/pages/*.mjs
+// and the static footer in index.html.
+const SEO_GUIDES = [
+  { href: "/planificateur-voyage-ia", fr: "Planificateur de voyage IA", en: "AI travel planner (FR)" },
+  { href: "/planificateur-road-trip-ia", fr: "Planificateur de road trip", en: "Road trip planner (FR)" },
+  { href: "/budget-voyage", fr: "Budget voyage", en: "Travel budget (FR)" },
+  { href: "/organiser-un-voyage-avec-l-ia", fr: "Organiser un voyage avec l'IA", en: "Planning a trip with AI (FR)" }
 ] as const;
 
 const TRAVEL_STYLES = [
@@ -583,6 +546,22 @@ function TravelerApp() {
     if (key === "privacy" || key === "terms" || key === "sales") openLegal(key);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Keep <head> honest for crawlers: the home keeps the defaults shipped in
+  // index.html, legal pages get their own title and canonical, and any path the
+  // SPA does not really serve is marked noindex (the host answers 200 for all).
+  useEffect(() => {
+    if (!isKnownPath(window.location.pathname)) {
+      applySeo(notFoundSeo(locale));
+      return;
+    }
+    if (page === "legal") {
+      const doc = getLegalDocs(locale).find((d) => d.key === legalDoc);
+      applySeo(legalSeo(locale, legalDoc, doc?.title ?? doc?.label ?? ""));
+      return;
+    }
+    applySeo(homeSeo(locale));
+  }, [page, legalDoc, locale]);
 
   useEffect(() => {
     api
@@ -882,9 +861,9 @@ function TravelerApp() {
       {user ? (
         <header className="hero">
           <div className="hero-brand">
-            <h1 className="brand-logo brand-logo-dark">
+            <div className="brand-logo brand-logo-dark">
               <img src="/logo.png" alt={t.title} />
-            </h1>
+            </div>
             <p>{t.subtitle}</p>
           </div>
           <div className="toolbar">
@@ -950,7 +929,7 @@ function TravelerApp() {
           <section className="hero-landing">
             <span className="pill">
               <span className="pill-icon">{featureIcons.compass}</span>
-              {t.eyebrow}
+              {EYEBROW[locale]}
             </span>
             <h1 className="hero-title">{t.title}</h1>
             <p className="hero-tagline">{t.tagline}</p>
@@ -967,6 +946,15 @@ function TravelerApp() {
               >
                 {t.ctaHow}
               </button>
+            </div>
+          </section>
+
+          <section className="about-section" id="about">
+            <h2 className="section-title">{ABOUT[locale].title}</h2>
+            <div className="about-text">
+              {ABOUT[locale].paragraphs.map((paragraph) => (
+                <p key={paragraph.slice(0, 40)}>{paragraph}</p>
+              ))}
             </div>
           </section>
 
@@ -998,6 +986,18 @@ function TravelerApp() {
                 </li>
               ))}
             </ol>
+          </section>
+
+          <section className="faq-section" id="faq">
+            <h2 className="section-title">{FAQ[locale].title}</h2>
+            <dl className="faq-list">
+              {FAQ[locale].items.map((item) => (
+                <div key={item.q} className="faq-item">
+                  <dt>{item.q}</dt>
+                  <dd>{item.a}</dd>
+                </div>
+              ))}
+            </dl>
           </section>
 
           <section className="cta-section" id="connexion">
@@ -1043,10 +1043,16 @@ function TravelerApp() {
                 <p>{t.footerDesc}</p>
               </div>
               <div>
+                <strong>{t.footerGuides}</strong>
+                {SEO_GUIDES.map((guide) => (
+                  <p key={guide.href}><a className="footer-link" href={guide.href}>{guide[locale]}</a></p>
+                ))}
+              </div>
+              <div>
                 <strong>{t.footerLinks}</strong>
-                <p><button type="button" className="link footer-link" onClick={() => openLegal("privacy")}>{t.footerPrivacy}</button></p>
-                <p><button type="button" className="link footer-link" onClick={() => openLegal("terms")}>{t.footerTerms}</button></p>
-                <p><button type="button" className="link footer-link" onClick={() => openLegal("sales")}>{t.footerSales}</button></p>
+                <p><a className="footer-link" href="/?legal=privacy" onClick={(e) => { e.preventDefault(); openLegal("privacy"); }}>{t.footerPrivacy}</a></p>
+                <p><a className="footer-link" href="/?legal=terms" onClick={(e) => { e.preventDefault(); openLegal("terms"); }}>{t.footerTerms}</a></p>
+                <p><a className="footer-link" href="/?legal=sales" onClick={(e) => { e.preventDefault(); openLegal("sales"); }}>{t.footerSales}</a></p>
               </div>
               <div>
                 <strong>{t.footerContact}</strong>
@@ -1705,7 +1711,12 @@ function TravelerApp() {
 
 export default function App() {
   const isPublishedAdmin = window.location.hostname.startsWith("mon-petit-voyageur-admin.");
-  return isPublishedAdmin || window.location.pathname.startsWith("/admin") ? <AdminDashboard /> : <TravelerApp />;
+  const isAdmin = isPublishedAdmin || window.location.pathname.startsWith("/admin");
+  // Signed-in screens must never be indexed as public pages.
+  useEffect(() => {
+    if (isAdmin) applySeo(appOnlySeo("Administration · Mon Petit Voyageur"));
+  }, [isAdmin]);
+  return isAdmin ? <AdminDashboard /> : <TravelerApp />;
 }
 
 // "2026-09-05" → "5 sept. 2026" in the reader's language; ISO timestamps too.
