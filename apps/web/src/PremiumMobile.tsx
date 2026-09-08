@@ -1,0 +1,59 @@
+import { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
+import { Geolocation } from "@capacitor/geolocation";
+import { api, type AuthUser } from "./api";
+
+export function balances(people: string[], expenses: any[]) {
+  const result: Record<string, number> = Object.fromEntries(people.map(p => [p, 0]));
+  for (const e of expenses) { result[e.payer] += e.cents; e.participants.forEach((p: string, i: number) => { result[p] -= Math.floor(e.cents / e.participants.length) + (i < e.cents % e.participants.length ? 1 : 0); }); }
+  return result;
+}
+export function repayments(balance: Record<string, number>) {
+  const debt = Object.entries(balance).filter(([, n]) => n < 0).map(([p,n]) => ({p,n:-n}));
+  const credit = Object.entries(balance).filter(([, n]) => n > 0).map(([p,n]) => ({p,n}));
+  const transfers = []; let a = 0, b = 0;
+  while (a < debt.length && b < credit.length) { const cents = Math.min(debt[a].n, credit[b].n); transfers.push({ from: debt[a].p, to: credit[b].p, cents }); debt[a].n -= cents; credit[b].n -= cents; if (!debt[a].n) a++; if (!credit[b].n) b++; }
+  return transfers;
+}
+const escape = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]!));
+async function photoData(file: File): Promise<string> {
+  if (!file.type.startsWith("image/") || file.size > 20000000) throw new Error("Choisissez une photo de moins de 20 Mo.");
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement("canvas"); const scale = Math.min(1, 1000 / Math.max(bitmap.width, bitmap.height));
+  canvas.width = Math.round(bitmap.width * scale); canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height); bitmap.close();
+  for (const quality of [.8,.6,.4,.2]) { const data = canvas.toDataURL("image/jpeg", quality); if (data.length <= 250000) return data; }
+  throw new Error("Photo trop volumineuse. Choisissez une image plus petite.");
+}
+export default function PremiumMobile() {
+  const [user, setUser] = useState<AuthUser | null>(null), [loading,setLoading] = useState(true);
+  const [tab,setTab] = useState("voyage"), [trips,setTrips] = useState<any[]>([]), [trip,setTrip] = useState(0), [data,setData] = useState<any>(null);
+  const [error,setError] = useState(""), [busy,setBusy] = useState(false);
+  const [from,setFrom] = useState("EUR"), [to,setTo] = useState("USD"), [amount,setAmount] = useState("10"), [rate,setRate] = useState<any>(null);
+  const [kind,setKind] = useState("restaurant"), [places,setPlaces] = useState<any[] | null>(null);
+  useEffect(() => { api.me().then(setUser).catch(() => {}).finally(() => setLoading(false)); }, []);
+  useEffect(() => { if (user?.has_premium) api.listTrips().then(t => { setTrips(t); setTrip(t[0]?.id ?? 0); }).catch(e=>setError(e.message)); }, [user]);
+  useEffect(() => { let stale = false; setData(null); if (trip && user?.has_premium) api.premiumState(trip).then(d=>{if(!stale)setData(d);}).catch(e=>{if(!stale)setError(e.message);}); return ()=>{stale=true;}; }, [trip,user]);
+  async function run(fn: ()=>Promise<void>) { setBusy(true); setError(""); try { await fn(); } catch(e) { setError((e as Error).message); } finally { setBusy(false); } }
+  async function save(next: any) { setData(await api.premiumSave(trip,next)); }
+  async function nearby() {
+    const position = await Geolocation.getCurrentPosition({ timeout: 12000, maximumAge: 60000 });
+    const result = await api.premiumNearby(position.coords.latitude,position.coords.longitude,kind); setPlaces(result.places ?? []);
+  }
+  function exportPhotos() {
+    const html = `<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mon carnet photo</title><style>body{font:18px system-ui;background:#faf7ef;color:#123746;max-width:800px;margin:auto;padding:24px}img{width:100%;border-radius:20px}article{break-inside:avoid;margin:35px 0}</style><h1>Mon carnet photo</h1>${data.photos.map((p:any)=>`<article><h2>${escape(p.title)}</h2><p>${escape(new Date(p.date).toLocaleDateString())}</p><img src="${p.image}" alt="${escape(p.title)}"><p>${escape(p.note)}</p></article>`).join("")}</html>`;
+    const url=URL.createObjectURL(new Blob([html],{type:"text/html"})); const a=document.createElement("a");a.href=url;a.download="mon-carnet-photo.html";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  return <main className="premium-mobile"><header><a href="/">← Mes voyages</a><span>MON PETIT VOYAGEUR</span><h1>Pendant mon voyage</h1><p>Le monde à portée de main.</p></header>
+    {loading ? <p role="status">Chargement…</p> : !user ? <section className="mobile-card"><h2>Retrouvez votre voyage</h2><p>Connectez-vous à votre compte pour accéder à votre formule.</p><a href="/#connexion">Se connecter</a></section> : !user.has_premium ? <section className="mobile-card premium-offer"><span>UNE NOUVELLE FORMULE</span><h2>Voyage Premium</h2><strong>9,99 € <small>/ mois</small></strong><p>Convertisseur, comptes entre amis, carnet photo et découvertes autour de vous.</p><p>En complément de nos formules de planification.</p>{Capacitor.isNativePlatform() ? <p>Connectez-vous avec un compte Premium. L’achat dans l’application sera disponible après configuration des boutiques mobiles.</p> : <button disabled={busy} onClick={()=>run(async()=>{const r=["active","trialing"].includes(user.subscription_status)?await api.billingPortal():await api.premiumCheckout();window.location.assign(r.url);})}>{["active","trialing"].includes(user.subscription_status)?"Gérer ma formule":"Choisir Premium"}</button>}</section> : <>
+      <label className="mobile-trip">Mon voyage<select value={trip} disabled={busy} onChange={e=>setTrip(Number(e.target.value))}>{trips.map(t=><option value={t.id} key={t.id}>{t.title}</option>)}</select></label>
+      {!trip && <p>Créez un voyage dans la partie planification pour commencer votre carnet.</p>}
+      {tab==="voyage" && <><section className="mobile-card"><h2>Convertisseur</h2><div className="currency-widget"><input aria-label="Montant" type="number" min="0" value={amount} onChange={e=>setAmount(e.target.value)}/><input aria-label="Devise de départ" maxLength={3} value={from} onChange={e=>{setFrom(e.target.value.toUpperCase());setRate(null);}}/><span>→</span><input aria-label="Devise d’arrivée" maxLength={3} value={to} onChange={e=>{setTo(e.target.value.toUpperCase());setRate(null);}}/></div><button disabled={busy} onClick={()=>run(async()=>setRate(await api.premiumRate(from,to)))}>Convertir</button>{rate && <p><strong>{(Number(amount)*rate.rate).toFixed(2)} {to}</strong><small> Taux du {rate.date} · Frankfurter · hors frais de change</small></p>}</section><section className="mobile-card"><h2>Votre compagnon sur place</h2><p>Répartissez les frais du groupe, capturez vos souvenirs et trouvez une idée de sortie à proximité.</p></section></>}
+      {tab==="comptes" && data && <section className="mobile-card"><h2>Les comptes du voyage</h2><p>Répartition à parts égales · {data.currency}</p><p>{data.people.join(" · ")}</p><form onSubmit={e=>{e.preventDefault();const f=e.currentTarget;const name=String(new FormData(f).get("person")).trim();if(name&&!data.people.includes(name))run(async()=>{await save({...data,people:[...data.people,name]});f.reset();});}}><input name="person" placeholder="Prénom du participant" maxLength={50} required/><button disabled={busy}>Ajouter au groupe</button></form>
+      <form onSubmit={e=>{e.preventDefault();const f=e.currentTarget;const values=new FormData(f);run(async()=>{await save({...data,expenses:[...data.expenses,{id:crypto.randomUUID(),title:values.get("title"),cents:Math.round(Number(values.get("cost"))*100),payer:values.get("payer"),participants:values.getAll("participant")}]});f.reset();});}}><h3>Nouvelle dépense</h3><input name="title" placeholder="Restaurant, taxi…" maxLength={100} required/><input name="cost" aria-label="Montant de la dépense" type="number" min="0.01" step="0.01" required/><label>Payé par<select name="payer">{data.people.map((p:string)=><option key={p}>{p}</option>)}</select></label><fieldset><legend>Pour qui ?</legend>{data.people.map((p:string)=><label key={p}><input type="checkbox" name="participant" value={p} defaultChecked/>{p}</label>)}</fieldset><button disabled={busy}>Enregistrer la dépense</button></form>
+      {data.expenses.map((e:any)=><p key={e.id}>{e.title} · {(e.cents/100).toFixed(2)} {data.currency} · {e.payer}<button className="secondary" disabled={busy} onClick={()=>run(()=>save({...data,expenses:data.expenses.filter((x:any)=>x.id!==e.id)}))}>Retirer</button></p>)}<h3>Qui rembourse qui ?</h3>{repayments(balances(data.people,data.expenses)).map((r,i)=><p key={i}>{r.from} → {r.to} : {(r.cents/100).toFixed(2)} {data.currency}</p>)}<small>Montants à rembourser proposés ; aucun transfert d’argent n’est effectué. Ce groupe est géré depuis votre compte.</small></section>}
+      {tab==="photos" && data && <section className="mobile-card"><h2>Mon carnet photo</h2><p>Vos souvenirs datés, sauvegardés avec ce voyage. Jusqu’à 30 photos optimisées.</p><form onSubmit={e=>{e.preventDefault();const f=e.currentTarget;const values=new FormData(f);run(async()=>{const file=values.get("photo") as File;if(!file?.size)throw new Error("Choisissez une photo.");await save({...data,photos:[...data.photos,{id:crypto.randomUUID(),title:String(values.get("title")),note:String(values.get("note")),date:new Date().toISOString(),image:await photoData(file)}]});f.reset();});}}><input type="file" name="photo" accept="image/*" capture="environment" aria-label="Prendre ou choisir une photo" required/><input name="title" placeholder="Le lieu, le moment…" maxLength={120} required/><textarea name="note" placeholder="Votre souvenir" maxLength={1000}/><button disabled={busy||data.photos.length>=30}>Ajouter au carnet</button></form><button className="secondary" onClick={exportPhotos} disabled={!data.photos.length}>Exporter mon guide photo</button>{data.photos.map((p:any)=><article key={p.id}><img src={p.image} alt={p.title}/><h3>{p.title}</h3><small>{new Date(p.date).toLocaleDateString()}</small><p>{p.note}</p><button className="secondary" disabled={busy} onClick={()=>run(()=>save({...data,photos:data.photos.filter((x:any)=>x.id!==p.id)}))}>Retirer</button></article>)}</section>}
+      {tab==="autour" && <section className="mobile-card"><h2>Une envie de sortir ?</h2><p>Découvrez jusqu’à 20 adresses dans un rayon de 2 km.</p><select aria-label="Type de découverte" value={kind} onChange={e=>{setKind(e.target.value);setPlaces(null);}}><option value="restaurant">Restaurants</option><option value="tourist_attraction">Activités et lieux à découvrir</option></select><p>En appuyant ci-dessous, vous autorisez la recherche à partir de votre position, transmise à Google Maps uniquement pour cette recherche.</p><button disabled={busy} onClick={()=>run(nearby)}>◎ Autour de moi</button>{places?.length===0&&<p>Aucune adresse trouvée dans ce rayon.</p>}{places?.map(p=><article key={p.id}><h3>{p.displayName?.text}</h3><p>{p.formattedAddress}</p>{/^https:\/\//.test(p.googleMapsUri??"")&&<a href={p.googleMapsUri} target="_blank" rel="noreferrer">Voir sur Google Maps ↗</a>}</article>)}{places&&<small>Adresses fournies par Google Maps</small>}</section>}
+      <nav className="mobile-bottom" aria-label="Pendant le voyage">{[["voyage","⌂","Voyage"],["comptes","€","Comptes"],["photos","▧","Photos"],["autour","◎","Autour"]].map(([id,icon,label])=><button key={id} aria-pressed={tab===id} onClick={()=>setTab(id)}><span>{icon}</span>{label}</button>)}</nav>
+    </>}{busy&&<p role="status">Un instant…</p>}{error&&<p role="alert" className="mobile-error">{error}</p>}</main>;
+}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 // Mapbox public token (pk.…), read from the repo-level .env by Vite. A pk.
 // token is designed to ship to browsers; it is restricted by URL on the
@@ -18,6 +18,7 @@ export interface MapPoint {
 export interface MapRoute {
   day: number;
   title: string;
+  mode?: string;
   points: MapPoint[];
 }
 
@@ -38,10 +39,11 @@ export function routesFromItinerary(days: any[] | undefined): MapRoute[] {
     .map((day) => ({
       day: Number(day.day),
       title: String(day.title ?? ""),
+      mode: String(day.route?.mode ?? "walk").toLowerCase(),
       points: [
         ...(day.free_visits ?? []).filter(located).map((v: any) => ({ name: String(v.name), lat: v.coordinates.lat, lon: v.coordinates.lon, kind: "visit" as const })),
         ...(day.paid_options ?? [])
-          .filter((o: any) => o.kind === "ticket" && located(o))
+          .filter((o: any) => o.selected === true && o.kind === "ticket" && located(o))
           .map((o: any) => ({ name: String(o.title), lat: o.coordinates.lat, lon: o.coordinates.lon, kind: "ticket" as const })),
         ...(day.restaurants ?? []).filter(located).map((r: any) => ({ name: String(r.name), lat: r.coordinates.lat, lon: r.coordinates.lon, kind: "restaurant" as const }))
       ]
@@ -51,6 +53,25 @@ export function routesFromItinerary(days: any[] | undefined): MapRoute[] {
 
 const stops = (route: MapRoute) => route.points.filter((p) => p.kind !== "restaurant");
 const tables = (route: MapRoute) => route.points.filter((p) => p.kind === "restaurant");
+
+function transportIcon(mode = "walk"): string {
+  const normalized = mode.toLowerCase();
+  if (["walk", "foot", "walking"].includes(normalized)) return '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="m8 21 3-7 4 3 1 4M7 12l3-5 4 1 3 5h3M11 8l-1 6"/></svg>';
+  if (normalized.includes("boat") || normalized.includes("bateau") || normalized.includes("mer")) {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14h16l-2 4H6l-2-4Z"/><path d="M12 4v10M12 5 7 10h10l-5-5ZM3 20c2 1.4 4 1.4 6 0 2 1.4 4 1.4 6 0 2 1.4 4 1.4 6 0"/></svg>';
+  }
+  if (normalized.includes("plane") || normalized.includes("avion") || normalized.includes("air")) {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 13 7-2 2-7 2 1-1 6 7 2c1 .3 1 1.7 0 2l-7 1-2 5-1-1 .5-4-7-1c-1-.2-1-1.7-.5-2Z"/></svg>';
+  }
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16v-4l2-4h8l3 4v4M3 16h18M6 16v2M18 16v2M7 12h10"/><circle cx="7" cy="16" r="1.5"/><circle cx="17" cy="16" r="1.5"/></svg>';
+}
+
+function transportLabel(mode = "walk"): string {
+  const normalized = mode.toLowerCase();
+  if (normalized.includes("boat") || normalized.includes("bateau") || normalized.includes("mer")) return "Par la mer";
+  if (normalized.includes("plane") || normalized.includes("avion") || normalized.includes("air")) return "Par les airs";
+  return "Par la route";
+}
 
 /** The day's walk following the streets (Mapbox Directions, walking profile), or null. */
 async function walkingRoute(route: MapRoute): Promise<{ geometry: any; distance: number; duration: number } | null> {
@@ -88,15 +109,25 @@ function popupNode(title: string, label: string): HTMLElement {
  * with a popup. mapbox-gl is imported lazily so the initial bundle (and the
  * jsdom tests) never load WebGL code.
  */
-export default function TripMap({ routes, locale = "fr", hotel = null }: { routes: MapRoute[]; locale?: "fr" | "en"; hotel?: { name: string; lat: number; lon: number } | null }) {
+export default function TripMap({ routes, locale = "fr", hotel = null }: { routes: MapRoute[]; locale?: "fr" | "en"; hotel?: { name: string; photo?: string; lat: number; lon: number } | null }) {
   const container = useRef<HTMLDivElement>(null);
   const [walks, setWalks] = useState<Record<number, Walk>>({});
+  const [day, setDay] = useState<number | null>(null);
+  const [selected, setSelected] = useState<MapPoint | null>(null);
+  const [mapError, setMapError] = useState(false);
+  const [fallback, setFallback] = useState(false);
+  const allPoints = routes.flatMap(r => r.points);
+  const city = allPoints.length > 0 && Math.max(...allPoints.map(p => p.lat)) - Math.min(...allPoints.map(p => p.lat)) < .35 && Math.max(...allPoints.map(p => p.lon)) - Math.min(...allPoints.map(p => p.lon)) < .5;
+  const visibleRoutes = useMemo(() => day === null ? routes : routes.filter(r => r.day === day), [routes, day]);
+  const fr = locale === "fr";
+  useEffect(() => { setDay(null); setSelected(null); }, [routes]);
 
   useEffect(() => {
     if (!MAPBOX_TOKEN || !container.current || !routes.length) return;
     let map: any = null;
     let cancelled = false;
     setWalks({});
+    setMapError(false);
 
     Promise.all([import("mapbox-gl"), import("mapbox-gl/dist/mapbox-gl.css")]).then(([module]) => {
       if (cancelled || !container.current) return;
@@ -105,11 +136,18 @@ export default function TripMap({ routes, locale = "fr", hotel = null }: { route
 
       map = new mapboxgl.Map({
         container: container.current,
-        style: "mapbox://styles/mapbox/outdoors-v12",
+        style: fallback ? { version: 8, sources: { backup: { type: "raster", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxzoom: 19 } }, layers: [{ id: "backup", type: "raster", source: "backup" }] } : "mapbox://styles/mapbox/outdoors-v12",
+        pitch: city && !fallback ? 58 : 0,
+        bearing: city ? -22 : 0,
         scrollZoom: false,
         cooperativeGestures: true
       });
       map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+      map.on("error", (event: any) => {
+        if (!cancelled) setMapError(true);
+        if (!cancelled && !fallback) setFallback(true);
+        console.warn("Map loading:", JSON.stringify({message: event.error?.message, status: event.error?.status, url: event.error?.url?.split("?")[0]}));
+      });
 
       const bounds = new mapboxgl.LngLatBounds();
       if (hotel) {
@@ -117,16 +155,24 @@ export default function TripMap({ routes, locale = "fr", hotel = null }: { route
         const el = document.createElement("div");
         el.className = "map-marker map-marker-hotel";
         el.textContent = "H";
+        const hotelPopup = popupNode(locale === "fr" ? "Votre hôtel" : "Your hotel", hotel.name);
+        if (hotel.photo && /^https?:\/\//i.test(hotel.photo)) {
+          const img = document.createElement("img"); img.src = hotel.photo; img.alt = hotel.name; img.width = 200; img.style.borderRadius = "8px"; img.onerror = () => img.remove(); hotelPopup.prepend(img);
+        }
         new mapboxgl.Marker({ element: el })
           .setLngLat([hotel.lon, hotel.lat])
-          .setPopup(new mapboxgl.Popup({ offset: 14, closeButton: false }).setDOMContent(popupNode(locale === "fr" ? "Votre hôtel" : "Your hotel", hotel.name)))
+          .setPopup(new mapboxgl.Popup({ offset: 14, closeButton: false }).setDOMContent(hotelPopup))
           .addTo(map);
       }
-      routes.forEach((route, index) => {
-        const colour = PALETTE[index % PALETTE.length];
-        stops(route).forEach((point, order) => {
+      visibleRoutes.forEach((route, index) => {
+        const colour = city ? "#ed775e" : PALETTE[index % PALETTE.length];
+        const routeStops = stops(route);
+        routeStops.forEach((point, order) => {
           bounds.extend([point.lon, point.lat]);
-          const el = document.createElement("div");
+          const el = document.createElement("button");
+          el.type = "button";
+          el.setAttribute("aria-label", point.name);
+          el.addEventListener("click", () => setSelected(point));
           el.className = "map-marker";
           el.style.background = colour;
           el.textContent = String(order + 1);
@@ -150,7 +196,14 @@ export default function TripMap({ routes, locale = "fr", hotel = null }: { route
       });
 
       map.on("load", () => {
-        routes.forEach((route, index) => {
+        setMapError(false);
+        if (city && !fallback) {
+          const label = map.getStyle().layers.find((layer: any) => layer.type === "symbol" && layer.layout?.["text-field"]);
+          map.addLayer({ id: "city-buildings", type: "fill-extrusion", source: "composite", "source-layer": "building", minzoom: 13,
+            paint: { "fill-extrusion-color": "#ded8ca", "fill-extrusion-height": ["get", "height"], "fill-extrusion-base": ["get", "min_height"], "fill-extrusion-opacity": .95 }
+          }, label?.id);
+        }
+        visibleRoutes.forEach((route, index) => {
           if (stops(route).length < 2) return;
           const id = `route-${index}`;
           map.addSource(id, {
@@ -158,39 +211,67 @@ export default function TripMap({ routes, locale = "fr", hotel = null }: { route
             data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: stops(route).map((p) => [p.lon, p.lat]) } }
           });
           map.addLayer({
+            id: `${id}-outline`, type: "line", source: id,
+            layout: { "line-join": "round", "line-cap": "round" },
+            paint: { "line-color": "#ffffff", "line-width": 9, "line-opacity": 0 }
+          });
+          map.addLayer({
             id,
             type: "line",
             source: id,
             layout: { "line-join": "round", "line-cap": "round" },
-            paint: { "line-color": PALETTE[index % PALETTE.length], "line-width": 4, "line-opacity": 0.85 }
+            paint: { "line-color": city ? "#ed775e" : PALETTE[index % PALETTE.length], "line-width": 5, "line-opacity": 0 }
           });
           walkingRoute(route).then((walk) => {
             if (cancelled || !walk || !map) return;
             map.getSource(id)?.setData({ type: "Feature", properties: {}, geometry: walk.geometry });
+            map.setPaintProperty(id, "line-opacity", .95);
+            map.setPaintProperty(`${id}-outline`, "line-opacity", 1);
             setWalks((current) => ({ ...current, [route.day]: { distance: walk.distance, duration: walk.duration } }));
           });
         });
       });
 
-      if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 40, maxZoom: 14, duration: 0 });
-    });
+      if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 65, maxZoom: city ? 16 : 14, duration: 0 });
+    }).catch(() => { if (!cancelled) setMapError(true); });
 
     return () => {
       cancelled = true;
       map?.remove();
     };
-  }, [routes, hotel?.lat, hotel?.lon]);
+  }, [visibleRoutes, city, locale, hotel?.lat, hotel?.lon, hotel?.name, hotel?.photo, fallback]);
 
   if (!MAPBOX_TOKEN || !routes.length) return null;
 
   return (
-    <div className="trip-map-block">
-      <div ref={container} className="trip-map" />
+    <div className={`trip-map-block${city ? " city-map-block" : ""}`}>
+      <div className="trip-map-heading">
+        <div>
+          <span className="trip-map-eyebrow">{city ? "CITY TRIP" : fr ? "VOTRE ESCAPADE" : "YOUR GETAWAY"}</span>
+          <h5>{fr ? "La carte de votre séjour" : "Your trip map"}</h5>
+        </div>
+        <span className="trip-map-hint">Cliquez sur un repère pour découvrir l’étape</span>
+      </div>
+      <div className="city-map-layout">
+        {city && <nav className="city-map-sidebar" aria-label={fr ? "Journées" : "Days"}>
+          <span className="city-map-caption">{fr ? "MES ÉTAPES" : "MY STOPS"}</span>
+          <button type="button" aria-pressed={day === null} onClick={() => { setDay(null); setSelected(null); }}>{fr ? "Tout le séjour" : "Whole trip"}</button>
+          {routes.map(r => <button type="button" key={r.day} aria-pressed={day === r.day} onClick={() => { setDay(r.day); setSelected(null); }}><strong>{fr ? "Jour" : "Day"} {r.day}</strong><small>{r.title}</small></button>)}
+        </nav>}
+        <div className="city-map-stage">
+          <div ref={container} className="trip-map" />
+          {mapError && <p className="city-map-notice" role="status">{fr ? "Certaines données cartographiques sont indisponibles." : "Some map data is unavailable."}</p>}
+          {fallback && !mapError && <p className="city-map-notice" role="status">{fr ? "Vue 2D · Le fond 3D est temporairement indisponible" : "2D view · 3D map temporarily unavailable"}</p>}
+          {selected && <aside className="city-map-detail"><button type="button" aria-label={fr ? "Fermer" : "Close"} onClick={() => setSelected(null)}>×</button><small>{fr ? "VOTRE ÉTAPE" : "YOUR STOP"}</small><strong>{selected.name}</strong><a href={`https://www.google.com/maps/search/?api=1&query=${selected.lat},${selected.lon}`} target="_blank" rel="noreferrer">{fr ? "Voir l’adresse ↗" : "View location ↗"}</a></aside>}
+        </div>
+      </div>
+      {mapError && <div className="map-legend">{visibleRoutes.flatMap(r => r.points.map((p, i) => <a className="chip" key={`${r.day}-${i}`} href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`} target="_blank" rel="noreferrer">{p.name} ↗</a>))}</div>}
       <div className="map-legend">
         {routes.map((route, index) => (
           <span key={route.day} className="chip">
+            <span className="transport-icon" dangerouslySetInnerHTML={{ __html: transportIcon(route.mode) }} />
             <i className="dot" style={{ background: PALETTE[index % PALETTE.length] }} />
-            {route.title}
+            <span>{route.title}</span>
             {walks[route.day] && <span className="walk"> · {walkLabel(walks[route.day], locale)}</span>}
           </span>
         ))}

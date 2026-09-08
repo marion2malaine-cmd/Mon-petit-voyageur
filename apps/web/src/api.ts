@@ -15,7 +15,8 @@ async function waitForSavedTrip(startedAt: number, tripId?: number): Promise<Pla
     let trips: any[] = [];
     try {
       trips = await http<any[]>("/api/trips");
-    } catch {
+    } catch (error) {
+      if (isTerminal(error)) throw error;
       continue;
     }
     const found = trips.find((trip) => {
@@ -27,7 +28,12 @@ async function waitForSavedTrip(startedAt: number, tripId?: number): Promise<Pla
   }
   throw new Error("planning_interrupted");
 }
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8787";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? "http://localhost:8787" : "https://api.monpetitvoyageur.com")).replace(/\/$/, "");
+
+export class ApiError extends Error {
+  constructor(message: string, public status: number) { super(message); this.name = "ApiError"; }
+}
+const isTerminal = (error: unknown) => error instanceof ApiError && error.status >= 400 && error.status < 500 && ![408, 429].includes(error.status);
 // Only the dev build carries the seed login: `import.meta.env.DEV` is a
 // compile-time constant, so the production bundle keeps the empty branch and
 // the real credentials never ship to the browser or pre-fill the form.
@@ -47,6 +53,7 @@ export interface AuthUser {
   trial_used: boolean;
   billing_enabled: boolean;
   has_access: boolean;
+  has_premium?: boolean;
 }
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
@@ -57,10 +64,15 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
       ...(init?.body ? { "Content-Type": "application/json" } : {}),
       ...(init?.headers ?? {})
     },
-    credentials: "include"
+    credentials: "include",
+    signal: init?.signal ?? AbortSignal.timeout(30_000)
   });
 
   if (!response.ok) {
+    if (response.status === 401 && !path.includes("/auth/")) {
+      window.dispatchEvent(new Event("mlt:session-expired"));
+      throw new ApiError("Votre session a expiré. Reconnectez-vous ; votre formulaire est conservé.", 401);
+    }
     // The API answers {"error": "..."}: surface the message, never raw JSON.
     const text = await response.text();
     let message = text;
@@ -70,13 +82,18 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
     } catch {
       // Not JSON: keep the body as is.
     }
-    throw new Error(message || `HTTP ${response.status}`);
+    throw new ApiError(message || `HTTP ${response.status}`, response.status);
   }
 
   return response.json() as Promise<T>;
 }
 
 export const api = {
+  premiumState: (id: number) => http<any>(`/api/premium/trips/${id}`),
+  premiumSave: (id: number, body: unknown) => http<any>(`/api/premium/trips/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  premiumRate: (from: string, to: string) => http<any>(`/api/premium/rate?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
+  premiumNearby: (lat: number, lon: number, kind: string) => http<any>("/api/premium/nearby", { method: "POST", body: JSON.stringify({ lat, lon, kind }) }),
+  premiumCheckout: () => http<{url: string}>("/api/billing/checkout", { method: "POST", body: JSON.stringify({plan: "premium"}) }),
   getDevTestCredentials: () => DEV_TEST_CREDENTIALS,
   me: () => http<AuthUser>("/api/auth/me"),
   register: (payload: { email: string; password: string; preferred_language: "fr" | "en" }) =>
@@ -100,7 +117,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload)
     });
-    for (;;) {
+    while (Date.now() - startedAt < SAVED_TRIP_WAIT_MS) {
       await new Promise((resolve) => setTimeout(resolve, PLAN_POLL_MS));
       let job: { status: string; result?: PlanTripResponse & { trip_id: number; run_id: string }; error?: string };
       try {
@@ -110,13 +127,16 @@ export const api = {
         // API restarted: the old process still saves the trip when it finishes,
         // so the saved trips are watched for it instead of giving up.
         if (/job_not_found/.test((error as Error).message)) return waitForSavedTrip(startedAt, payload.trip_id);
+        if (isTerminal(error)) throw error;
         continue;
       }
       if (job.status === "done" && job.result) return job.result;
       if (job.status === "error") throw new Error(job.error || "planning_failed");
     }
+    throw new Error("planning_timeout");
   },
   listTrips: () => http<any[]>("/api/trips"),
+  editItinerary: (tripId: number, edit: unknown) => http<PlanTripResponse & { trip_id: number }>(`/api/trips/${tripId}/itinerary`, { method: "PATCH", body: JSON.stringify(edit) }),
   getGuide: (tripId: number, locale: "fr" | "en", embed: boolean) =>
     http<{ filename: string; html: string }>(
       `/api/trips/${tripId}/guide?locale=${locale}&embed=${embed ? "1" : "0"}`

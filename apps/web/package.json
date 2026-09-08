@@ -4,18 +4,23 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "mobile:sync": "cap sync",
+    "mobile:ios": "cap open ios",
+    "mobile:android": "cap open android",
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && NODE_ENV=production vite build && node seo/build.mjs",
     "preview": "vite preview",
-    "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node server.mjs",
     "seo:build": "node seo/build.mjs",
-    "seo:sync": "node seo/build.mjs --sync"
+    "seo:sync": "node seo/build.mjs --sync",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@capacitor/core": "^8.4.1",
-    "@capacitor/ios": "^8.4.1",
+    "@capacitor/android": "8.4.1",
+    "@capacitor/core": "8.4.1",
+    "@capacitor/geolocation": "^8.2.2",
+    "@capacitor/ios": "8.4.1",
     "@mlt/contracts": "1.0.0",
     "mapbox-gl": "^3.30.0",
     "react": "^18.3.1",

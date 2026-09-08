@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, downloadGuide, downloadGuidePdf, previewGuide, type AuthUser } from "./api";
 import { legLabel, useHotelTravelTimes } from "./travelTimes";
 import type { PlanTripResponse } from "@mlt/contracts";
-import AdminDashboard from "./AdminDashboard";
+const AdminDashboard = lazy(() => import("./LiveAdmin"));
 import TripMap, { routesFromItinerary } from "./TripMap";
+import TripCompanion from "./TripCompanion";
+import LocalMobility from "./LocalMobility";
+const PremiumMobile = lazy(() => import("./PremiumMobile"));
 import Plane3D from "./Plane3D";
 import { LegalPage } from "./LegalPage";
 import type { LegalDoc } from "./legalContent";
@@ -65,7 +68,6 @@ const text = {
     morning: "Matin",
     afternoon: "Après-midi",
     evening: "Soir",
-    eyebrow: "Votre agence de voyage intelligente",
     tagline:
       "Le planificateur de voyage IA qui crée votre itinéraire sur mesure : destination, vols, hôtels, activités et restaurants au meilleur prix, dans votre budget.",
     ctaStart: "Commencer mon voyage",
@@ -248,7 +250,6 @@ const text = {
     morning: "Morning",
     afternoon: "Afternoon",
     evening: "Evening",
-    eyebrow: "Your intelligent travel agency",
     tagline:
       "The AI travel planner that builds your tailor-made itinerary: destination, flights, hotels, activities and restaurants at the best price, within your budget.",
     ctaStart: "Start my trip",
@@ -481,18 +482,43 @@ const featureIcons = {
   )
 } as const;
 
+// Keep typing local: a keystroke must not render the destination lists and itinerary.
+const TripDescription = memo(function TripDescription({ draft, onFilledChange, label, placeholder }: {
+  draft: React.MutableRefObject<string>; onFilledChange: (filled: boolean) => void;
+  label: string; placeholder: string;
+}) {
+  const [value, setValue] = useState(draft.current);
+  return <label>{label}<textarea value={value} rows={3} placeholder={placeholder}
+    onChange={(event) => {
+      const next = event.target.value;
+      draft.current = next;
+      setValue(next);
+      if (!!next.trim() !== !!value.trim()) onFilledChange(!!next.trim());
+    }} /></label>;
+});
+
 function TravelerApp() {
   const [locale, setLocale] = useState<Locale>("fr");
   const t = text[locale];
   const devCredentials = useMemo(() => api.getDevTestCredentials(), []);
 
   const [user, setUser] = useState<AuthUser | null>(null);
+  useEffect(() => {
+    const expired = () => {
+      setUser(null);
+      setAuthError("Votre session a expiré. Reconnectez-vous ; votre formulaire est conservé.");
+    };
+    window.addEventListener("mlt:session-expired", expired);
+    return () => window.removeEventListener("mlt:session-expired", expired);
+  }, []);
   const [authError, setAuthError] = useState<string>("");
   const [email, setEmail] = useState<string>(devCredentials.email);
   const [password, setPassword] = useState<string>(devCredentials.password);
   const [isRegisterMode, setRegisterMode] = useState(false);
 
-  const [message, setMessage] = useState("");
+  const messageDraft = useRef("");
+  const [hasMessage, setHasMessage] = useState(false);
+  const onMessageFilled = useCallback((filled: boolean) => setHasMessage(filled), []);
   const [styles, setStyles] = useState<string[]>([]);
   const [pace, setPace] = useState("moderate");
   // A road trip is a different guide: one stage per night, the drive between
@@ -642,8 +668,8 @@ function TravelerApp() {
   }, [destination, continent, locale]);
 
   const canSubmit = useMemo(
-    () => (!!message.trim() || styles.length > 0 || !!destination || !!continentHint) && !planning,
-    [message, styles, planning, destination, continentHint]
+    () => (hasMessage || styles.length > 0 || !!destination || !!continentHint) && !planning,
+    [hasMessage, styles, planning, destination, continentHint]
   );
 
   // Changing a level clears the ones below it, so the form never sends a city
@@ -700,7 +726,7 @@ function TravelerApp() {
     try {
       const response = await api.planTrip({
         message:
-          [message.trim(), continentHint].filter(Boolean).join(" ") ||
+          [messageDraft.current.trim(), continentHint].filter(Boolean).join(" ") ||
           (locale === "fr" ? "Propose-moi un voyage adapté à mes critères." : "Suggest a trip matching my criteria."),
 
         locale,
@@ -719,8 +745,8 @@ function TravelerApp() {
         }
       });
       setResult(response);
-      const list = await api.listTrips();
-      setTrips(list);
+      // Refreshing the sidebar must not turn a successfully saved trip into an error.
+      void api.listTrips().then(setTrips).catch(() => undefined);
     } catch (error) {
       const message = (error as Error).message;
       if (/subscription_required/.test(message)) {
@@ -729,7 +755,7 @@ function TravelerApp() {
         api.me().then(setUser).catch(() => null);
       } else {
         setPlanError(
-          /planning_interrupted/.test(message) ? t.planningInterrupted : /fetch/i.test(message) ? t.serverDown : message
+          /planning_interrupted/.test(message) ? t.planningInterrupted : /fetch/i.test(message) ? t.serverDown : /planning_timeout/.test(message) ? "Le voyage prend plus de temps que prévu. Consultez Mes voyages dans quelques instants." : message
         );
       }
     } finally {
@@ -797,7 +823,8 @@ function TravelerApp() {
       try {
         await api.chooseStay(result.trip_id, index);
       } catch {
-        // The choice stays local for this session.
+        setResult(result);
+        setGuideError(locale === "fr" ? "Le choix d’hôtel n’a pas pu être enregistré. Réessayez." : "Hotel choice could not be saved. Please retry.");
       }
     }
   }
@@ -833,10 +860,11 @@ function TravelerApp() {
   const chosenStayIndex: number | null = Number.isInteger(research?.chosen_stay_index) ? research.chosen_stay_index : null;
   const chosenStay = chosenStayIndex !== null ? stays[chosenStayIndex] : null;
   const hotelPoint = useMemo(
-    () => (chosenStay?.coordinates ? { name: String(chosenStay.name), lat: chosenStay.coordinates.lat, lon: chosenStay.coordinates.lon } : null),
+    () => (chosenStay?.coordinates ? { name: String(chosenStay.name), photo: chosenStay.photo_url, lat: chosenStay.coordinates.lat, lon: chosenStay.coordinates.lon } : null),
     [chosenStay]
   );
-  const travelTimes = useHotelTravelTimes(hotelPoint, itinerary?.itinerary_by_day);
+  const [hotelTravelMode, setHotelTravelMode] = useState<"walking" | "driving">("walking");
+  const travelTimes = useHotelTravelTimes(hotelPoint, itinerary?.itinerary_by_day, hotelTravelMode);
 
   const budgetBadge = (fit?: string) =>
     fit === "within_budget" ? (
@@ -868,6 +896,7 @@ function TravelerApp() {
           </div>
           <div className="toolbar">
             <nav className="hero-nav" aria-label="Navigation">
+              <a className="ghost" href="/mobile">Pendant mon voyage · Premium</a>
               <button
                 type="button"
                 className={`ghost${page === "planner" ? " is-active" : ""}`}
@@ -1260,15 +1289,8 @@ function TravelerApp() {
                 </label>
               </div>
 
-              <label>
-                {t.freeTextLabel}
-                <textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder={t.plannerPlaceholder}
-                  rows={3}
-                />
-              </label>
+              <TripDescription draft={messageDraft} onFilledChange={onMessageFilled}
+                label={t.freeTextLabel} placeholder={t.plannerPlaceholder} />
 
               <button type="submit" disabled={!canSubmit}>
                 {planning ? t.loading : t.planTrip}
@@ -1327,6 +1349,7 @@ function TravelerApp() {
               )}
 
               <h4>{t.flightsHotels}</h4>
+              <LocalMobility transport={research?.ground_transport} locale={locale} />
               {(research?.price_calendar ?? []).length > 0 && (
                 <div className="price-strip" aria-label={t.calendarTitle}>
                   <p className="price-strip-title">
@@ -1553,6 +1576,8 @@ function TravelerApp() {
                 <>
                   <h4>{t.itinerary}</h4>
                   <TripMap routes={mapRoutes} locale={locale} hotel={hotelPoint} />
+                  {hotelPoint && <label>{locale === "fr" ? "Trajets depuis l’hôtel" : "Travel from hotel"}<select value={hotelTravelMode} onChange={e => setHotelTravelMode(e.target.value as "walking" | "driving")}><option value="walking">{locale === "fr" ? "À pied" : "Walking"}</option><option value="driving">{locale === "fr" ? "En voiture" : "Driving"}</option></select></label>}
+                  <TripCompanion key={result.trip_id} result={result} locale={locale} onChange={updated => { setResult(updated); setTrips(current => current.map(trip => trip.id === updated.trip_id ? { ...trip, plan_json: updated } : trip)); }} />
                   <div className="compact-grid day-grid">
                     {itinerary.itinerary_by_day.map((day: any) => (
                       <article key={day.day} className="day-card">
@@ -1710,13 +1735,16 @@ function TravelerApp() {
 }
 
 export default function App() {
+  const isMobile = window.location.pathname.startsWith("/mobile");
   const isPublishedAdmin = window.location.hostname.startsWith("mon-petit-voyageur-admin.");
   const isAdmin = isPublishedAdmin || window.location.pathname.startsWith("/admin");
   // Signed-in screens must never be indexed as public pages.
   useEffect(() => {
-    if (isAdmin) applySeo(appOnlySeo("Administration · Mon Petit Voyageur"));
-  }, [isAdmin]);
-  return isAdmin ? <AdminDashboard /> : <TravelerApp />;
+    if (isMobile) applySeo(appOnlySeo("Pendant mon voyage · Mon Petit Voyageur"));
+    else if (isAdmin) applySeo(appOnlySeo("Administration · Mon Petit Voyageur"));
+  }, [isMobile, isAdmin]);
+  if (isMobile) return <Suspense fallback={<p role="status">Chargement…</p>}><PremiumMobile /></Suspense>;
+  return isAdmin ? <Suspense fallback={<p role="status">Chargement…</p>}><AdminDashboard /></Suspense> : <TravelerApp />;
 }
 
 // "2026-09-05" → "5 sept. 2026" in the reader's language; ISO timestamps too.

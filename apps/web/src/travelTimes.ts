@@ -9,23 +9,24 @@ export interface Coord {
 export interface Leg {
   minutes: number;
   km: number;
+  mode?: "walking" | "driving";
 }
 
 const cache = new Map<string, Promise<Leg | null>>();
 const key = (from: Coord, to: Coord) => `${from.lat.toFixed(4)},${from.lon.toFixed(4)}>${to.lat.toFixed(4)},${to.lon.toFixed(4)}`;
 
 /** Driving time and distance from one point to another (Mapbox Directions), or null. */
-export function drivingLeg(from: Coord, to: Coord): Promise<Leg | null> {
+export function drivingLeg(from: Coord, to: Coord, mode: "walking" | "driving" = "driving"): Promise<Leg | null> {
   if (!MAPBOX_TOKEN) return Promise.resolve(null);
-  const k = key(from, to);
+  const k = `${mode}:${key(from, to)}`;
   const hit = cache.get(k);
   if (hit) return hit;
-  const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${from.lon},${from.lat};${to.lon},${to.lat}?overview=false&access_token=${encodeURIComponent(MAPBOX_TOKEN)}`;
+  const url = `https://api.mapbox.com/directions/v5/mapbox/${mode}/${from.lon},${from.lat};${to.lon},${to.lat}?overview=false&access_token=${encodeURIComponent(MAPBOX_TOKEN)}`;
   const promise = fetch(url)
     .then((response) => (response.ok ? response.json() : null))
     .then((json) => {
       const route = json?.routes?.[0];
-      return route ? { minutes: Math.round(route.duration / 60), km: Math.round(route.distance / 100) / 10 } : null;
+      return route ? { minutes: Math.round(route.duration / 60), km: Math.round(route.distance / 100) / 10, mode } : null;
     })
     .catch(() => null);
   cache.set(k, promise);
@@ -40,7 +41,7 @@ const located = (item: any): item is { coordinates: Coord } =>
  * itinerary (paid options, free visits, restaurants), keyed by name.
  * Resolved in small parallel batches so the map token is not hammered.
  */
-export function useHotelTravelTimes(hotel: Coord | null, days: any[] | undefined): Record<string, Leg> {
+export function useHotelTravelTimes(hotel: Coord | null, days: any[] | undefined, mode: "walking" | "driving" = "walking"): Record<string, Leg> {
   const [legs, setLegs] = useState<Record<string, Leg>>({});
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export function useHotelTravelTimes(hotel: Coord | null, days: any[] | undefined
     (async () => {
       for (let index = 0; index < entries.length; index += 4) {
         const batch = entries.slice(index, index + 4);
-        const results = await Promise.all(batch.map(([, to]) => drivingLeg(hotel, to)));
+        const results = await Promise.all(batch.map(([, to]) => drivingLeg(hotel, to, mode)));
         if (cancelled) return;
         setLegs((current) => {
           const next = { ...current };
@@ -73,7 +74,7 @@ export function useHotelTravelTimes(hotel: Coord | null, days: any[] | undefined
     return () => {
       cancelled = true;
     };
-  }, [hotel?.lat, hotel?.lon, days]);
+  }, [hotel?.lat, hotel?.lon, days, mode]);
 
   return legs;
 }
@@ -82,5 +83,5 @@ export function legLabel(leg: Leg, locale: "fr" | "en"): string {
   const hours = Math.floor(leg.minutes / 60);
   const minutes = leg.minutes % 60;
   const time = hours ? `${hours} h${minutes ? ` ${String(minutes).padStart(2, "0")}` : ""}` : `${minutes} min`;
-  return locale === "fr" ? `${time} en voiture · ${leg.km} km` : `${time} by car · ${leg.km} km`;
+  return locale === "fr" ? `${time} ${leg.mode === "walking" ? "à pied" : "en voiture"} · ${leg.km} km` : `${time} ${leg.mode === "walking" ? "walking" : "by car"} · ${leg.km} km`;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import PlaneLoader from "./PlaneLoader";
 
 type Three = typeof import("three");
@@ -6,9 +6,10 @@ type Group = import("three").Group;
 type Material = import("three").Material;
 
 // Loaded only while planning. Unmounting on success/error releases the GPU resources.
-export default function Plane3D() {
+const Plane3D = memo(function Plane3D() {
   const mount = useRef<HTMLDivElement>(null);
   const [fallback, setFallback] = useState(false);
+  const [ready, setReady] = useState(false);
   useEffect(() => {
     const host = mount.current;
     if (!host) return;
@@ -16,20 +17,21 @@ export default function Plane3D() {
     let stop: (() => void) | undefined;
     const fail = () => { if (!disposed) setFallback(true); };
     import("three").then((THREE) => {
-      if (!disposed) stop = start(THREE, host, fail);
+      if (!disposed) stop = start(THREE, host, fail, () => { if (!disposed) setReady(true); });
     }).catch(fail);
     return () => { disposed = true; stop?.(); };
   }, []);
   // Keep the host mounted so cleanup can always remove its canvas.
   return <div className="flight-loader" aria-hidden="true">
     <div ref={mount} className="plane-3d" hidden={fallback} />
-    {fallback && <PlaneLoader />}
+    {(!ready || fallback) && <div className="globe-placeholder"><div className="globe-placeholder-earth" /><PlaneLoader /></div>}
   </div>;
-}
+});
+export default Plane3D;
 
-function start(THREE: Three, host: HTMLElement, fail: () => void): () => void {
+function start(THREE: Three, host: HTMLElement, fail: () => void, ready: () => void): () => void {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   host.appendChild(renderer.domElement);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
@@ -46,6 +48,7 @@ function start(THREE: Three, host: HTMLElement, fail: () => void): () => void {
   const earthMaterial = new THREE.MeshStandardMaterial({ roughness: 0.85 });
   const earth = new THREE.Mesh(new THREE.SphereGeometry(1.45, 64, 48), earthMaterial);
   axis.add(earth);
+  let textureReady = false;
   let disposed = false;
   let frame = 0;
   let failed = false;
@@ -63,6 +66,7 @@ function start(THREE: Three, host: HTMLElement, fail: () => void): () => void {
       loaded.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 4);
       earthMaterial.map = loaded;
       earthMaterial.needsUpdate = true;
+      textureReady = true;
     }, undefined, onFailure
   );
 
@@ -127,7 +131,8 @@ function start(THREE: Three, host: HTMLElement, fail: () => void): () => void {
     const width = host.clientWidth || 320, height = host.clientHeight || 320;
     renderer.setSize(width, height);
     camera.aspect = width / height;
-    camera.position.z = width < 420 ? 10 : 8.5;
+    // Fit the orbit to the narrower axis, including portrait phones.
+    camera.position.z = Math.max(8.5, 2.6 / (Math.tan(THREE.MathUtils.degToRad(18)) * camera.aspect));
     camera.updateProjectionMatrix();
   };
   const observer = new ResizeObserver(resize);
@@ -136,9 +141,11 @@ function start(THREE: Three, host: HTMLElement, fail: () => void): () => void {
   const contextLost = (event: Event) => { event.preventDefault(); onFailure(); };
   renderer.domElement.addEventListener("webglcontextlost", contextLost);
   let last = performance.now(), flight = 0.9, spin = -1.2;
+  let firstFrame = true;
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const render = (now: number) => {
     if (disposed || failed) return;
-    const delta = Math.min((now - last) / 1000, 0.05);
+    const delta = reducedMotion.matches || document.hidden ? 0 : Math.min((now - last) / 1000, 0.05);
     last = now;
     flight += delta * 0.7;
     spin += delta * 0.6;
@@ -152,6 +159,7 @@ function start(THREE: Three, host: HTMLElement, fail: () => void): () => void {
     }
     trailGeometry.attributes.position.needsUpdate = true;
     renderer.render(scene, camera);
+    if (firstFrame && textureReady) { firstFrame = false; ready(); }
     frame = requestAnimationFrame(render);
   };
   frame = requestAnimationFrame(render);
