@@ -43,3 +43,13 @@ Une entrée par run de la routine (`~/.claude/scheduled-tasks/routine-mon-petit-
 **Routine.** Marion a remplacé le prompt planifié pendant le run (version de 1 309 lignes, 05:52-05:54) : elle fait foi. L'annexe opératoire ajoutée en fin de prompt renvoie à `seo/ROUTINE.md`. À corriger côté planification : la tâche `routine-tymi-baby` (09:08) doublonne `tymi-seo-geo-aso-quotidien` (09:01) sur le même dépôt lullalog ; ne garder qu'une des deux.
 
 **Prochain run.** Poser le verrou ; vérifier le déploiement (`curl -s -A GPTBot https://www.monpetitvoyageur.com/sitemap.xml` → XML) ; si déployé, créer la propriété Search Console et passer au backlog par score ; sinon signaler et ne rien créer.
+
+## 2026-09-08 — Mise en production, vérifiée
+
+**Cause racine trouvée.** Les déploiements déclenchés par GitHub échouaient depuis le 2026-09-07 : `apps/api/src/server.ts` était commité en important `./admin`, `./tripEdits` et `journeyLegs` de `./guide/renderGuide`, trois éléments jamais ajoutés au dépôt (déploiement Railway `18b1e9d2`, commit `5cf0d230`, FAILED sur `Could not resolve "./admin"`). Seuls les `railway up` réussissaient, puisqu'ils téléversent les fichiers non commités : la production tournait sur du code absent du dépôt. Le rattachement GitHub, lui, était déjà en place sur les deux services — la note de mémoire qui le disait absent datait du 2026-09-06 et était périmée.
+
+**Livré.** PR 2 (`fix-build-api-fichiers-manquants`, 3 fichiers, 94 tests API verts) fusionnée en premier, puis PR 1 (SEO). Railway a reconstruit `backend-api` (`fcf48ad9`, commit `b261dbe7`, SUCCESS) puis `frontend-web` (`78b35ac3`, commit `bab98af`, SUCCESS), chacun depuis son Dockerfile. Aucun `railway up`.
+
+**Preuves en production** (UA GPTBot) : `/` 200, 16 683 octets lisibles sans JavaScript, 1 H1, FAQPage de 7 questions toutes présentes dans le HTML visible ; `/robots.txt` 200 `text/plain` ; `/sitemap.xml` 200 `application/xml`, 5 URL ; `/llms.txt` 200 ; les 4 guides 200, canonical propre, JSON-LD Article + BreadcrumbList + FAQPage ; `/slug/`, `/slug.html` et `/index.html` en 301 ; `/inexistant-test-404` en **404** — le soft 404 généralisé est corrigé ; `X-Robots-Tag: noindex` sur l'hôte Railway ; `api/health` `{"ok":true}`.
+
+**Prochain run.** Le site est déployé et indexable. Priorité : créer la propriété Search Console `sc-domain:monpetitvoyageur.com` et soumettre le sitemap (action Marion), puis activer le SSL IONOS de la racine et recompresser `logo-hero.webp` (1,95 Mo, image LCP).

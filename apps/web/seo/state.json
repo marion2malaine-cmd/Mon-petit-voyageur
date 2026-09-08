@@ -48,6 +48,10 @@
         {
           "date": "2026-09-08",
           "what": "src/seo.ts : mise à jour du <head> côté client — title/canonical propres aux pages légales (?legal=privacy|terms|sales), noindex sur /admin et /mobile et sur tout chemin inconnu, lang synchronisé FR/EN ; liens légaux du footer React en vrais <a href> ; H1 dupliqué de l'en-tête connecté remplacé par un <div>"
+        },
+        {
+          "date": "2026-09-08",
+          "what": "Mise en production vérifiée : / renvoie 16 683 octets de HTML lisible sans JavaScript, 1 H1, title et description spécifiques, canonical, JSON-LD Organization+WebSite+SoftwareApplication+FAQPage valide dont les 7 questions figurent dans le HTML visible, liens vers les 4 guides."
         }
       ],
       "openIssues": [
@@ -229,8 +233,8 @@
       "geo": 5,
       "effort": 1,
       "risk": 2,
-      "status": "open",
-      "note": "Vérifié le 2026-09-08 par l'API Railway : le rattachement GitHub EXISTE déjà. frontend-web et backend-api sont liés à marion2malaine-cmd/Mon-petit-voyageur, branche main, avec RAILWAY_DOCKERFILE_PATH=Dockerfile.web et Dockerfile.api, et un déclencheur par environnement (production, staging). Les watchPatterns de frontend-web couvrent apps/web/**, donc la fusion de la PR SEO déclenchera le build. `railway up` reste interdit. Preuve ensuite : curl -A GPTBot sur /sitemap.xml, /robots.txt, /planificateur-voyage-ia, /inexistant (404)."
+      "status": "done",
+      "note": "DÉPLOYÉ ET VÉRIFIÉ le 2026-09-08. PR 2 (correction du build) puis PR 1 (SEO) fusionnées ; Railway a reconstruit backend-api (déploiement fcf48ad9, commit b261dbe7, SUCCESS) puis frontend-web (78b35ac3, commit bab98af, SUCCESS), les deux depuis leur Dockerfile, sans railway up."
     },
     {
       "id": "search-console",
@@ -318,7 +322,7 @@
   ],
   "kpi": {
     "searchConsole": null,
-    "note": "Aucune donnée Search Console disponible le 2026-09-08 (propriété non créée). Renseigner impressions/clics/CTR/position par URL dès que possible."
+    "note": "Aucune donnée Search Console au 2026-09-08 (propriété non créée). Le site est désormais déployé et indexable : créer sc-domain:monpetitvoyageur.com et soumettre le sitemap est la prochaine action à plus fort effet."
   },
   "history": [
     {
@@ -392,6 +396,12 @@
       "url": "infrastructure",
       "action": "mesure",
       "justification": "Vérification directe de Railway (GraphQL) : rattachement GitHub déjà en place sur les deux services, branche main, Dockerfiles corrects. La note de mémoire qui le disait absent était périmée. Cause réelle des échecs de déploiement identifiée : main ne compile pas, apps/api/src/server.ts importe ./admin, ./tripEdits et journeyLegs qui n'ont jamais été commités (déploiement Railway 18b1e9d2, commit 5cf0d230, FAILED). Corrigé dans la PR 2."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "site",
+      "action": "technique",
+      "justification": "Déploiement effectué par fusion des PR 1 et 2 : Railway reconstruit les deux services depuis leurs Dockerfiles. Preuves en production (UA GPTBot) : / 200 avec 1 H1 et FAQPage = visible ; /robots.txt 200 text/plain ; /sitemap.xml 200 application/xml avec 5 URL ; /llms.txt 200 ; les 4 guides 200 avec canonical propre et JSON-LD Article+BreadcrumbList+FAQPage ; /slug/ et /slug.html 301 ; /index.html 301 ; /inexistant-test-404 renvoie bien 404 (le soft 404 généralisé est corrigé) ; X-Robots-Tag noindex sur frontend-web-production-c1f4.up.railway.app ; api/health {ok:true} ; apex http 302 vers www."
     }
   ]
 }
