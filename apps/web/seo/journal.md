@@ -31,3 +31,15 @@ Une entrée par run de la routine (`~/.claude/scheduled-tasks/routine-mon-petit-
 **Non fait.** Pas de push ni de déploiement (action Marion). Search Console absente : aucune mesure d'impressions possible.
 
 **Prochain run.** Poser le verrou en premier (§ 0 de ROUTINE.md). Vérifier `curl -s -A GPTBot https://www.monpetitvoyageur.com/sitemap.xml` : XML = déployé → traiter le backlog par score (search-console, apex-https, images-poids) ; HTML = signaler et ne rien créer.
+
+## 2026-09-08 — Run 1 ter (troisième exécution simultanée : vérification indépendante)
+
+**Contexte.** La tâche planifiée a été lancée trois fois entre 05:27 et 05:33 (deux sessions d'écriture, plus celle-ci). Pour ne pas écraser le travail des deux premières, cette exécution n'a rien écrit avant leur fin et a servi de contrôle indépendant du résultat fusionné (commits 73c4453, b07cd92, d524bc3 sur `main`, PR n° 1 ouverte, non poussés sur `origin/main`).
+
+**Vérifié.** `npm run build -w @mlt/web` OK (7 fichiers SEO dans dist) ; 22 tests verts ; script de contrôle sur `dist/` : 6 pages HTML avec un seul H1, title et description uniques, canonical, JSON-LD valides (Organization, WebSite, SoftwareApplication, FAQPage, Article/WebPage, BreadcrumbList), 5 URL de sitemap toutes servies, liens internes tous résolus ; `server.mjs` : `/` et 4 guides 200, `/slug/`, `/slug.html`, `/index.html` 301, `/inexistant` 404, `robots.txt` text/plain, `sitemap.xml` application/xml, `llms.txt` 200, `X-Robots-Tag: noindex` sur hôte `*.up.railway.app` ; navigateur 375 px et 1 280 px : aucun débordement horizontal, 7 questions de FAQ sur l'accueil, `/admin` en `noindex, nofollow`. Seul écart relevé : `404.html` sans description ni canonical, sans conséquence (page noindex).
+
+**Prod.** Toujours l'ancienne version : `/sitemap.xml`, `/robots.txt` et `/inexistant` renvoient le HTML de la SPA en 200. Déploiement à déclencher par Marion via les Dockerfiles (voir README « Déploiement »).
+
+**Routine.** Marion a remplacé le prompt planifié pendant le run (version de 1 309 lignes, 05:52-05:54) : elle fait foi. L'annexe opératoire ajoutée en fin de prompt renvoie à `seo/ROUTINE.md`. À corriger côté planification : la tâche `routine-tymi-baby` (09:08) doublonne `tymi-seo-geo-aso-quotidien` (09:01) sur le même dépôt lullalog ; ne garder qu'une des deux.
+
+**Prochain run.** Poser le verrou ; vérifier le déploiement (`curl -s -A GPTBot https://www.monpetitvoyageur.com/sitemap.xml` → XML) ; si déployé, créer la propriété Search Console et passer au backlog par score ; sinon signaler et ne rien créer.

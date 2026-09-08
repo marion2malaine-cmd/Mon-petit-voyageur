@@ -380,6 +380,12 @@
       "url": "documentation",
       "action": "technique",
       "justification": "Consigne de Marion : ne plus utiliser `railway up` (téléverse le dossier courant, donc le travail non commité, d'où des erreurs de build). Déploiement par les Dockerfiles construits par Railway depuis le dépôt. README.md, ROUTINE.md, backlog et mémoire projet corrigés."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "site",
+      "action": "mesure",
+      "justification": "Troisième exécution simultanée de la routine (session 05:33) transformée en vérification indépendante du résultat fusionné : build production OK (7 fichiers SEO écrits), 22 tests verts, contrôle dist (6 HTML : 1 H1, title/description uniques, canonical, JSON-LD valides, 5 URL sitemap toutes présentes), server.mjs sur :4181 (200/301/404 et X-Robots-Tag noindex hors hôte canonique conformes), DOM 375 px et 1280 px sans débordement, /admin noindex. Prod toujours ancienne version (sitemap.xml = HTML SPA). Prompt planifié réécrit par Marion à 05:52-05:54 (1 309 lignes) : c'est la source de vérité ; l'annexe opératoire y pointe vers seo/ROUTINE.md."
     }
   ]
 }
