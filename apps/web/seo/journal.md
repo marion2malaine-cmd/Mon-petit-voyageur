@@ -21,3 +21,13 @@ Une entrée par run de la routine (`~/.claude/scheduled-tasks/routine-mon-petit-
 **Non fait (volontairement).** Pas de déploiement Railway (action manuelle de Marion, voir backlog `deploy-seo-v1`) ; pas de page destination ni de comparatif (données à vérifier, pas de ferme de pages) ; Search Console non disponible.
 
 **Prochain run.** Vérifier si le déploiement a eu lieu (`curl -sI -A GPTBot https://www.monpetitvoyageur.com/sitemap.xml` → 200 XML) ; si oui, passer aux items du backlog par score ; sinon, ne rien créer de plus et le signaler.
+
+## 2026-09-08 — Run 1 bis (seconde exécution simultanée, fusionnée)
+
+**Contexte.** Deux exécutions de la routine ont tourné en même temps (03:27 et 03:33 UTC) et ont écrit les mêmes fichiers. La première a livré le système complet (pages statiques, server.mjs, state.json, commit 73c4453) en intégrant les sections « Qu'est-ce que Mon Petit Voyageur ? » et FAQ écrites par la seconde. Cette entrée consigne ce que la seconde a ajouté après fusion.
+
+**Fait.** `src/seo.ts` (head côté client : canonical/title des pages légales, noindex /admin, /mobile et chemins inconnus, lang FR/EN) branché dans `App.tsx` ; liens légaux du footer en vrais liens ; H1 dupliqué de l'en-tête connecté supprimé ; `.run.lock` ignoré par git ; `.claude/launch.json` : `web-preview` = `node apps/web/server.mjs`. Vérification locale complète (voir `state.json → history`, entrée « mesure »). Audit technique TYMI Baby en lecture seule archivé dans `~/lullalog/marketing/growth-2026/audits/2026-09-08-audit-technique-seo.md` (107/107 URL en 200, 0 P1, `/alternatives` et `/privacy` orphelines en prod, fontes TTF 1,46 Mo) — sa routine propre publie, celle-ci ne touche pas au dépôt lullalog.
+
+**Non fait.** Pas de push ni de déploiement (action Marion). Search Console absente : aucune mesure d'impressions possible.
+
+**Prochain run.** Poser le verrou en premier (§ 0 de ROUTINE.md). Vérifier `curl -s -A GPTBot https://www.monpetitvoyageur.com/sitemap.xml` : XML = déployé → traiter le backlog par score (search-console, apex-https, images-poids) ; HTML = signaler et ne rien créer.

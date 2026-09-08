@@ -44,14 +44,20 @@
         {
           "date": "2026-09-08",
           "what": "title spécifique, meta description, canonical, Open Graph/Twitter, JSON-LD Organization+WebSite+SoftwareApplication+FAQPage, coquille HTML pré-rendue (H1, tagline, définition « Qu'est-ce que Mon Petit Voyageur ? », 6 fonctionnalités, 4 étapes, FAQ 7 questions, liens guides), eyebrow « Planificateur de voyage et road trip par IA », tagline enrichie, sections About + FAQ dans la landing React (src/homeContent.ts partagé entre React et index.html), colonne Guides dans le footer React"
+        },
+        {
+          "date": "2026-09-08",
+          "what": "src/seo.ts : mise à jour du <head> côté client — title/canonical propres aux pages légales (?legal=privacy|terms|sales), noindex sur /admin et /mobile et sur tout chemin inconnu, lang synchronisé FR/EN ; liens légaux du footer React en vrais <a href> ; H1 dupliqué de l'en-tête connecté remplacé par un <div>"
         }
       ],
       "openIssues": [
         "H1 = marque seule (« Mon Petit Voyageur ») : choix design (titre serif géant) ; le positionnement est porté par le title, la tagline et l'eyebrow.",
         "Google Fonts chargé par @import CSS (chaîne bloquante) : à passer en <link rel=preload>/preconnect ou en polices locales (CWV).",
-        "?legal=privacy|terms|sales sont des vues SPA sans HTML statique (canonical → /) : acceptable, non stratégique.",
         "Bundle JS principal lourd (three.js, mapbox) chargé sur la landing : mesurer LCP/INP réels après déploiement.",
-        "Images lourdes : /logo-hero.webp ≈ 1,95 Mo (image LCP du hero) et /logo.png ≈ 568 Ko. À recompresser / redimensionner (cible < 200 Ko) : voir backlog images-poids."
+        "Images lourdes : /logo-hero.webp ≈ 1,95 Mo (image LCP du hero) et /logo.png ≈ 568 Ko. À recompresser / redimensionner (cible < 200 Ko) : voir backlog images-poids.",
+        "?legal=privacy|terms|sales : vues SPA (canonical propre posé par src/seo.ts, pas de HTML statique) : acceptable, non stratégique.",
+        "Email de contact affiché contact@monpetitvoyageur.fr alors que le domaine est .com : à confirmer par Marion (boîte existante ?) avant tout changement.",
+        "Racine https://monpetitvoyageur.com : alerte TLS (SSL IONOS non activé), voir backlog apex-https."
       ],
       "nextOpportunities": [
         "Mention MARA LABS + Lille dans le footer visible de la landing React (déjà présent dans la coquille statique et la section « Qu'est-ce que Mon Petit Voyageur ? »).",
@@ -282,8 +288,8 @@
       "geo": 4,
       "effort": 2,
       "risk": 1,
-      "status": "open",
-      "note": "Réutiliser les réponses de /planificateur-voyage-ia ; JSON-LD FAQPage uniquement si visible."
+      "status": "done",
+      "note": "Fait le 2026-09-08 : 7 questions visibles sur la home (src/homeContent.ts) = FAQPage JSON-LD dans index.html, test seo.test.ts."
     },
     {
       "id": "comparatif-planificateurs-ia",
@@ -356,6 +362,18 @@
       "url": "/robots.txt, /sitemap.xml, /llms.txt, /404",
       "action": "technique",
       "justification": "Fichiers absents ; serveur node remplace vite preview : vrais 404, 301 .html et slash final, cache assets, gzip, noindex sur hôte non canonique."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "/, /?legal=*, /admin, /mobile",
+      "action": "technique",
+      "justification": "Head côté client (src/seo.ts) : canonical et title spécifiques des pages légales, noindex des écrans connectés et des chemins inconnus (complète server.mjs qui renvoie déjà 404), lang FR/EN. Verrou .run.lock ajouté au .gitignore ; launch.json web-preview = node apps/web/server.mjs."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "site",
+      "action": "mesure",
+      "justification": "Vérification locale du build : 22 tests verts, build OK, server.mjs sur :4180 — / 200 (1 H1, FAQPage, définition), /robots.txt 200 text/plain, /sitemap.xml 200 xml (5 URL), /llms.txt 200, 4 guides 200, /slug/ et /slug.html 301, /index.html 301, /inexistant 404, X-Robots-Tag noindex hors hôte canonique. Prod toujours sur l'ancienne version (sitemap.xml renvoie le HTML de la SPA) : déploiement à faire par Marion."
     }
   ]
 }

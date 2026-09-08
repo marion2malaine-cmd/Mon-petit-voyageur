@@ -9,6 +9,8 @@ import { LegalPage } from "./LegalPage";
 import type { LegalDoc } from "./legalContent";
 import { DESTINATION_CATALOGUE, US_COUNTRY_NAME, US_STATES, placeLabel } from "./destinations";
 import { ABOUT, EYEBROW, FAQ, FEATURES, STEPS } from "./homeContent";
+import { applySeo, appOnlySeo, homeSeo, isKnownPath, legalSeo, notFoundSeo } from "./seo";
+import { getLegalDocs } from "./legalContent";
 
 
 type Locale = "fr" | "en";
@@ -545,6 +547,22 @@ function TravelerApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Keep <head> honest for crawlers: the home keeps the defaults shipped in
+  // index.html, legal pages get their own title and canonical, and any path the
+  // SPA does not really serve is marked noindex (the host answers 200 for all).
+  useEffect(() => {
+    if (!isKnownPath(window.location.pathname)) {
+      applySeo(notFoundSeo(locale));
+      return;
+    }
+    if (page === "legal") {
+      const doc = getLegalDocs(locale).find((d) => d.key === legalDoc);
+      applySeo(legalSeo(locale, legalDoc, doc?.title ?? doc?.label ?? ""));
+      return;
+    }
+    applySeo(homeSeo(locale));
+  }, [page, legalDoc, locale]);
+
   useEffect(() => {
     api
       .me()
@@ -843,9 +861,9 @@ function TravelerApp() {
       {user ? (
         <header className="hero">
           <div className="hero-brand">
-            <h1 className="brand-logo brand-logo-dark">
+            <div className="brand-logo brand-logo-dark">
               <img src="/logo.png" alt={t.title} />
-            </h1>
+            </div>
             <p>{t.subtitle}</p>
           </div>
           <div className="toolbar">
@@ -1032,9 +1050,9 @@ function TravelerApp() {
               </div>
               <div>
                 <strong>{t.footerLinks}</strong>
-                <p><button type="button" className="link footer-link" onClick={() => openLegal("privacy")}>{t.footerPrivacy}</button></p>
-                <p><button type="button" className="link footer-link" onClick={() => openLegal("terms")}>{t.footerTerms}</button></p>
-                <p><button type="button" className="link footer-link" onClick={() => openLegal("sales")}>{t.footerSales}</button></p>
+                <p><a className="footer-link" href="/?legal=privacy" onClick={(e) => { e.preventDefault(); openLegal("privacy"); }}>{t.footerPrivacy}</a></p>
+                <p><a className="footer-link" href="/?legal=terms" onClick={(e) => { e.preventDefault(); openLegal("terms"); }}>{t.footerTerms}</a></p>
+                <p><a className="footer-link" href="/?legal=sales" onClick={(e) => { e.preventDefault(); openLegal("sales"); }}>{t.footerSales}</a></p>
               </div>
               <div>
                 <strong>{t.footerContact}</strong>
@@ -1693,7 +1711,12 @@ function TravelerApp() {
 
 export default function App() {
   const isPublishedAdmin = window.location.hostname.startsWith("mon-petit-voyageur-admin.");
-  return isPublishedAdmin || window.location.pathname.startsWith("/admin") ? <AdminDashboard /> : <TravelerApp />;
+  const isAdmin = isPublishedAdmin || window.location.pathname.startsWith("/admin");
+  // Signed-in screens must never be indexed as public pages.
+  useEffect(() => {
+    if (isAdmin) applySeo(appOnlySeo("Administration · Mon Petit Voyageur"));
+  }, [isAdmin]);
+  return isAdmin ? <AdminDashboard /> : <TravelerApp />;
 }
 
 // "2026-09-05" → "5 sept. 2026" in the reader's language; ISO timestamps too.
