@@ -222,7 +222,7 @@
   "backlog": [
     {
       "id": "deploy-seo-v1",
-      "title": "Déployer la version SEO v1 (build Dockerfile.web par Railway depuis le dépôt, sans railway up)",
+      "title": "Fusionner la PR SEO : Railway reconstruit frontend-web depuis Dockerfile.web",
       "score": 95,
       "impact": 5,
       "commercial": 4,
@@ -230,7 +230,7 @@
       "effort": 1,
       "risk": 2,
       "status": "open",
-      "note": "Déploiement par le Dockerfile depuis le dépôt Git ; `railway up` est INTERDIT (règle Marion 2026-09-08 : il téléverse le travail non commité et casse le build). Préalable non levé : le rattachement GitHub → déploiement automatique n'est pas configuré dans Railway (Settings > Source de frontend-web). Preuve ensuite : curl -A GPTBot sur /sitemap.xml, /robots.txt, /planificateur-voyage-ia, /inexistant (404)."
+      "note": "Vérifié le 2026-09-08 par l'API Railway : le rattachement GitHub EXISTE déjà. frontend-web et backend-api sont liés à marion2malaine-cmd/Mon-petit-voyageur, branche main, avec RAILWAY_DOCKERFILE_PATH=Dockerfile.web et Dockerfile.api, et un déclencheur par environnement (production, staging). Les watchPatterns de frontend-web couvrent apps/web/**, donc la fusion de la PR SEO déclenchera le build. `railway up` reste interdit. Preuve ensuite : curl -A GPTBot sur /sitemap.xml, /robots.txt, /planificateur-voyage-ia, /inexistant (404)."
     },
     {
       "id": "search-console",
@@ -386,6 +386,12 @@
       "url": "site",
       "action": "mesure",
       "justification": "Troisième exécution simultanée de la routine (session 05:33) transformée en vérification indépendante du résultat fusionné : build production OK (7 fichiers SEO écrits), 22 tests verts, contrôle dist (6 HTML : 1 H1, title/description uniques, canonical, JSON-LD valides, 5 URL sitemap toutes présentes), server.mjs sur :4181 (200/301/404 et X-Robots-Tag noindex hors hôte canonique conformes), DOM 375 px et 1280 px sans débordement, /admin noindex. Prod toujours ancienne version (sitemap.xml = HTML SPA). Prompt planifié réécrit par Marion à 05:52-05:54 (1 309 lignes) : c'est la source de vérité ; l'annexe opératoire y pointe vers seo/ROUTINE.md."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "infrastructure",
+      "action": "mesure",
+      "justification": "Vérification directe de Railway (GraphQL) : rattachement GitHub déjà en place sur les deux services, branche main, Dockerfiles corrects. La note de mémoire qui le disait absent était périmée. Cause réelle des échecs de déploiement identifiée : main ne compile pas, apps/api/src/server.ts importe ./admin, ./tripEdits et journeyLegs qui n'ont jamais été commités (déploiement Railway 18b1e9d2, commit 5cf0d230, FAILED). Corrigé dans la PR 2."
     }
   ]
 }
