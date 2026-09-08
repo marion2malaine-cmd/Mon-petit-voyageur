@@ -269,8 +269,8 @@
       "geo": 2,
       "effort": 1,
       "risk": 0,
-      "status": "open",
-      "note": "Action Marion (validation DNS TXT chez IONOS). Sans Search Console, aucune mesure impressions/CTR/position possible."
+      "status": "done",
+      "note": "FAIT le 2026-09-08 : propriété sc-domain:monpetitvoyageur.com créée, validée automatiquement via IONOS (fournisseur DNS connecté, aucun TXT à poser), sitemap https://www.monpetitvoyageur.com/sitemap.xml envoyé (état Réussite, 5 URL). Inspection de / : Googlebot avait rencontré un 404 le 2026-09-06 14:57 (déploiements cassés, corrigés le 08) ; indexation demandée le 08. Données de performance disponibles sous ~48 h."
     },
     {
       "id": "apex-https",
@@ -352,8 +352,8 @@
       "geo": 1,
       "effort": 1,
       "risk": 0,
-      "status": "blocked",
-      "note": "Bloqué par search-console. Procédure dans ROUTINE.md § 2 et state.kpi.ctrRule. Première passe titles/descriptions faite à l'aveugle le 2026-09-08 ; la mesure dira quoi retoucher."
+      "status": "open",
+      "note": "Search Console créée le 2026-09-08. Attendre ≥ 28 jours de données puis appliquer la règle CTR (ROUTINE.md § 2, state.kpi.ctrRule)."
     },
     {
       "id": "backlinks",
@@ -369,7 +369,13 @@
     }
   ],
   "kpi": {
-    "searchConsole": null,
+    "searchConsole": {
+      "property": "sc-domain:monpetitvoyageur.com",
+      "createdAt": "2026-09-08",
+      "sitemapSubmitted": "https://www.monpetitvoyageur.com/sitemap.xml",
+      "urlsDiscovered": 5,
+      "note": "Aucune donnée d'impressions encore (traitement en cours). Dernière exploration de / par Googlebot : 2026-09-06 en 404 (avant la mise en production du 08) ; réindexation demandée le 08."
+    },
     "note": "Aucune donnée Search Console au 2026-09-08 (propriété non créée). Le site est désormais déployé et indexable : créer sc-domain:monpetitvoyageur.com et soumettre le sitemap est la prochaine action à plus fort effet.",
     "ctrRule": "Dès que Search Console existe : requêtes des 28 derniers jours avec ≥ 50 impressions, CTR < 2 % et position ≤ 15 → réécrire title/description de la page ciblée (une par run), noter la requête ici, comparer 28 j après."
   },
@@ -457,6 +463,12 @@
       "url": "site",
       "action": "optimisation",
       "justification": "Passe CTR : titles ≤ 80 caractères avant la marque et descriptions ≤ 190 caractères sur les 5 URLs, chacune formulée comme une réponse à l'intention + bénéfice ; données structurées étendues (Offer gratuite, HowTo sur les deux guides méthode, Article isPartOf/about/keywords) ; garde-fous ajoutés dans seo.test.ts (longueurs, HowTo = visible). Search Console toujours absente : aucune donnée impressions/CTR pour cibler des requêtes précises, règle de revue CTR écrite dans ROUTINE.md § 2."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "site",
+      "action": "mesure",
+      "justification": "Propriété Search Console créée et validée via IONOS, sitemap soumis (5 URL), réindexation de / demandée après constat d'un 404 Googlebot du 06/09. Commit 72a7277 poussé sur main : Railway redéploie les titles/descriptions/JSON-LD."
     }
   ]
 }

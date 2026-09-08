@@ -63,3 +63,9 @@ Une entrée par run de la routine (`~/.claude/scheduled-tasks/routine-mon-petit-
 **Non fait.** Aucune requête ciblée sur données réelles (pas de Search Console) ; aucun backlink (action manuelle de Marion) ; pas de nouvelle page. Pas de push ni de déploiement.
 
 **Prochain run.** Marion : créer `sc-domain:monpetitvoyageur.com`, soumettre le sitemap, puis déployer. Routine : 28 jours après indexation, appliquer la règle CTR sur la première requête ≥ 50 impressions / CTR < 2 %.
+
+## 2026-09-08 — Search Console créée, sitemap soumis, push de main
+
+**Fait.** Propriété `sc-domain:monpetitvoyageur.com` créée et validée automatiquement (IONOS relié à Google comme fournisseur DNS : aucun enregistrement TXT à poser). Sitemap envoyé, état « Réussite », 5 URL découvertes. Inspection de `/` : dernière exploration Googlebot le 06/09 à 14:57 en **404** (période des déploiements cassés, corrigée le 08) ; indexation demandée. `main` poussé (commit 72a7277) : Railway reconstruit `frontend-web` avec les nouveaux titles/descriptions/JSON-LD.
+
+**Prochain run.** Vérifier dans Search Console que `/` et les 4 guides passent en « indexée » ; demander l'indexation des 4 guides si toujours absents ; premières données Performances sous 48 h ; règle CTR après 28 jours.
