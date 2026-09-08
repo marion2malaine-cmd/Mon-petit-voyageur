@@ -49,7 +49,10 @@ const EnvSchema = z.object({
   SERPAPI_FLEX_DATE_SAMPLES: z.coerce.number().int().min(1).max(6).default(3),
   SHERPA_API_KEY: z.string().optional(),
   SHERPA_BASE_URL: z.string().default("https://requirements-api.sherpa.com"),
-  GOOGLE_MAPS_API_KEY: z.string().optional(),
+  // Trimmed, and blank counts as absent: an empty placeholder left in the
+  // environment must read as "not configured" rather than send a doomed
+  // request to Google.
+  GOOGLE_MAPS_API_KEY: z.string().trim().optional().transform((v) => v || undefined),
   // Mapbox public token (pk.…) for the interactive map in the guide and the
   // app. Free up to 50 000 map loads a month; without it the guide falls back
   // to Leaflet + OpenStreetMap and the app shows no map.
@@ -67,7 +70,13 @@ const EnvSchema = z.object({
   // unconfigured instead of failing silently.
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().default(587),
-  SMTP_SECURE: z.coerce.boolean().default(false),
+  // z.coerce.boolean() turns the string "false" into true, so the flag is read
+  // explicitly: only "true"/"1" enable implicit TLS (port 465). Port 587 uses
+  // STARTTLS and must stay false.
+  SMTP_SECURE: z
+    .string()
+    .default("false")
+    .transform((v) => v.trim().toLowerCase() === "true" || v.trim() === "1"),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().optional(),
@@ -82,6 +91,7 @@ const EnvSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_PRICE_MONTHLY: z.string().optional(),
   STRIPE_PRICE_ANNUAL: z.string().optional(),
+  STRIPE_PRICE_PREMIUM: z.string().optional(),
   // Free trial length, in days, applied once per account (trial_used guards it).
   TRIAL_DAYS: z.coerce.number().int().min(0).max(90).default(7),
   // Comptes offerts : emails (séparés par des virgules) qui gardent un accès
