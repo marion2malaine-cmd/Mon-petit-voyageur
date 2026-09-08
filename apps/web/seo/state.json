@@ -52,6 +52,10 @@
         {
           "date": "2026-09-08",
           "what": "Mise en production vérifiée : / renvoie 16 683 octets de HTML lisible sans JavaScript, 1 H1, title et description spécifiques, canonical, JSON-LD Organization+WebSite+SoftwareApplication+FAQPage valide dont les 7 questions figurent dans le HTML visible, liens vers les 4 guides."
+        },
+        {
+          "date": "2026-09-08",
+          "what": "Title et description de l'accueil réécrits pour le clic (promesse « votre voyage planifié par l'IA, dans votre budget », « Inscription gratuite » en fin de description) ; Offer gratuite ajoutée au SoftwareApplication du JSON-LD."
         }
       ],
       "openIssues": [
@@ -71,7 +75,12 @@
     "/budget-voyage": {
       "type": "guide",
       "created": "2026-09-08",
-      "changes": [],
+      "changes": [
+        {
+          "date": "2026-09-08",
+          "what": "Title avec promesse concrète (« en 5 étapes »), description qui répond à « combien prévoir et dans quel ordre » ; HowTo (5 étapes visibles) ajouté au JSON-LD ; Article enrichi."
+        }
+      ],
       "openIssues": [],
       "nextOpportunities": [],
       "cluster": "budgets",
@@ -83,7 +92,7 @@
         "prévoir budget voyage"
       ],
       "lastOptimized": "2026-09-08",
-      "title": "Budget voyage : fixer son enveloppe et la répartir sans mauvaise surprise | Mon Petit Voyageur",
+      "title": "Budget voyage : fixer son enveloppe et la répartir en 5 étapes | Mon Petit Voyageur",
       "h1": "Budget voyage : comment fixer et répartir votre enveloppe",
       "linksTo": [
         "/",
@@ -107,7 +116,12 @@
     "/organiser-un-voyage-avec-l-ia": {
       "type": "guide",
       "created": "2026-09-08",
-      "changes": [],
+      "changes": [
+        {
+          "date": "2026-09-08",
+          "what": "Title recentré sur la requête (« Organiser un voyage avec l'IA : la méthode en 6 étapes ») ; description ce que l'IA fait bien / rate ; HowTo (6 étapes visibles) ajouté au JSON-LD."
+        }
+      ],
       "openIssues": [],
       "nextOpportunities": [],
       "cluster": "conseils-pratiques",
@@ -120,7 +134,7 @@
         "préparer un voyage"
       ],
       "lastOptimized": "2026-09-08",
-      "title": "Comment organiser un voyage avec l'IA : méthode, limites et bonnes pratiques | Mon Petit Voyageur",
+      "title": "Organiser un voyage avec l'IA : la méthode en 6 étapes, sans se faire piéger | Mon Petit Voyageur",
       "h1": "Comment organiser un voyage avec l'IA (sans se faire piéger)",
       "linksTo": [
         "/",
@@ -144,7 +158,12 @@
     "/planificateur-road-trip-ia": {
       "type": "guide",
       "created": "2026-09-08",
-      "changes": [],
+      "changes": [
+        {
+          "date": "2026-09-08",
+          "what": "Title précisé (« hôtel chaque nuit, temps de route »), description qui décrit le roadbook livré (hôtel + prix, route, voiture, carte, imprimable) ; Article enrichi (isPartOf, about, keywords)."
+        }
+      ],
       "openIssues": [],
       "nextOpportunities": [],
       "cluster": "road-trips",
@@ -157,7 +176,7 @@
         "road trip étapes hôtel"
       ],
       "lastOptimized": "2026-09-08",
-      "title": "Planificateur de road trip IA : étapes, hôtels et temps de route | Mon Petit Voyageur",
+      "title": "Planificateur de road trip IA : étapes, hôtel chaque nuit, temps de route | Mon Petit Voyageur",
       "h1": "Planifiez votre road trip avec l'IA : étapes, hôtels, temps de route",
       "linksTo": [
         "/",
@@ -181,7 +200,12 @@
     "/planificateur-voyage-ia": {
       "type": "landing",
       "created": "2026-09-08",
-      "changes": [],
+      "changes": [
+        {
+          "date": "2026-09-08",
+          "what": "Title orienté bénéfice (« itinéraire complet, vols et hôtels au prix réel »), description réécrite comme une réponse à l'intention commerciale + « Inscription gratuite » ; Offer gratuite dans le JSON-LD SoftwareApplication."
+        }
+      ],
       "openIssues": [],
       "nextOpportunities": [],
       "cluster": "planificateur-ia",
@@ -194,7 +218,7 @@
         "générateur itinéraire voyage"
       ],
       "lastOptimized": "2026-09-08",
-      "title": "Planificateur de voyage IA : itinéraire sur mesure dans votre budget | Mon Petit Voyageur",
+      "title": "Planificateur de voyage IA : itinéraire complet, vols et hôtels au prix réel | Mon Petit Voyageur",
       "h1": "Le planificateur de voyage IA qui organise tout, dans votre budget",
       "linksTo": [
         "/",
@@ -318,11 +342,36 @@
       "risk": 3,
       "status": "idea",
       "note": "Jamais de ferme programmatique : une page = données concrètes (étapes, temps de route, saison, postes de budget), pas de texte générique."
+    },
+    {
+      "id": "ctr-review",
+      "title": "Revue CTR mensuelle : requêtes à fortes impressions / faible CTR (Search Console)",
+      "score": 85,
+      "impact": 4,
+      "commercial": 4,
+      "geo": 1,
+      "effort": 1,
+      "risk": 0,
+      "status": "blocked",
+      "note": "Bloqué par search-console. Procédure dans ROUTINE.md § 2 et state.kpi.ctrRule. Première passe titles/descriptions faite à l'aveugle le 2026-09-08 ; la mesure dira quoi retoucher."
+    },
+    {
+      "id": "backlinks",
+      "title": "Obtenir des liens entrants pertinents (annuaires d'outils IA francophones, communautés voyage, fiche LinkedIn MARA LABS, articles invités)",
+      "score": 60,
+      "impact": 4,
+      "commercial": 3,
+      "geo": 3,
+      "effort": 3,
+      "risk": 1,
+      "status": "open",
+      "note": "Action Marion (soumissions manuelles, aucune inscription automatisée). Cibles honnêtes : annuaires d'outils IA en français, forums et groupes voyage (présentation transparente de l'outil), page entreprise LinkedIn MARA LABS, Product Hunt, un article invité sur la méthode « budget d'abord ». Jamais d'achat de liens ni de réseau de sites."
     }
   ],
   "kpi": {
     "searchConsole": null,
-    "note": "Aucune donnée Search Console au 2026-09-08 (propriété non créée). Le site est désormais déployé et indexable : créer sc-domain:monpetitvoyageur.com et soumettre le sitemap est la prochaine action à plus fort effet."
+    "note": "Aucune donnée Search Console au 2026-09-08 (propriété non créée). Le site est désormais déployé et indexable : créer sc-domain:monpetitvoyageur.com et soumettre le sitemap est la prochaine action à plus fort effet.",
+    "ctrRule": "Dès que Search Console existe : requêtes des 28 derniers jours avec ≥ 50 impressions, CTR < 2 % et position ≤ 15 → réécrire title/description de la page ciblée (une par run), noter la requête ici, comparer 28 j après."
   },
   "history": [
     {
@@ -402,6 +451,12 @@
       "url": "site",
       "action": "technique",
       "justification": "Déploiement effectué par fusion des PR 1 et 2 : Railway reconstruit les deux services depuis leurs Dockerfiles. Preuves en production (UA GPTBot) : / 200 avec 1 H1 et FAQPage = visible ; /robots.txt 200 text/plain ; /sitemap.xml 200 application/xml avec 5 URL ; /llms.txt 200 ; les 4 guides 200 avec canonical propre et JSON-LD Article+BreadcrumbList+FAQPage ; /slug/ et /slug.html 301 ; /index.html 301 ; /inexistant-test-404 renvoie bien 404 (le soft 404 généralisé est corrigé) ; X-Robots-Tag noindex sur frontend-web-production-c1f4.up.railway.app ; api/health {ok:true} ; apex http 302 vers www."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "site",
+      "action": "optimisation",
+      "justification": "Passe CTR : titles ≤ 80 caractères avant la marque et descriptions ≤ 190 caractères sur les 5 URLs, chacune formulée comme une réponse à l'intention + bénéfice ; données structurées étendues (Offer gratuite, HowTo sur les deux guides méthode, Article isPartOf/about/keywords) ; garde-fous ajoutés dans seo.test.ts (longueurs, HowTo = visible). Search Console toujours absente : aucune donnée impressions/CTR pour cibler des requêtes précises, règle de revue CTR écrite dans ROUTINE.md § 2."
     }
   ]
 }

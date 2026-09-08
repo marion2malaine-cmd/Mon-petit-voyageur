@@ -51,6 +51,9 @@ export const SOFTWARE = {
     "Road trip par étapes avec hôtel chaque nuit et temps de route",
     "Guide illustré téléchargeable et imprimable"
   ],
+  // Registration is free today (every page says "Inscription gratuite"). Update
+  // if a paid plan ships (see memory: Stripe subscription planned, gating open).
+  offers: { "@type": "Offer", price: "0", priceCurrency: "EUR", description: "Inscription gratuite", availability: "https://schema.org/InStock" },
   provider: { "@id": `${SITE_URL}/#organization` }
 };
 
@@ -80,6 +83,18 @@ export function breadcrumb(items) {
       name: item.name,
       item: item.url
     }))
+  };
+}
+
+/** HowTo derived from a numbered method visible in the page body (step names must appear in the HTML). */
+export function howToSchema(page, url) {
+  return {
+    "@type": "HowTo",
+    "@id": `${url}#howto`,
+    name: page.howTo.name,
+    description: page.howTo.description,
+    inLanguage: "fr-FR",
+    step: page.howTo.steps.map((s, i) => ({ "@type": "HowToStep", position: i + 1, name: s.name, text: s.text, url: `${url}#etape-${i + 1}` }))
   };
 }
 
@@ -186,7 +201,10 @@ export function renderPage(page, allPages) {
           author: { "@id": `${SITE_URL}/#organization` },
           publisher: { "@id": `${SITE_URL}/#organization` },
           mainEntityOfPage: url,
-          image: `${SITE_URL}/logo-hero.webp`
+          image: `${SITE_URL}/logo-hero.webp`,
+          isPartOf: { "@id": `${SITE_URL}/#website` },
+          about: { "@id": `${SITE_URL}/#app` },
+          keywords: page.secondaryKeywords?.join(", ")
         }
       : {
           "@type": "WebPage",
@@ -202,6 +220,7 @@ export function renderPage(page, allPages) {
         };
 
   const graph = [ORGANIZATION, WEBSITE, SOFTWARE, mainSchema, breadcrumb([{ name: "Accueil", url: `${SITE_URL}/` }, { name: page.navLabel, url }])];
+  if (page.howTo) graph.push(howToSchema(page, url));
   if (page.faq?.length) graph.push(faqSchema(page.faq));
 
   return `<!doctype html>

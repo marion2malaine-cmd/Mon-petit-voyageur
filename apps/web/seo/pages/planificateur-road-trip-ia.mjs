@@ -10,9 +10,9 @@ export default {
   secondaryKeywords: ["itinéraire road trip", "organiser road trip", "planificateur road trip ia", "roadbook", "road trip étapes hôtel"],
   datePublished: "2026-09-08",
   dateModified: "2026-09-08",
-  title: "Planificateur de road trip IA : étapes, hôtels et temps de route | Mon Petit Voyageur",
+  title: "Planificateur de road trip IA : étapes, hôtel chaque nuit, temps de route | Mon Petit Voyageur",
   description:
-    "Organisez un road trip avec l'IA : itinéraire par étapes, hôtel chaque nuit, temps de route, location de voiture calée sur le budget et roadbook imprimable. Méthode et fonctionnement.",
+    "Votre roadbook étape par étape : hôtel chaque nuit avec prix, temps de route et arrêts, location de voiture calée sur le budget, carte du parcours. Imprimable, à réserver au tarif affiché.",
   h1: "Planifiez votre road trip avec l'IA : étapes, hôtels, temps de route",
   lead:
     "Un bon road trip se joue sur l'enchaînement des étapes, les nuits et les kilomètres. Mon Petit Voyageur construit ce roadbook pour vous, dans votre budget, et vous laisse réserver au tarif affiché.",

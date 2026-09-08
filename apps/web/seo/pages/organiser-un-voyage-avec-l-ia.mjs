@@ -10,13 +10,25 @@ export default {
   secondaryKeywords: ["préparer voyage ia", "planifier voyage intelligence artificielle", "intelligence artificielle voyage", "créer itinéraire vacances ia", "préparer un voyage"],
   datePublished: "2026-09-08",
   dateModified: "2026-09-08",
-  title: "Comment organiser un voyage avec l'IA : méthode, limites et bonnes pratiques | Mon Petit Voyageur",
+  title: "Organiser un voyage avec l'IA : la méthode en 6 étapes, sans se faire piéger | Mon Petit Voyageur",
   description:
-    "Guide pratique pour préparer un voyage avec l'intelligence artificielle : quoi lui confier, ce qu'elle rate (prix, disponibilités, adresses), et la méthode en six étapes pour un itinéraire fiable.",
+    "Ce que l'IA fait bien (structure, idées) et ce qu'elle rate (prix, disponibilités, adresses). La méthode en 6 étapes pour un itinéraire fiable, et quelles informations lui donner.",
   h1: "Comment organiser un voyage avec l'IA (sans se faire piéger)",
   lead:
     "L'intelligence artificielle excelle pour structurer un voyage et proposer des idées. Elle est mauvaise pour les prix, les disponibilités et les adresses exactes. Voici comment tirer le meilleur des deux.",
   related: ["planificateur-voyage-ia", "budget-voyage", "planificateur-road-trip-ia"],
+  howTo: {
+    name: "La méthode en six étapes",
+    description: "Organiser un voyage avec l'IA sans se faire piéger : contraintes d'abord, structure ensuite, prix et adresses vérifiés sur des sources en direct.",
+    steps: [
+      { name: "Fixez vos contraintes avant de demander quoi que ce soit", text: "Budget total, nombre de voyageurs, durée, période, ville de départ, style et rythme. Un itinéraire sans budget est un itinéraire à refaire." },
+      { name: "Demandez d'abord une structure, pas des détails", text: "Les zones, les thèmes et l'enchaînement des journées. Les noms exacts viennent ensuite, et chacun doit pouvoir être vérifié." },
+      { name: "Vérifiez les prix sur des sources en direct", text: "Comparateurs de vols, plateformes d'hébergement, billetteries officielles. Si vos dates sont flexibles, comparez le mois entier." },
+      { name: "Vérifiez les adresses", text: "Une fiche Google Maps avec des avis récents, un site officiel, un horaire d'ouverture. Une adresse introuvable est une adresse à retirer du plan." },
+      { name: "Réservez chez les vendeurs, pas chez l'IA", text: "Le prix qui compte est celui affiché au moment du paiement, sur le site de réservation." },
+      { name: "Emportez le plan hors ligne", text: "Un guide imprimé ou un fichier autonome sur le téléphone, avec adresses, réservations et plan B." }
+    ]
+  },
   ctaTitle: "Appliquez la méthode en un questionnaire",
   ctaText: "Mon Petit Voyageur confie la structure à l'IA et les prix à des recherches en direct. Inscription gratuite.",
   body: `

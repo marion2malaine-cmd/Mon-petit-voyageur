@@ -53,3 +53,13 @@ Une entrée par run de la routine (`~/.claude/scheduled-tasks/routine-mon-petit-
 **Preuves en production** (UA GPTBot) : `/` 200, 16 683 octets lisibles sans JavaScript, 1 H1, FAQPage de 7 questions toutes présentes dans le HTML visible ; `/robots.txt` 200 `text/plain` ; `/sitemap.xml` 200 `application/xml`, 5 URL ; `/llms.txt` 200 ; les 4 guides 200, canonical propre, JSON-LD Article + BreadcrumbList + FAQPage ; `/slug/`, `/slug.html` et `/index.html` en 301 ; `/inexistant-test-404` en **404** — le soft 404 généralisé est corrigé ; `X-Robots-Tag: noindex` sur l'hôte Railway ; `api/health` `{"ok":true}`.
 
 **Prochain run.** Le site est déployé et indexable. Priorité : créer la propriété Search Console `sc-domain:monpetitvoyageur.com` et soumettre le sitemap (action Marion), puis activer le SSL IONOS de la racine et recompresser `logo-hero.webp` (1,95 Mo, image LCP).
+
+## 2026-09-08 — Passe CTR : titles, descriptions, données structurées
+
+**Avant.** Titles descriptifs mais longs (jusqu'à 100 caractères, tronqués dans Google avant l'argument), descriptions factuelles sans promesse ni appel à l'action, JSON-LD sans Offer ni HowTo. Search Console absente : impossible de cibler les requêtes à fortes impressions / faible CTR.
+
+**Fait.** Les 5 URLs (accueil + 4 guides) : title ≤ 80 caractères avant la marque, formulé comme la réponse à l'intention avec un bénéfice concret (« vols et hôtels au prix réel », « hôtel chaque nuit », « en 5 étapes », « sans se faire piéger ») ; description ≤ 190 caractères, question ou promesse puis « Inscription gratuite » sur les pages commerciales. JSON-LD : Offer gratuite sur SoftwareApplication (accueil + guides), HowTo sur `/budget-voyage` (5 étapes) et `/organiser-un-voyage-avec-l-ia` (6 étapes), chaque étape reprise du texte visible ; Article enrichi (isPartOf, about, keywords). `seo.test.ts` : longueurs title/description bornées, HowTo = visible. Home : `src/homeContent.ts` et `index.html` alignés (FR + EN). `ROUTINE.md` § 2 : règle CTR. Backlog : `ctr-review` (bloqué par Search Console), `backlinks` (action Marion, liste de cibles honnêtes).
+
+**Non fait.** Aucune requête ciblée sur données réelles (pas de Search Console) ; aucun backlink (action manuelle de Marion) ; pas de nouvelle page. Pas de push ni de déploiement.
+
+**Prochain run.** Marion : créer `sc-domain:monpetitvoyageur.com`, soumettre le sitemap, puis déployer. Routine : 28 jours après indexation, appliquer la règle CTR sur la première requête ≥ 50 impressions / CTR < 2 %.

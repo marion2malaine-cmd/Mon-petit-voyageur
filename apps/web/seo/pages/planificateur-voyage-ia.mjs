@@ -9,9 +9,9 @@ export default {
   secondaryKeywords: ["organisateur voyage ia", "assistant voyage ia", "application organisation voyage", "créer itinéraire voyage avec ia", "générateur itinéraire voyage"],
   datePublished: "2026-09-08",
   dateModified: "2026-09-08",
-  title: "Planificateur de voyage IA : itinéraire sur mesure dans votre budget | Mon Petit Voyageur",
+  title: "Planificateur de voyage IA : itinéraire complet, vols et hôtels au prix réel | Mon Petit Voyageur",
   description:
-    "Mon Petit Voyageur est un planificateur de voyage IA : budget, destination, vols, hôtels, itinéraire jour par jour, restaurants et guide illustré, avec des liens pour tout réserver.",
+    "Donnez un budget, un style et une période : l'IA construit l'itinéraire jour par jour, trouve vols et hôtels au prix réel et vous laisse tout réserver via des liens. Inscription gratuite.",
   h1: "Le planificateur de voyage IA qui organise tout, dans votre budget",
   lead:
     "Vous donnez un budget, un style et une période. L'intelligence artificielle construit l'itinéraire, les outils de prix en direct trouvent les vols et les hôtels, et vous réservez avec des liens pré-remplis.",

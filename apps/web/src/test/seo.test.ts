@@ -45,6 +45,9 @@ describe("pages SEO statiques", () => {
       expect(count(html, /<h1[\s>]/g)).toBe(1);
       expect(p.title.length).toBeGreaterThan(30);
       expect(p.title.length).toBeLessThanOrEqual(110);
+      // Google truncates around 60 characters: the part before the brand must stand alone.
+      expect(p.title.split(" | ")[0].length, `${p.slug} : titre trop long avant la marque`).toBeLessThanOrEqual(80);
+      expect(p.description.length, `${p.slug} : description trop longue pour un extrait complet`).toBeLessThanOrEqual(190);
       expect(p.description.length).toBeGreaterThanOrEqual(80);
       expect(p.description.length).toBeLessThanOrEqual(200);
       expect(titles.has(p.title)).toBe(false);
@@ -78,6 +81,13 @@ describe("pages SEO statiques", () => {
         }
       } else {
         expect(faq).toBeUndefined();
+      }
+      const howTo = graph.find((g: any) => g["@type"] === "HowTo");
+      if (p.howTo) {
+        expect(howTo.step.length).toBe(p.howTo.steps.length);
+        for (const step of howTo.step) expect(visible, `${p.slug} : étape HowTo « ${step.name} » invisible`).toContain(step.name);
+      } else {
+        expect(howTo).toBeUndefined();
       }
       const main = graph.find((g: any) => g["@type"] === p.schemaType);
       if (p.schemaType === "Article") expect(main.headline).toBe(p.h1);

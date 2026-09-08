@@ -10,13 +10,24 @@ export default {
   secondaryKeywords: ["calculer budget voyage", "répartir budget vacances", "voyage dans le budget", "prévoir budget voyage"],
   datePublished: "2026-09-08",
   dateModified: "2026-09-08",
-  title: "Budget voyage : fixer son enveloppe et la répartir sans mauvaise surprise | Mon Petit Voyageur",
+  title: "Budget voyage : fixer son enveloppe et la répartir en 5 étapes | Mon Petit Voyageur",
   description:
-    "Méthode pour fixer un budget voyage et le répartir : billets d'abord, hébergement ensuite, puis activités et restaurants. Postes oubliés, prix en direct et badges dans/hors budget.",
+    "Combien prévoir et dans quel ordre dépenser ? La méthode « budget d'abord » en 5 étapes, les postes qu'on oublie (voiture, visa, change) et les outils pour rester dans l'enveloppe.",
   h1: "Budget voyage : comment fixer et répartir votre enveloppe",
   lead:
     "Le budget se décide avant la destination, pas après. Voici la méthode « budget d'abord » que suit Mon Petit Voyageur, et comment l'appliquer même sans l'application.",
   related: ["planificateur-voyage-ia", "planificateur-road-trip-ia", "organiser-un-voyage-avec-l-ia"],
+  howTo: {
+    name: "La méthode en cinq étapes",
+    description: "Fixer un budget voyage et le répartir sans dépasser : billets d'abord, hébergement ensuite, puis le reste pour vivre sur place.",
+    steps: [
+      { name: "Fixez l'enveloppe totale", text: "Transport compris, pour tous les voyageurs. C'est le seul chiffre à décider ; le reste en découle." },
+      { name: "Les billets d'abord", text: "Le transport est le poste le plus rigide : une fois les vols choisis, le budget restant est connu. Si vos dates sont flexibles, comparez le mois entier." },
+      { name: "L'hébergement ensuite", text: "Dans ce qui reste, en tenant compte du nombre de nuits et de la zone : dormir près des visites économise des transports." },
+      { name: "Le reste pour vivre sur place", text: "Activités, restaurants, transports locaux. Répartissez cette somme par jour pour savoir ce que vous pouvez vous permettre chaque journée." },
+      { name: "Gardez une marge", text: "Pour les imprévus et les postes oubliés : voiture de location et caution, formalités, change, transports locaux." }
+    ]
+  },
   ctaTitle: "Un voyage qui tient dans votre budget",
   ctaText: "Indiquez votre enveloppe totale dans le questionnaire : vols, hôtels, activités et restaurants sont choisis pour y rester, avec des prix en direct.",
   body: `

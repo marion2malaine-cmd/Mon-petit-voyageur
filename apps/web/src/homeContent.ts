@@ -9,14 +9,14 @@ export const SITE_URL = "https://www.monpetitvoyageur.com";
 
 export const SEO = {
   fr: {
-    title: "Mon Petit Voyageur · Planificateur de voyage et road trip IA",
+    title: "Mon Petit Voyageur · Votre voyage planifié par l'IA, dans votre budget",
     description:
-      "Décrivez votre voyage, l'IA de Mon Petit Voyageur crée l'itinéraire jour par jour : vols et hôtels au prix réel, activités, restaurants, budget et guide illustré."
+      "Budget, dates, style : l'IA construit votre itinéraire jour par jour avec vols et hôtels au prix réel, activités, restaurants et guide illustré. Inscription gratuite."
   },
   en: {
-    title: "My Little Traveler · AI trip and road trip planner",
+    title: "My Little Traveler · Your trip planned by AI, within your budget",
     description:
-      "Describe your trip and My Little Traveler's AI builds the day-by-day itinerary: real flight and hotel prices, activities, restaurants, budget and an illustrated guide."
+      "Budget, dates, style: the AI builds your day-by-day itinerary with real flight and hotel prices, activities, restaurants and an illustrated guide. Free sign-up."
   }
 } as const;
 

@@ -26,6 +26,7 @@ Vérité produit (ne jamais inventer une fonctionnalité) : `README.md`, `apps/w
 - Prod : `curl -sS -o /dev/null -w "%{http_code} %{content_type}\n" -A GPTBot https://www.monpetitvoyageur.com/<url>` pour `/`, `/robots.txt`, `/sitemap.xml`, `/llms.txt`, chaque page de `state.json` et une URL inexistante (attendu 404). **Si `/sitemap.xml` renvoie du HTML, la version SEO n'est pas déployée** : le signaler en tête de rapport, ne rien créer de nouveau, limiter le run aux corrections dans le repo et redonner la commande de déploiement.
 - HTML sans JS : `curl -s -A GPTBot <url> | grep -c "<h1"` = 1, title et description présents.
 - Search Console `sc-domain:monpetitvoyageur.com` (Chrome MCP) si la propriété existe : 28 j vs 28 j précédents, requêtes/pages, positions 4-10 et 8-20, CTR faible à fortes impressions ; consigner dans `state.json → kpi` et une ligne de baromètre dans `journal.md`. Sinon noter « Search Console indisponible ».
+- **Règle CTR** (dès que Search Console existe) : requêtes 28 j avec ≥ 50 impressions, CTR < 2 % et position ≤ 15 → la page ciblée reçoit un title (≤ 80 caractères avant « | Mon Petit Voyageur ») et une description (≤ 190 caractères) qui répondent mot pour mot à la requête, avec un bénéfice concret et « Inscription gratuite » si la page est commerciale. Une page par run, requête et date consignées dans `state.json → kpi`, relecture 28 j après.
 - Repo : `npm run test -w @mlt/web` vert avant de toucher quoi que ce soit.
 
 ## 3. Décider
