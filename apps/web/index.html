@@ -2,10 +2,79 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mon Petit Voyageur</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#123746" />
+    <title>Mon Petit Voyageur · Planificateur de voyage et road trip IA</title>
+    <meta name="description" content="Décrivez votre voyage, l'IA de Mon Petit Voyageur crée l'itinéraire jour par jour : vols et hôtels au prix réel, activités, restaurants, budget et guide illustré." />
+    <link rel="canonical" href="https://www.monpetitvoyageur.com/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Mon Petit Voyageur" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:title" content="Mon Petit Voyageur · Planificateur de voyage et road trip IA" />
+    <meta property="og:description" content="Décrivez votre voyage, l'IA de Mon Petit Voyageur crée l'itinéraire jour par jour : vols et hôtels au prix réel, activités, restaurants, budget et guide illustré." />
+    <meta property="og:url" content="https://www.monpetitvoyageur.com/" />
+    <meta property="og:image" content="https://www.monpetitvoyageur.com/logo-hero.webp" />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="preload" as="image" href="/logo-hero.webp" fetchpriority="high" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://www.monpetitvoyageur.com/#organization",
+            "name": "Mon Petit Voyageur",
+            "legalName": "MARA LABS",
+            "url": "https://www.monpetitvoyageur.com/",
+            "logo": "https://www.monpetitvoyageur.com/logo.png",
+            "email": "contact@monpetitvoyageur.fr",
+            "address": { "@type": "PostalAddress", "streetAddress": "41 rue Jacquemars Giélée", "postalCode": "59800", "addressLocality": "Lille", "addressCountry": "FR" }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://www.monpetitvoyageur.com/#website",
+            "url": "https://www.monpetitvoyageur.com/",
+            "name": "Mon Petit Voyageur",
+            "inLanguage": "fr-FR",
+            "publisher": { "@id": "https://www.monpetitvoyageur.com/#organization" }
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://www.monpetitvoyageur.com/#app",
+            "name": "Mon Petit Voyageur",
+            "url": "https://www.monpetitvoyageur.com/",
+            "applicationCategory": "TravelApplication",
+            "operatingSystem": "Web",
+            "inLanguage": ["fr", "en"],
+            "description": "Planificateur de voyage assisté par intelligence artificielle : à partir de votre budget, de votre style et de vos dates, Mon Petit Voyageur propose une destination, compare les vols et hébergements, construit un itinéraire jour par jour (visites, activités, restaurants) et produit un guide illustré téléchargeable.",
+            "featureList": [
+              "Suggestion de destination selon budget, style et période",
+              "Comparaison de vols et d'hébergements avec liens de réservation pré-remplis",
+              "Itinéraire jour par jour avec activités, restaurants et plan B météo",
+              "Road trip par étapes avec hôtel chaque nuit et temps de route",
+              "Guide illustré téléchargeable et imprimable"
+            ],
+            "provider": { "@id": "https://www.monpetitvoyageur.com/#organization" }
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://www.monpetitvoyageur.com/#faq",
+            "mainEntity": [
+              { "@type": "Question", "name": "Comment l'IA organise-t-elle mon voyage ?", "acceptedAnswer": { "@type": "Answer", "text": "Vous répondez à un court questionnaire (budget, durée, période, style, ville de départ). L'IA choisit ou confirme la destination, recherche les vols et les hôtels aux prix réels, puis écrit le programme jour par jour : visites gratuites, activités payantes, restaurants notés, plan B météo. Les prix affichés viennent des outils de recherche en direct, jamais de l'IA." } },
+              { "@type": "Question", "name": "Peut-on planifier un road trip par étapes ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. Au questionnaire, choisissez « Itinérant » : le programme enchaîne les étapes avec un hôtel par tronçon, les temps de route entre villes et une carte du parcours. Aux États-Unis, vous indiquez combien d'États visiter et les vols internes entre étapes sont recherchés." } },
+              { "@type": "Question", "name": "Le budget que j'indique est-il respecté ?", "acceptedAnswer": { "@type": "Answer", "text": "Le budget total est fixé en amont. Vols et hébergement en sont déduits, et le reste guide le choix des activités et la gamme de prix des restaurants. Chaque proposition porte un badge « dans le budget » ou « au-dessus du budget »." } },
+              { "@type": "Question", "name": "Où et comment réserver ?", "acceptedAnswer": { "@type": "Answer", "text": "Chaque vol, hôtel, activité et restaurant est accompagné d'un lien pré-rempli vers le site de réservation : Google Flights, Skyscanner, Booking, Airbnb, GetYourGuide, Civitatis, Viator, TheFork ou TripAdvisor. Mon Petit Voyageur ne vend rien lui-même ; certains liens sont affiliés, sans surcoût pour vous." } },
+              { "@type": "Question", "name": "Que contient le guide illustré ?", "acceptedAnswer": { "@type": "Answer", "text": "Le programme complet jour par jour, les adresses, la carte, les liens de réservation et des photos créditées (Wikimedia Commons, Openverse). Il se télécharge en HTML ou PDF et peut être envoyé par email." } },
+              { "@type": "Question", "name": "Quelles destinations sont couvertes ?", "acceptedAnswer": { "@type": "Answer", "text": "Le monde entier : vous choisissez un continent, un pays, un État américain ou une ville, ou vous laissez l'IA proposer une destination adaptée à votre budget, votre période et votre style de voyage." } },
+              { "@type": "Question", "name": "Faut-il un compte pour créer un voyage ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui : l'inscription se fait par email et mot de passe ou avec un compte Google. Vos voyages sont conservés dans votre espace, avec leur programme et leur guide." } }
+            ]
+          }
+        ]
+      }
+    </script>
     <!-- Travelpayouts Drive: converts booking links into affiliate links. -->
     <script nowprocket data-noptimize="1" data-cfasync="false" data-wpfc-render="false" seraph-accel-crit="1" data-no-defer="1" data-cmp-ab="2">
       (function () {
@@ -18,7 +87,99 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <!--
+      Static, crawlable version of the public landing (same classes as the React
+      landing so the stylesheet renders it identically). React replaces it as
+      soon as the bundle mounts; crawlers that do not run JavaScript (GPTBot,
+      ClaudeBot, PerplexityBot…) read this. The texts come from
+      src/homeContent.ts and src/App.tsx — src/test/seo.test.ts checks they match.
+    -->
+    <div id="root">
+      <div class="app-shell">
+        <div class="topbar">
+          <a class="brand-logo brand-logo-dark topbar-logo" href="/" aria-label="Mon Petit Voyageur"><img src="/logo.png" alt="Mon Petit Voyageur" /></a>
+        </div>
+        <main class="landing">
+          <section class="hero-landing">
+            <span class="pill">Planificateur de voyage et road trip par IA</span>
+            <h1 class="hero-title">Mon Petit Voyageur</h1>
+            <p class="hero-tagline">Le planificateur de voyage IA qui crée votre itinéraire sur mesure : destination, vols, hôtels, activités et restaurants au meilleur prix, dans votre budget.</p>
+            <div class="hero-plane" aria-hidden="true"><img class="hero-card" src="/logo-hero.webp" alt="" width="860" height="577" fetchpriority="high" /></div>
+            <div class="hero-actions">
+              <a class="button-link" href="/#connexion">Commencer mon voyage</a>
+              <a class="button-link secondary" href="/#how">Découvrir comment ça marche</a>
+            </div>
+          </section>
+          <section class="about-section" id="about">
+            <h2 class="section-title">Qu'est-ce que Mon Petit Voyageur ?</h2>
+            <div class="about-text">
+              <p>Mon Petit Voyageur est un planificateur de voyage assisté par intelligence artificielle, édité par MARA LABS à Lille. Vous décrivez votre projet — budget total, durée, mois de départ, ville de départ, style de voyage et, si vous le souhaitez, une destination — et l'IA construit un programme complet, jour par jour.</p>
+              <p>Chaque plan réunit les vols et hébergements aux prix constatés en direct, des visites gratuites, des activités payantes de catégories variées, des restaurants bien notés, la météo et les formalités d'entrée, puis un guide illustré à télécharger ou recevoir par email. Le voyage peut être un séjour dans une ville ou un road trip par étapes, avec les temps de route et la carte.</p>
+            </div>
+          </section>
+          <section class="features-section">
+            <h2 class="section-title">Une expérience complète de A à Z</h2>
+            <p class="section-sub">Nous nous occupons de tout, de la planification aux réservations</p>
+            <div class="feature-grid">
+              <article class="feature-card"><h3>Destination optimale</h3><p>Notre IA analyse vos préférences et trouve la destination parfaite selon votre budget, style et période.</p></article>
+              <article class="feature-card"><h3>Billets au meilleur prix</h3><p>Comparaison des vols en temps réel et liens directs Skyscanner et Google Flights pré-remplis.</p></article>
+              <article class="feature-card"><h3>Itinéraire sur mesure</h3><p>Planning jour par jour personnalisé selon votre typologie de voyage, avec options de repli météo.</p></article>
+              <article class="feature-card"><h3>Hébergements dans le budget</h3><p>Sélection dans votre enveloppe, avec recherches Booking et Airbnb pré-remplies.</p></article>
+              <article class="feature-card"><h3>Excursions &amp; activités</h3><p>Suggestions concrètes avec durée et prix par personne, réservables sur GetYourGuide et Civitatis.</p></article>
+              <article class="feature-card"><h3>Restaurants &amp; bonnes tables</h3><p>Les meilleures adresses locales via TheFork et TripAdvisor, réservation en un clic.</p></article>
+            </div>
+          </section>
+          <section class="how-section" id="how">
+            <h2 class="section-title">Comment ça marche ?</h2>
+            <p class="section-sub">En quelques étapes simples, créez le voyage de vos rêves</p>
+            <ol class="steps">
+              <li><span class="step-number">1</span><div><strong>Répondez au questionnaire</strong><p>Partagez vos préférences : budget, style de voyage, période, durée et ville de départ.</p></div></li>
+              <li><span class="step-number">2</span><div><strong>Découvrez votre itinéraire personnalisé</strong><p>Notre IA génère un planning complet avec vols, hébergements, activités et tous les détails pratiques.</p></div></li>
+              <li><span class="step-number">3</span><div><strong>Réservez au meilleur tarif</strong><p>Chaque proposition est accompagnée de liens pré-remplis : Skyscanner, Booking, GetYourGuide, TheFork.</p></div></li>
+              <li><span class="step-number">4</span><div><strong>Partez l'esprit tranquille</strong><p>Checklist de valise, formalités d'entrée et vérifications restantes : rien n'est oublié.</p></div></li>
+            </ol>
+          </section>
+          <section class="faq-section" id="faq">
+            <h2 class="section-title">Questions fréquentes</h2>
+            <dl class="faq-list">
+              <div class="faq-item"><dt>Comment l'IA organise-t-elle mon voyage ?</dt><dd>Vous répondez à un court questionnaire (budget, durée, période, style, ville de départ). L'IA choisit ou confirme la destination, recherche les vols et les hôtels aux prix réels, puis écrit le programme jour par jour : visites gratuites, activités payantes, restaurants notés, plan B météo. Les prix affichés viennent des outils de recherche en direct, jamais de l'IA.</dd></div>
+              <div class="faq-item"><dt>Peut-on planifier un road trip par étapes ?</dt><dd>Oui. Au questionnaire, choisissez « Itinérant » : le programme enchaîne les étapes avec un hôtel par tronçon, les temps de route entre villes et une carte du parcours. Aux États-Unis, vous indiquez combien d'États visiter et les vols internes entre étapes sont recherchés.</dd></div>
+              <div class="faq-item"><dt>Le budget que j'indique est-il respecté ?</dt><dd>Le budget total est fixé en amont. Vols et hébergement en sont déduits, et le reste guide le choix des activités et la gamme de prix des restaurants. Chaque proposition porte un badge « dans le budget » ou « au-dessus du budget ».</dd></div>
+              <div class="faq-item"><dt>Où et comment réserver ?</dt><dd>Chaque vol, hôtel, activité et restaurant est accompagné d'un lien pré-rempli vers le site de réservation : Google Flights, Skyscanner, Booking, Airbnb, GetYourGuide, Civitatis, Viator, TheFork ou TripAdvisor. Mon Petit Voyageur ne vend rien lui-même ; certains liens sont affiliés, sans surcoût pour vous.</dd></div>
+              <div class="faq-item"><dt>Que contient le guide illustré ?</dt><dd>Le programme complet jour par jour, les adresses, la carte, les liens de réservation et des photos créditées (Wikimedia Commons, Openverse). Il se télécharge en HTML ou PDF et peut être envoyé par email.</dd></div>
+              <div class="faq-item"><dt>Quelles destinations sont couvertes ?</dt><dd>Le monde entier : vous choisissez un continent, un pays, un État américain ou une ville, ou vous laissez l'IA proposer une destination adaptée à votre budget, votre période et votre style de voyage.</dd></div>
+              <div class="faq-item"><dt>Faut-il un compte pour créer un voyage ?</dt><dd>Oui : l'inscription se fait par email et mot de passe ou avec un compte Google. Vos voyages sont conservés dans votre espace, avec leur programme et leur guide.</dd></div>
+            </dl>
+          </section>
+          <section class="cta-section" id="connexion">
+            <div class="cta-card">
+              <h2 class="section-title">Prêt à vivre une expérience unique ?</h2>
+              <p class="section-sub">Laissez notre IA créer le voyage parfait pour vous. Inscription gratuite par email ou avec Google.</p>
+            </div>
+          </section>
+          <footer class="site-footer">
+            <div class="footer-grid">
+              <div><img class="footer-logo" src="/logo.png" alt="Mon Petit Voyageur" /><p>Votre compagnon de voyage intelligent pour des aventures inoubliables. Édité par MARA LABS, Lille.</p></div>
+              <div>
+                <strong>Guides</strong>
+                <p><a href="/planificateur-voyage-ia">Planificateur de voyage IA</a></p>
+                <p><a href="/planificateur-road-trip-ia">Planificateur de road trip</a></p>
+                <p><a href="/budget-voyage">Budget voyage</a></p>
+                <p><a href="/organiser-un-voyage-avec-l-ia">Organiser un voyage avec l'IA</a></p>
+              </div>
+              <div>
+                <strong>Liens utiles</strong>
+                <p><a href="/?legal=privacy">Politique de confidentialité</a></p>
+                <p><a href="/?legal=terms">Conditions d'utilisation</a></p>
+                <p><a href="/?legal=sales">Conditions générales de vente</a></p>
+              </div>
+              <div><strong>Contact</strong><p><a href="mailto:contact@monpetitvoyageur.fr">contact@monpetitvoyageur.fr</a></p></div>
+            </div>
+            <p class="footer-copy">© 2026 Mon Petit Voyageur. Tous droits réservés.</p>
+          </footer>
+        </main>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
