@@ -130,6 +130,11 @@ interface Strings {
   carDocuments: string;
   carTransmission: Record<string, string>;
   carPickupLabels: Record<string, string>;
+  carDates: (start: string, end: string, days: number) => string;
+  carRateNote: string;
+  carCardTitle: string;
+  carCardBody: string;
+  carModel: string;
   cheaperTitle: string;
   resellerNote: string;
   forumTip: string;
@@ -140,6 +145,8 @@ interface Strings {
   mapTitle: string;
   mapSub: string;
   mapOffline: string;
+  mapJourney: string;
+  mapModes: Record<string, string>;
   transportTitle: string;
   transportSub: string;
   transportTotal: string;
@@ -275,6 +282,13 @@ const STRINGS: Record<"fr" | "en", Strings> = {
     carAlerts: "À savoir avant de réserver",
     carDocuments: "À présenter au comptoir",
     carTransmission: { manual: "Boîte manuelle", automatic: "Boîte automatique", unknown: "" },
+    carDates: (start, end, days) => `Du ${start} au ${end} · ${days} jour${days > 1 ? "s" : ""} de location`,
+    carRateNote:
+      "Tarifs de catégorie pour ces dates exactes, hors promotions : le comparateur affiche le prix ferme du loueur au moment de la réservation.",
+    carCardTitle: "Carte de crédit avec provision : obligatoire",
+    carCardBody:
+      "Le comptoir exige une vraie carte de crédit (Visa/Mastercard à débit différé) au nom du conducteur, avec la provision disponible pour bloquer la caution (800 à 1 500 €). Sans elle — carte de débit, prépayée, Revolut ou N26 classique — le loueur refuse la caution et impose son assurance au comptoir, souvent 20 à 40 € par jour en plus du tarif ci-dessous.",
+    carModel: "Modèle type",
     carPickupLabels: {
       in_terminal: "Comptoirs dans le terminal — vous récupérez les clés sans navette",
       shuttle: "Navette obligatoire — le parking du loueur est hors de l'aéroport",
@@ -284,6 +298,8 @@ const STRINGS: Record<"fr" | "en", Strings> = {
     mapTitle: "La carte de votre séjour",
     mapSub: "Le tracé de chaque journée, avec ses visites dans l'ordre — cliquez sur un point",
     mapOffline: "La carte a besoin d'une connexion pour s'afficher.",
+    mapJourney: "Le fil du voyage",
+    mapModes: { car: "Par la route", train: "En train", bus: "En bus", boat: "Par la mer", plane: "Par les airs", foot: "À pied" },
     transportTitle: "Rejoindre le centre",
     transportSub: "Toutes les options depuis l'aéroport, avec leur prix réel et leur dernier départ",
     transportTotal: "Total transports pour le séjour",
@@ -430,6 +446,13 @@ const STRINGS: Record<"fr" | "en", Strings> = {
     carAlerts: "Read before booking",
     carDocuments: "To show at the desk",
     carTransmission: { manual: "Manual gearbox", automatic: "Automatic gearbox", unknown: "" },
+    carDates: (start, end, days) => `From ${start} to ${end} · ${days} rental day${days > 1 ? "s" : ""}`,
+    carRateNote:
+      "Category rates for these exact dates, before promotions: the comparison site shows the supplier's firm price at booking time.",
+    carCardTitle: "Credit card with available funds: mandatory",
+    carCardBody:
+      "The desk requires a real credit card (deferred-debit Visa/Mastercard) in the main driver's name, with enough available funds to hold the deposit (800 to 1,500 €). Without one — debit card, prepaid card, standard Revolut or N26 — the supplier refuses the deposit and sells you its own counter insurance, often 20 to 40 € a day on top of the rates below.",
+    carModel: "Typical model",
     carPickupLabels: {
       in_terminal: "Desks inside the terminal — keys without a shuttle",
       shuttle: "Shuttle required — the rental car park is off-airport",
@@ -439,6 +462,8 @@ const STRINGS: Record<"fr" | "en", Strings> = {
     mapTitle: "Your trip on the map",
     mapSub: "Each day's route with its visits in order — click a point",
     mapOffline: "The map needs a connection to load.",
+    mapJourney: "The thread of the trip",
+    mapModes: { car: "By road", train: "By train", bus: "By bus", boat: "By sea", plane: "By air", foot: "On foot" },
     transportTitle: "Getting to the centre",
     transportSub: "Every option from the airport, with its real fare and its last departure",
     transportTotal: "Transport total for the stay",
@@ -500,11 +525,11 @@ export function renderGuideHtml(plan: PlanTripResponse, options: RenderGuideOpti
 </head>
 <body>
 ${renderCover(t, { destination, brief, days: days.length, travelers, freeVisitCount, optionCount })}
+${renderMap(t, days, destination, options.mapboxToken ?? null, options.staticMapSrc ?? null)}
+${renderCalendar(t, days, options.locale)}
 ${renderStages(t, days, structured, destination, options.locale)}
 ${renderGroundTransport(t, structured.research?.ground_transport)}
-${renderCarRental(t, structured.research?.car_rental)}
-${renderCalendar(t, days, options.locale)}
-${renderMap(t, days, destination, options.mapboxToken ?? null, options.staticMapSrc ?? null)}
+${renderCarRental(t, structured.research?.car_rental, options.locale)}
 ${renderDays(t, days, options.locale, structured.research?.internal_flights ?? [])}
 
 ${renderExcursions(t, itinerary.suggested_excursions ?? [])}
@@ -608,7 +633,10 @@ function renderStages(
         <td>${escapeHtml(span)}</td>
         <td><strong>${escapeHtml(row.stage)}</strong></td>
         <td>${row.nights}</td>
-        <td>${escapeHtml(row.lodging ?? "—")}</td>
+        <td><div class="stage-hotel">
+          <span class="stage-thumb">${photoTag(row.photo, "stage-thumb-fallback")}</span>
+          <span>${escapeHtml(row.lodging ?? "—")}</span>
+        </div></td>
         <td>${escapeHtml(price)}</td>
       </tr>`;
     })
@@ -758,7 +786,7 @@ function renderBase(t: Strings, structured: any, destination: string): string {
 
 /** Airport transfers and city transit, priced. */
 function renderGroundTransport(t: Strings, transport: any): string {
-  if (!transport?.airport_to_center?.length && !transport?.city_transport) return "";
+  if (!transport?.airport_to_center?.length && !transport?.city_transport && !transport?.local_mobility?.length) return "";
 
   const rows = (transport.airport_to_center ?? [])
     .map((option: any) => {
@@ -800,6 +828,12 @@ function renderGroundTransport(t: Strings, transport: any): string {
     .join("");
 
   const city = transport.city_transport;
+  const mobility = (transport.local_mobility ?? []).map((option: any) => `<div class="transfer">
+    <div class="transfer-head"><span class="chip">${icon(option.kind === "tuk_tuk" || option.kind === "moto_taxi" ? "compass" : "car")}${escapeHtml(option.name)}</span><strong>${escapeHtml(option.availability)}</strong></div>
+    <div class="chips">${(option.typical_fares ?? []).map((fare: any) => `<span class="chip chip-price">${icon("clock")}${fare.duration_minutes} min · ${fare.price_min_eur != null ? `${fare.price_min_eur}–${fare.price_max_eur ?? fare.price_min_eur} €` : escapeHtml(fare.price_note || "prix inconnu")}</span>`).join("")}</div>
+    <p class="resto-why">${escapeHtml([option.booking_method, ...(option.notes ?? []), option.estimated ? "Tarifs indicatifs" : "Tarif publié"].filter(Boolean).join(" · "))}</p>
+  </div>`).join("");
+  const drivers = (transport.driver_services ?? []).map((service: any) => ({ provider: service.name, label: `${service.name} · ${service.service_type}`, url: service.website }));
 
   return `<section class="band band-cream">
   <div class="inner">
@@ -807,6 +841,7 @@ function renderGroundTransport(t: Strings, transport: any): string {
     <div class="section-rule"></div>
     <p class="section-sub">${escapeHtml(t.transportSub)}</p>
     ${rows}
+    ${mobility ? `<div class="info-card"><h4>VTC, taxis et transports locaux</h4>${transport.mobility_checked_on ? `<p class="muted">Disponibilité vérifiée le ${escapeHtml(transport.mobility_checked_on)} · prix indicatifs à confirmer dans l’application ou auprès du chauffeur.</p>` : ""}${mobility}</div>` : ""}
     ${
       transport.recommended
         ? `<div class="alert"><div class="alert-title">${icon("check")}${escapeHtml(
@@ -841,6 +876,7 @@ function renderGroundTransport(t: Strings, transport: any): string {
         url: link.url
       }))
     )}
+    ${drivers.length ? `<div class="info-card"><h4>Réserver un chauffeur</h4>${renderBookingButtons(drivers)}</div>` : ""}
   </div>
 </section>`;
 }
@@ -889,7 +925,7 @@ function renderLuggage(t: Strings, storage: any): string {
   </div>`;
 }
 
-function renderCarRental(t: Strings, advice: any): string {
+function renderCarRental(t: Strings, advice: any, locale: "fr" | "en" = "fr"): string {
   if (!advice?.recommended && !advice?.options?.length) return "";
 
   const pickupLabels: Record<string, string> = t.carPickupLabels;
@@ -897,10 +933,13 @@ function renderCarRental(t: Strings, advice: any): string {
     .map((option: any, index: number) => {
       const isRecommended = option.category === advice.recommended?.category;
       return `<div class="car-option${isRecommended ? " is-recommended" : ""}">
+        <div class="car-photo">${photoTag(option.photo, "car-photo-fallback")}</div>
+        <div class="car-body">
         <div class="car-head">
           <h4>${escapeHtml(option.category)}</h4>
           ${isRecommended ? `<span class="chip chip-free">${icon("check")}${escapeHtml(t.carCheapest)}</span>` : ""}
         </div>
+        ${option.example_model ? `<p class="car-model">${escapeHtml(`${t.carModel} : ${option.example_model}`)}</p>` : ""}
         <div class="chips">
           ${option.seats ? chip("check", `${option.seats} ${t.carSeats}`) : ""}
           ${option.transmission !== "unknown" ? chip("car", t.carTransmission[option.transmission] ?? "") : ""}
@@ -922,6 +961,7 @@ function renderCarRental(t: Strings, advice: any): string {
         </div>
         ${(option.notes ?? []).length ? `<p class="resto-why">${escapeHtml(option.notes.join(" · "))}</p>` : ""}
         ${index === 0 ? renderBookingButtons(option.booking_links ?? []) : ""}
+        </div>
       </div>`;
     })
     .join("");
@@ -929,11 +969,29 @@ function renderCarRental(t: Strings, advice: any): string {
   const pickup = advice.recommended?.pickup ?? "unknown";
   const pickupNote = advice.recommended?.pickup_note ?? "";
 
+  // The rates below are a daily rate times a number of days: without the
+  // dates they are computed on, they say nothing.
+  const dayMonth = (date: string) =>
+    new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "long", timeZone: "UTC" }).format(
+      new Date(`${date}T00:00:00Z`)
+    );
+  const dates =
+    advice.pickup_date && advice.return_date && advice.rental_days
+      ? t.carDates(dayMonth(advice.pickup_date), dayMonth(advice.return_date), advice.rental_days)
+      : "";
+
   return `<section class="band band-soft">
   <div class="inner">
     <h2 class="section-title">${escapeHtml(advice.needed === false ? t.carOptionalTitle : t.carTitle)}</h2>
     <div class="section-rule"></div>
     <p class="section-sub">${escapeHtml(advice.why || t.carSub)}</p>
+
+    ${dates ? `<p class="car-dates">${icon("clock")}${escapeHtml(dates)}</p>` : ""}
+
+    <div class="alert alert-card-required">
+      <div class="alert-title">${icon("wallet")}${escapeHtml(t.carCardTitle)}</div>
+      <p>${escapeHtml(t.carCardBody)}</p>
+    </div>
 
     ${
       advice.needed === false
@@ -944,7 +1002,8 @@ function renderCarRental(t: Strings, advice: any): string {
     </div>`
     }
 
-    ${optionCards}
+    <div class="car-grid">${optionCards}</div>
+    ${dates ? `<p class="footnote">${escapeHtml(t.carRateNote)}</p>` : ""}
 
     ${
       (advice.alerts ?? []).length
@@ -1024,6 +1083,17 @@ function renderMap(
   if (!routes.length) return "";
 
   const payload = JSON.stringify(routes).replace(/</g, "\\u003c");
+  // The line that ties the whole trip together: every stage joined in order,
+  // with the way each hop is done — a car on the road, a boat at sea, a plane
+  // in the air.
+  const legs = journeyLegs(days);
+  const journeyPayload = JSON.stringify(legs).replace(/</g, "\\u003c");
+  const modes = [...new Set(legs.map((leg) => leg.mode))];
+  const modeLegend = modes.length
+    ? `<div class="chips map-modes">${modes
+        .map((mode) => `<span class="chip">${icon(ROUTE_ICONS[mode] ?? "car")}${escapeHtml(t.mapModes[mode] ?? mode)}</span>`)
+        .join("")}</div>`
+    : "";
   // The still picture: what shows before the interactive map loads, when
   // there is no connection, and on paper. Inlined as a data URI in the
   // downloaded guide.
@@ -1036,11 +1106,14 @@ function renderMap(
     <p class="section-sub">${escapeHtml(t.mapSub)}</p>
     <div id="trip-map" class="trip-map">${stillTag || `<p class="map-fallback">${escapeHtml(t.mapOffline)}</p>`}</div>
     ${still ? `<div class="map-print">${stillTag}</div>` : ""}
+    ${modeLegend}
     <div class="chips map-legend" id="trip-map-legend"></div>
   </div>
 </section>`;
 
-  return mapboxToken ? section + renderMapboxScript(payload, mapboxToken) : section + renderLeafletScript(payload);
+  return mapboxToken
+    ? section + renderMapboxScript(payload, journeyPayload, mapboxToken)
+    : section + renderLeafletScript(payload, journeyPayload);
 }
 
 export interface MapPoint {
@@ -1074,8 +1147,88 @@ export function mapRouteForDay(day: ItineraryDay): MapRoute {
   return { day: day.day, title: day.title, points };
 }
 
+/** One hop of the trip: two places and how the traveler gets from one to the other. */
+export interface JourneyLeg {
+  day: number;
+  from: { lat: number; lon: number };
+  to: { lat: number; lon: number };
+  mode: "car" | "train" | "bus" | "boat" | "plane" | "foot";
+  label: string;
+}
+
+/** Where a day sits on the map: its centre, or the average of the places it visits. */
+function dayAnchor(day: ItineraryDay): { lat: number; lon: number } | null {
+  if (day.center && Number.isFinite(day.center.lat) && Number.isFinite(day.center.lon)) {
+    return { lat: day.center.lat, lon: day.center.lon };
+  }
+  const stops = mapRouteForDay(day).points.filter((point) => point.kind !== "restaurant");
+  if (!stops.length) return null;
+  return {
+    lat: stops.reduce((sum, point) => sum + point.lat, 0) / stops.length,
+    lon: stops.reduce((sum, point) => sum + point.lon, 0) / stops.length
+  };
+}
+
+/**
+ * The thread of the trip: every place slept in or visited, joined in order,
+ * each hop carrying how it is done — by road, by sea or by air.
+ *
+ * The traveler reads the whole trip in one glance from this line, which the
+ * per-day routes alone never gave: they only ever drew one day at a time.
+ */
+export function journeyLegs(days: ItineraryDay[]): JourneyLeg[] {
+  const legs: JourneyLeg[] = [];
+  let previous: { anchor: { lat: number; lon: number }; day: ItineraryDay } | null = null;
+
+  for (const day of days) {
+    const anchor = dayAnchor(day);
+    if (!anchor) continue;
+    if (previous) {
+      const moved = Math.abs(anchor.lat - previous.anchor.lat) > 0.02 || Math.abs(anchor.lon - previous.anchor.lon) > 0.02;
+      if (moved) {
+        const mode = (day.route?.mode ?? "car") as JourneyLeg["mode"];
+        const label = day.route?.to
+          ? [day.route.from, day.route.to].filter(Boolean).join(" → ")
+          : [previous.day.area ?? previous.day.title, day.area ?? day.title].filter(Boolean).join(" → ");
+        legs.push({ day: day.day, from: previous.anchor, to: anchor, mode, label });
+      }
+    }
+    previous = { anchor, day };
+  }
+
+  return legs;
+}
+
+// How each mode is drawn on the interactive map: a solid line on the road, a
+// dashed one over water, a long dash through the air.
+const JOURNEY_STYLES: Record<string, { colour: string; dash: number[] }> = {
+  car: { colour: "#c0664a", dash: [] },
+  train: { colour: "#c0664a", dash: [3, 2] },
+  bus: { colour: "#c0664a", dash: [3, 2] },
+  boat: { colour: "#5b7f9c", dash: [2, 2] },
+  plane: { colour: "#22384a", dash: [6, 3] },
+  foot: { colour: "#78a189", dash: [1, 2] }
+};
+
 // The day colours, shared by both map engines and by the legend.
 const MAP_PALETTE = `["#78a189", "#334d3e", "#c98a4b", "#5b7f9c", "#8d6a9f", "#b0623f", "#4f8a6d", "#7d7f45"]`;
+
+// The trip's own thread, drawn over the day walks: how the traveler moves
+// between two stages. Styles and icons are server constants, so the marker
+// may carry markup.
+const JOURNEY_SCRIPT_HELPERS = `
+  var journeyStyles = ${JSON.stringify(JOURNEY_STYLES)};
+  var journeyIcons = ${JSON.stringify(Object.fromEntries(Object.keys(JOURNEY_STYLES).map((mode) => [mode, icon(ROUTE_ICONS[mode] ?? "car")])))};
+  function journeyStyle(mode) { return journeyStyles[mode] || journeyStyles.car; }
+  function legMarkerEl(mode) {
+    var el = document.createElement("span");
+    el.className = "map-leg";
+    el.style.borderColor = journeyStyle(mode).colour;
+    el.style.color = journeyStyle(mode).colour;
+    el.innerHTML = journeyIcons[mode] || journeyIcons.car;
+    return el;
+  }
+  function legMid(leg) { return [(leg.from.lon + leg.to.lon) / 2, (leg.from.lat + leg.to.lat) / 2]; }`;
 
 // Builds the legend chip and the popup for a point without innerHTML: titles
 // and place names come from the model, so they must stay text.
@@ -1110,7 +1263,7 @@ const MAP_HELPERS = `
     return " · " + km + " km · " + time.trim();
   }`;
 
-function renderMapboxScript(payload: string, token: string): string {
+function renderMapboxScript(payload: string, journeyPayload: string, token: string): string {
   const safeToken = JSON.stringify(token).replace(/</g, "\\u003c");
   return `
 <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.30.0/mapbox-gl.css">
@@ -1118,9 +1271,11 @@ function renderMapboxScript(payload: string, token: string): string {
 <script>
 (function () {
   var routes = ${payload};
+  var journey = ${journeyPayload};
   var container = document.getElementById("trip-map");
   if (!window.mapboxgl || !container) return;
   ${MAP_HELPERS}
+  ${JOURNEY_SCRIPT_HELPERS}
 
   container.innerHTML = "";
   mapboxgl.accessToken = ${safeToken};
@@ -1166,6 +1321,15 @@ function renderMapboxScript(payload: string, token: string): string {
     chips.push(legendChip(legend, colour, route.title));
   });
 
+  journey.forEach(function (leg) {
+    bounds.extend([leg.from.lon, leg.from.lat]);
+    bounds.extend([leg.to.lon, leg.to.lat]);
+    new mapboxgl.Marker({ element: legMarkerEl(leg.mode) })
+      .setLngLat(legMid(leg))
+      .setPopup(new mapboxgl.Popup({ offset: 12, closeButton: false }).setDOMContent(popupNode(leg.label, "", "")))
+      .addTo(map);
+  });
+
   // The walk itself, following the streets (Mapbox Directions, walking
   // profile). A failed request falls back to straight segments.
   function straight(route) {
@@ -1181,6 +1345,16 @@ function renderMapboxScript(payload: string, token: string): string {
   }
 
   map.on("load", function () {
+    journey.forEach(function (leg, index) {
+      var style = journeyStyle(leg.mode);
+      var id = "leg-" + index;
+      map.addSource(id, { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [[leg.from.lon, leg.from.lat], [leg.to.lon, leg.to.lat]] } } });
+      map.addLayer({
+        id: id, type: "line", source: id,
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": style.colour, "line-width": 2.5, "line-opacity": 0.9, "line-dasharray": style.dash.length ? style.dash : [1, 0] }
+      });
+    });
     routes.forEach(function (route, index) {
       if (stops(route).length < 2) return;
       var id = "route-" + index;
@@ -1207,7 +1381,7 @@ function renderMapboxScript(payload: string, token: string): string {
 </script>`;
 }
 
-function renderLeafletScript(payload: string): string {
+function renderLeafletScript(payload: string, journeyPayload: string): string {
   return `
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H"
@@ -1218,9 +1392,11 @@ function renderLeafletScript(payload: string): string {
 <script>
 (function () {
   var routes = ${payload};
+  var journey = ${journeyPayload};
   var container = document.getElementById("trip-map");
   if (!window.L || !container) return;
   ${MAP_HELPERS}
+  ${JOURNEY_SCRIPT_HELPERS}
 
   container.innerHTML = "";
   var map = L.map(container, { scrollWheelZoom: false });
@@ -1232,6 +1408,19 @@ function renderLeafletScript(payload: string): string {
   var palette = ${MAP_PALETTE};
   var bounds = [];
   var legend = document.getElementById("trip-map-legend");
+
+  journey.forEach(function (leg) {
+    var style = journeyStyle(leg.mode);
+    var line = [[leg.from.lat, leg.from.lon], [leg.to.lat, leg.to.lon]];
+    bounds = bounds.concat(line);
+    L.polyline(line, {
+      color: style.colour, weight: 3, opacity: 0.9,
+      dashArray: style.dash.length ? style.dash.map(function (n) { return n * 3; }).join(" ") : null
+    }).addTo(map).bindPopup(popupNode(leg.label, "", ""));
+    L.marker([(leg.from.lat + leg.to.lat) / 2, (leg.from.lon + leg.to.lon) / 2], {
+      icon: L.divIcon({ className: "", html: legMarkerEl(leg.mode).outerHTML, iconSize: [26, 26], iconAnchor: [13, 13] })
+    }).addTo(map).bindPopup(popupNode(leg.label, "", ""));
+  });
 
   routes.forEach(function (route, index) {
     var colour = palette[index % palette.length];
