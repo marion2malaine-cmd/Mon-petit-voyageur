@@ -222,7 +222,7 @@
   "backlog": [
     {
       "id": "deploy-seo-v1",
-      "title": "Déployer la version SEO v1 (index.html, robots, sitemap, 4 guides, serveur 404)",
+      "title": "Déployer la version SEO v1 (build Dockerfile.web par Railway depuis le dépôt, sans railway up)",
       "score": 95,
       "impact": 5,
       "commercial": 4,
@@ -230,7 +230,7 @@
       "effort": 1,
       "risk": 2,
       "status": "open",
-      "note": "railway up -s frontend-web --detach depuis un worktree propre du commit ; puis preuve curl -A GPTBot sur /sitemap.xml, /robots.txt, /planificateur-voyage-ia, /inexistant (404)."
+      "note": "Déploiement par le Dockerfile depuis le dépôt Git ; `railway up` est INTERDIT (règle Marion 2026-09-08 : il téléverse le travail non commité et casse le build). Préalable non levé : le rattachement GitHub → déploiement automatique n'est pas configuré dans Railway (Settings > Source de frontend-web). Preuve ensuite : curl -A GPTBot sur /sitemap.xml, /robots.txt, /planificateur-voyage-ia, /inexistant (404)."
     },
     {
       "id": "search-console",
@@ -374,6 +374,12 @@
       "url": "site",
       "action": "mesure",
       "justification": "Vérification locale du build : 22 tests verts, build OK, server.mjs sur :4180 — / 200 (1 H1, FAQPage, définition), /robots.txt 200 text/plain, /sitemap.xml 200 xml (5 URL), /llms.txt 200, 4 guides 200, /slug/ et /slug.html 301, /index.html 301, /inexistant 404, X-Robots-Tag noindex hors hôte canonique. Prod toujours sur l'ancienne version (sitemap.xml renvoie le HTML de la SPA) : déploiement à faire par Marion."
+    },
+    {
+      "date": "2026-09-08",
+      "url": "documentation",
+      "action": "technique",
+      "justification": "Consigne de Marion : ne plus utiliser `railway up` (téléverse le dossier courant, donc le travail non commité, d'où des erreurs de build). Déploiement par les Dockerfiles construits par Railway depuis le dépôt. README.md, ROUTINE.md, backlog et mémoire projet corrigés."
     }
   ]
 }

@@ -54,7 +54,7 @@ Puis `PORT=4180 node apps/web/server.mjs &`, `curl -sI http://localhost:4180/<sl
 - `state.json` : une entrée `history` par action (date, url, action ∈ {audit, optimisation, création, fusion, technique, maillage, mesure}, justification) ; `changes`, `openIssues`, `nextOpportunities`, `backlog`, `kpi` à jour.
 - `journal.md` : entrée datée (avant / fait / non fait / prochain run), dernière ligne = prochaine action recommandée et preuve attendue.
 - Commit local des seuls fichiers SEO, `git add` fichier par fichier (jamais `git add -A` : le dépôt contient du travail non commité de Marion), message « SEO : … », dernière ligne `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
-- **Pas de push, pas de `railway up`** : le déploiement est l'action de Marion (`railway up -s frontend-web --detach`). Preuve attendue après déploiement : `curl -s -A GPTBot https://www.monpetitvoyageur.com/sitemap.xml` renvoie du XML et `/inexistant` renvoie 404.
+- **Pas de push, pas de déploiement** : c'est l'action de Marion. **N'utilise jamais `railway up`** et ne l'écris dans aucun rapport (règle de Marion du 2026-09-08 : il téléverse le dossier courant, donc le travail non commité, d'où des erreurs de build). Le déploiement passe par les Dockerfiles (`Dockerfile.web`, `Dockerfile.api`) construits par Railway depuis le dépôt Git. Preuve attendue après déploiement : `curl -s -A GPTBot https://www.monpetitvoyageur.com/sitemap.xml` renvoie du XML et `/inexistant` renvoie 404.
 
 ## 7. Critères de sortie de chaque run
 

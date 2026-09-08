@@ -39,4 +39,4 @@ Ce dossier est la **source de vérité du système SEO** du site : les pages éd
 
 ## Déploiement
 
-Le front est déployé manuellement : `railway up -s frontend-web --detach` (voir la mémoire `mpv-deploiement`). Preuve après déploiement : `curl -s -A GPTBot https://www.monpetitvoyageur.com/sitemap.xml` renvoie du XML et `curl -sI https://www.monpetitvoyageur.com/inexistant` renvoie 404.
+Le front est déployé par Railway à partir de `Dockerfile.web`, **jamais avec `railway up`** (règle de Marion du 2026-09-08 : `railway up` téléverse le dossier courant, donc le travail non commité, et casse le build). Le déclenchement est l'action de Marion (voir la mémoire `mpv-deploiement`). Preuve après déploiement : `curl -s -A GPTBot https://www.monpetitvoyageur.com/sitemap.xml` renvoie du XML et `curl -sI https://www.monpetitvoyageur.com/inexistant` renvoie 404.
