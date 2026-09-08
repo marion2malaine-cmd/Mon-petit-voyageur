@@ -2,7 +2,20 @@ import Stripe from "stripe";
 import type { AppConfig } from "./config";
 import type { AppDb, SubscriptionStatus, UserRecord } from "./db";
 
-export type BillingPlan = "monthly" | "annual";
+export type BillingPlan = "monthly" | "annual" | "premium";
+
+/**
+ * Guards against placeholder values left in the environment (`sk_live_xxx`,
+ * `price_xxx`, a copied example line...). A bogus key is worse than a missing
+ * one: the API would believe billing is on, turn the paywall on and fail every
+ * checkout at Stripe. Anything that is not shaped like a real credential is
+ * treated as "not configured".
+ */
+export const isRealSecretKey = (value: string | undefined): value is string =>
+  !!value && /^(sk|rk)_(live|test)_[A-Za-z0-9]{16,}$/.test(value);
+
+const isRealPriceId = (value: string | undefined): value is string =>
+  !!value && /^price_[A-Za-z0-9]{10,}$/.test(value);
 
 /**
  * Thin wrapper around Stripe.
@@ -16,16 +29,33 @@ export class Billing {
   private readonly stripe: Stripe | null;
 
   constructor(private readonly config: AppConfig) {
-    this.stripe = config.STRIPE_SECRET_KEY ? new Stripe(config.STRIPE_SECRET_KEY) : null;
+    if (config.STRIPE_SECRET_KEY && !isRealSecretKey(config.STRIPE_SECRET_KEY)) {
+      console.warn(
+        "[billing] STRIPE_SECRET_KEY est présente mais ne ressemble pas à une clé Stripe " +
+          "(attendu sk_live_… ou sk_test_…). Les paiements restent désactivés."
+      );
+    }
+    this.stripe = isRealSecretKey(config.STRIPE_SECRET_KEY) ? new Stripe(config.STRIPE_SECRET_KEY) : null;
   }
 
   /** True when Stripe is set up: a secret key and at least one recurring price. */
   get isConfigured(): boolean {
-    return !!this.stripe && !!(this.config.STRIPE_PRICE_MONTHLY || this.config.STRIPE_PRICE_ANNUAL);
+    return (
+      !!this.stripe &&
+      [this.config.STRIPE_PRICE_MONTHLY, this.config.STRIPE_PRICE_ANNUAL, this.config.STRIPE_PRICE_PREMIUM].some(
+        isRealPriceId
+      )
+    );
   }
 
   private priceId(plan: BillingPlan): string | undefined {
-    return plan === "annual" ? this.config.STRIPE_PRICE_ANNUAL : this.config.STRIPE_PRICE_MONTHLY;
+    const configured =
+      plan === "premium"
+        ? this.config.STRIPE_PRICE_PREMIUM
+        : plan === "annual"
+        ? this.config.STRIPE_PRICE_ANNUAL
+        : this.config.STRIPE_PRICE_MONTHLY;
+    return isRealPriceId(configured) ? configured : undefined;
   }
 
   /** Finds or creates the Stripe customer for a user and stores its id. */
@@ -51,9 +81,14 @@ export class Billing {
     if (!this.isConfigured) return { error: "not_configured" };
     const price = this.priceId(input.plan);
     if (!price) return { error: "plan_unavailable" };
+    if (input.plan === "premium") {
+      const productPrice = await this.stripe!.prices.retrieve(price);
+      if (productPrice.unit_amount !== 999 || productPrice.currency !== "eur" || productPrice.recurring?.interval !== "month" || productPrice.recurring.interval_count !== 1) return { error: "premium_price_invalid" };
+      if (["active", "trialing"].includes(input.user.subscription_status ?? "")) return { error: "use_billing_portal_to_upgrade" };
+    }
 
     const customerId = await this.ensureCustomer(input.user, input.db);
-    const trialDays = input.user.trial_used ? undefined : this.config.TRIAL_DAYS || undefined;
+    const trialDays = input.plan === "premium" || input.user.trial_used ? undefined : this.config.TRIAL_DAYS || undefined;
 
     const session = await this.stripe!.checkout.sessions.create({
       mode: "subscription",
@@ -114,7 +149,9 @@ export class Billing {
   } {
     const priceId = sub.items.data[0]?.price?.id ?? null;
     const plan =
-      priceId === this.config.STRIPE_PRICE_ANNUAL
+      priceId === this.config.STRIPE_PRICE_PREMIUM && !!this.config.STRIPE_PRICE_PREMIUM
+        ? "premium"
+        : priceId === this.config.STRIPE_PRICE_ANNUAL
         ? "annual"
         : priceId === this.config.STRIPE_PRICE_MONTHLY
         ? "monthly"

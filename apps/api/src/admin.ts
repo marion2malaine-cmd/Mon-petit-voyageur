@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { AppDb } from "./db";
 import Stripe from "stripe";
+import { isRealSecretKey } from "./billing";
 import { verifyPassword, hashPassword } from './auth';
 import { randomBytes, createHash } from 'node:crypto';
 import nodemailer from 'nodemailer';
@@ -13,7 +14,7 @@ export function registerAdmin(app: FastifyInstance, db: AppDb, options: { sendRe
   const transport=process.env.SMTP_HOST&&process.env.SMTP_USER&&process.env.SMTP_PASS?nodemailer.createTransport({host:process.env.SMTP_HOST,port:Number(process.env.SMTP_PORT)||587,secure:process.env.SMTP_SECURE==='true',connectionTimeout:10000,socketTimeout:15000,auth:{user:process.env.SMTP_USER,pass:process.env.SMTP_PASS}}):null;
   const sendResetEmail=options.sendResetEmail??(transport?async(to:string,url:string)=>{await transport.sendMail({from:process.env.SMTP_FROM||process.env.SMTP_USER,to,subject:'Réinitialiser votre accès administrateur — Mon Petit Voyageur',text:`Pour choisir un nouveau mot de passe administrateur, ouvrez ce lien valable 30 minutes :\n${url}\n\nSi vous n’êtes pas à l’origine de cette demande, ignorez cet email.`});}:null);
   db.raw.exec(`CREATE TABLE IF NOT EXISTS admin_metrics(day TEXT NOT NULL, kind TEXT NOT NULL, target TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(day,kind,target)); CREATE TABLE IF NOT EXISTS admin_meta(key TEXT PRIMARY KEY,value TEXT NOT NULL); INSERT OR IGNORE INTO admin_meta VALUES ('tracking_since',datetime('now'));`);
-  const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, { timeout: 10000, maxNetworkRetries: 1 }) : null;
+  const stripe = isRealSecretKey(process.env.STRIPE_SECRET_KEY) ? new Stripe(process.env.STRIPE_SECRET_KEY, { timeout: 10000, maxNetworkRetries: 1 }) : null;
   app.post("/api/metrics", { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request, reply) => {
     const origin = request.headers.origin;
     const allowed = new Set([process.env.APP_URL, "https://www.monpetitvoyageur.com", "https://monpetitvoyageur.com"]);
