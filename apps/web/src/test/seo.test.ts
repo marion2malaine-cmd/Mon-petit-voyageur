@@ -217,6 +217,16 @@ describe("images de partage et poids des ressources", () => {
     for (const m of html.matchAll(/content="https:\/\/www\.monpetitvoyageur\.com(\/[^"]+\.(?:png|jpe?g|webp|svg|gif))"/g)) referenced.add(m[1]);
   }
 
+  it("server.mjs déclare un type MIME pour chaque extension servie (un AVIF en octet-stream ne s'affiche pas)", () => {
+    const server = fs.readFileSync(path.join(webRoot, "server.mjs"), "utf8");
+    const mime = server.slice(server.indexOf("const MIME"), server.indexOf("const COMPRESSIBLE"));
+    for (const rel of referenced) {
+      const ext = path.extname(rel);
+      expect(mime, `server.mjs : type MIME manquant pour ${ext} (servi en application/octet-stream)`).toContain(`"${ext}"`);
+    }
+    expect(mime).toContain('".avif": "image/avif"');
+  });
+
   it("ne référence que des fichiers présents dans public/", () => {
     expect(referenced.size).toBeGreaterThan(0);
     for (const rel of referenced) {
@@ -254,13 +264,24 @@ describe("images de partage et poids des ressources", () => {
     expect(size).toEqual([1200, 630]);
   });
 
-  it("propose la carte fixe aux visiteurs qui limitent les animations (WCAG 2.2.2) et préserve le poids", () => {
-    expect(indexHtml).toMatch(/<source srcset="\/logo-hero-static\.webp" media="\(prefers-reduced-motion: reduce\)"/);
-    expect(indexHtml).toMatch(/rel="preload"[^>]+logo-hero-static\.webp[^>]+media="\(prefers-reduced-motion: reduce\)"/);
-    expect(indexHtml).toMatch(/rel="preload"[^>]+logo-hero\.webp[^>]+media="\(prefers-reduced-motion: no-preference\)"/);
-    const light = fs.statSync(path.join(webRoot, "public/logo-hero-static.webp")).size;
+  it("sert l'animation en AVIF (même rendu, quatre fois plus léger) avec la WebP en repli", () => {
+    // L'ordre des <source> compte : mouvement réduit d'abord, puis AVIF, la WebP restant le <img> de repli.
+    const picture = indexHtml.match(/<picture>[\s\S]*?<\/picture>/)![0];
+    const order = [...picture.matchAll(/<(source|img)[^>]*(?:srcset|src)="([^"]+)"/g)].map((m) => m[2]);
+    expect(order).toEqual(["/logo-hero.avif", "/logo-hero.webp"]);
+    expect(picture).toMatch(/<source srcset="\/logo-hero\.avif" type="image\/avif"/);
+    expect(indexHtml).toMatch(/rel="preload"[^>]+logo-hero\.avif[^>]+type="image\/avif"/);
+    // L'animation doit rester servie à tout le monde : aucun repli qui la remplace par une image fixe.
+    expect(picture).not.toMatch(/prefers-reduced-motion/);
+    const avif = fs.statSync(path.join(webRoot, "public/logo-hero.avif")).size;
+    const webp = fs.statSync(path.join(webRoot, "public/logo-hero.webp")).size;
+    expect(avif).toBeLessThan(700 * 1024);
+    expect(avif).toBeLessThan(webp / 2);
+  });
+
+  it("garde les ressources de marque sous leur budget de poids", () => {
     const logo = fs.statSync(path.join(webRoot, "public/logo.png")).size;
-    expect(light).toBeLessThan(200 * 1024);
     expect(logo).toBeLessThan(100 * 1024);
+    expect(fs.existsSync(path.join(webRoot, "public/logo-hero-static.webp"))).toBe(false);
   });
 });

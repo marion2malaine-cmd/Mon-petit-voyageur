@@ -965,7 +965,8 @@ function TravelerApp() {
             <p className="hero-tagline">{t.tagline}</p>
             <div className="hero-plane" aria-hidden="true">
               <picture>
-                <source srcSet="/logo-hero-static.webp" media="(prefers-reduced-motion: reduce)" type="image/webp" />
+                {/* AVIF animé : même animation que la WebP pour un quart du poids. */}
+                <source srcSet="/logo-hero.avif" type="image/avif" />
                 {/* La priorité de chargement est portée par le <link rel="preload"> d'index.html. */}
                 <img className="hero-card" src="/logo-hero.webp" alt="" width="860" height="577" />
               </picture>
