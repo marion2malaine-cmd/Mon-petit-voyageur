@@ -39,6 +39,38 @@ const STOPWORDS = new Set([
   "matin", "morning", "soir", "evening", "autour", "around"
 ]);
 
+// An article about a whole country or theme — "Culture of Morocco",
+// "Cuisine marocaine", "Tourism in Vietnam" — illustrates nothing precise: a
+// cooking class card carrying it shows the reader a random Moroccan scene.
+// Such titles are refused for every query, whatever words they share with it.
+const CATEGORY_TITLE_PATTERN =
+  /^(culture|cuisine|gastronomie|gastronomy|histoire|history|tourisme|tourism|economie|économie|economy|geographie|géographie|geography|religion|musique|music|art|arts|architecture|artisanat|crafts?|liste|list|demographics|démographie|folklore|traditions?)\s+(of|in|du|de|des|d'|au|aux|en|marocaine?|française?|vietnamienne?|italienne?|espagnole?|grecque?|japonaise?|thaïlandaise?|portugaise?|turque?|indienne?|mexicaine?)\b/i;
+
+// A workshop is never an encyclopedia entry: no article shows *this* cooking
+// class. The libraries are asked for the gesture instead — hands at work,
+// the tools, the participants — which is what tells a class from a plate.
+const WORKSHOP_SUBJECTS: { pattern: RegExp; query: string }[] = [
+  { pattern: /\b(cours|classe|class|atelier|workshop|leçon|lecon|lesson|initiation)\b.{0,25}(cuisine|cooking|culinaire|culinary|pâtisserie|patisserie|pastry|pasta|tajine|tagine|sushi|pain|bread)|(cooking|cuisine|culinary)\s+(class|course|workshop|lesson)/i, query: "cooking class participants preparing food ingredients kitchen" },
+  { pattern: /(poterie|pottery|céramique|ceramique|ceramic|argile|clay)/i, query: "pottery workshop hands shaping clay wheel" },
+  { pattern: /(dégustation|degustation|tasting).{0,20}(vin|wine|huile|oil|fromage|cheese|thé|tea|café|coffee|rhum|rum|whisky|sake|saké|bière|beer)|(wine|cheese|tea|coffee)\s+tasting/i, query: "tasting session glasses table hands" },
+  { pattern: /(tissage|weaving|tapis|carpet|broderie|embroidery|textile)/i, query: "weaving workshop hands loom threads" },
+  { pattern: /(calligraphie|calligraphy)/i, query: "calligraphy class brush ink hands" },
+  { pattern: /\b(cours|leçon|lecon|lesson|initiation|class)\b.{0,15}(surf|plongée|plongee|diving|snorkel|kitesurf|paddle|kayak|voile|sailing|ski|escalade|climbing|yoga)|(surf|diving|yoga|kayak|sailing|climbing)\s+(lesson|class|course)/i, query: "lesson instructor students outdoor" },
+  { pattern: /\b(atelier|workshop|masterclass|cours|class|initiation)\b/i, query: "craft workshop hands at work tools" }
+];
+
+/**
+ * The library query for a workshop, or null when the subject is a place.
+ * The destination is kept: a Moroccan cooking class should show a tagine,
+ * not a wok.
+ */
+export function workshopQuery(query: string, destination: string): string | null {
+  for (const subject of WORKSHOP_SUBJECTS) {
+    if (subject.pattern.test(query)) return `${subject.query} ${destination}`.trim();
+  }
+  return null;
+}
+
 // A .png or .svg on Commons is usually a diagram, a plan or a coat of arms,
 // never the photograph a travel guide needs.
 const NON_PHOTO_PATTERN = /(plan|planol|carte|map|schema|schéma|diagram|logo|flag|drapeau|blason|coat.of.arms|seal|icon|chart|graph|timeline)/i;
@@ -113,7 +145,18 @@ export async function findPhoto(ctx: PhotoContext, query: string): Promise<Photo
   // that really renders wins. Asking the two families at once was measured and
   // rejected: it doubles the load on Wikipedia and Openverse, which answer
   // slower under it, and every card ended up waiting longer.
-  const preferred = await firstWorking(isGenericSubject ? [...libraries, ...encyclopedic] : [...encyclopedic, ...libraries]);
+  const workshop = workshopQuery(normalized, ctx.destination ?? "");
+  const workshopLibraries = workshop
+    ? [
+        () => fromOpenverse(workshop),
+        () => fromUnsplash(workshop, ctx.config.UNSPLASH_ACCESS_KEY),
+        () => fromPexels(workshop, ctx.config.PEXELS_API_KEY)
+      ]
+    : null;
+
+  const preferred = await firstWorking(
+    workshopLibraries ?? (isGenericSubject ? [...libraries, ...encyclopedic] : [...encyclopedic, ...libraries])
+  );
 
 
   // The simplified query may have found it; the card still describes what was
@@ -441,7 +484,8 @@ async function fromWikimediaCommons(
  * Accepts a candidate only when its title shares a meaningful word with the
  * query. This is what stops an unrelated article from sneaking into the guide.
  */
-function isRelevant(query: string, candidateTitle: string, destinationTokens: Set<string>): boolean {
+export function isRelevant(query: string, candidateTitle: string, destinationTokens: Set<string>): boolean {
+  if (CATEGORY_TITLE_PATTERN.test(candidateTitle.trim())) return false;
   const titleTokens = meaningfulTokens(candidateTitle);
   const matches = (token: string) => titleTokens.some((other) => tokensMatch(token, other));
 
@@ -554,7 +598,11 @@ async function fromOpenverse(query: string): Promise<Photo | null> {
     q: query,
     page_size: "10",
     license_type: "all-cc",
-    mature: "false"
+    mature: "false",
+    // A guide is illustrated with wide, large pictures: a portrait snapshot
+    // cropped to a banner shows a wall.
+    aspect_ratio: "wide",
+    size: "large,medium"
   });
 
   let data: any;
@@ -565,7 +613,11 @@ async function fromOpenverse(query: string): Promise<Photo | null> {
     openverseFailures += 1;
     throw error;
   }
-  const candidates = (data?.results ?? []).filter((candidate: any) => candidate?.url);
+  const all = (data?.results ?? []).filter((candidate: any) => candidate?.url);
+  // Landscape orientation when the library says the size; the rest only when
+  // nothing wide answered.
+  const wide = all.filter((candidate: any) => !candidate.width || !candidate.height || candidate.width > candidate.height);
+  const candidates = wide.length ? wide : all;
   if (!candidates.length) return null;
 
   // Two tables serving the same cuisine must not end up with the same plate:
@@ -606,7 +658,7 @@ async function fromUnsplash(query: string, accessKey?: string): Promise<Photo | 
 async function fromPexels(query: string, apiKey?: string): Promise<Photo | null> {
   if (!apiKey) return null;
 
-  const params = new URLSearchParams({ query, per_page: "1", orientation: "landscape" });
+  const params = new URLSearchParams({ query, per_page: "1", orientation: "landscape", size: "large" });
   const data = await fetchJson(`https://api.pexels.com/v1/search?${params}`, { Authorization: apiKey });
 
   const result = data?.photos?.[0];
