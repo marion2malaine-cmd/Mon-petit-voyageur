@@ -84,6 +84,36 @@ async function fetchWithTimeout(url: string, init: RequestInit): Promise<Respons
   }
 }
 
+function nameKey(value: string): string {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+/**
+ * Only a picture the establishment published itself: the facade, the pool,
+ * the lobby, shot for the purpose. A guest's photo of a bed or a plate says
+ * nothing a traveler can recognise the hotel by, so without an owner photo
+ * there is none. Landscape orientation first, as the card is wide.
+ */
+export function pickEstablishmentPhoto(place: any, hotelName: string): any | null {
+  const photos: any[] = Array.isArray(place?.photos) ? place.photos : [];
+  const wanted = nameKey(hotelName);
+  const wantedWords = wanted.split(" ").filter((word) => word.length > 2);
+  const displayName = nameKey(String(place?.displayName?.text ?? ""));
+
+  const byOwner = photos.filter((photo) => {
+    const author = nameKey(String(photo?.authorAttributions?.[0]?.displayName ?? ""));
+    if (!author) return false;
+    if (author === displayName || author === wanted) return true;
+    // "Green Hill Homestay & Tour" signs the photos of "Green Hill Homestay
+    // & Tours": most of the name's words, not all of it.
+    const hits = wantedWords.filter((word) => author.includes(word)).length;
+    return wantedWords.length > 0 && hits >= Math.max(1, Math.ceil(wantedWords.length * 0.6));
+  });
+  if (!byOwner.length) return null;
+  const wide = byOwner.filter((photo) => !photo.widthPx || !photo.heightPx || photo.widthPx >= photo.heightPx);
+  return (wide.length ? wide : byOwner)[0];
+}
+
 export interface HotelPhotoQuery {
   name: string;
   town?: string | null;
@@ -113,14 +143,15 @@ export async function findHotelPhoto(config: AppConfig, query: HotelPhotoQuery):
       headers: {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": key,
-        "X-Goog-FieldMask": "places.displayName,places.photos.name,places.photos.authorAttributions,places.googleMapsUri"
+        "X-Goog-FieldMask": "places.displayName,places.photos.name,places.photos.widthPx,places.photos.heightPx,places.photos.authorAttributions,places.googleMapsUri"
       },
       body: JSON.stringify({ textQuery: text, maxResultCount: 1, includedType: "lodging" })
     });
     if (search.ok) {
       const json = (await search.json()) as any;
       const place = json.places?.[0];
-      const photoName: string | undefined = place?.photos?.[0]?.name;
+      const chosen = pickEstablishmentPhoto(place, name);
+      const photoName: string | undefined = chosen?.name;
       if (photoName) {
         // skipHttpRedirect returns the image's own address instead of
         // redirecting to it — that address is what the app and the guide
@@ -133,7 +164,7 @@ export async function findHotelPhoto(config: AppConfig, query: HotelPhotoQuery):
           const body = (await media.json()) as any;
           const url = typeof body.photoUri === "string" && /^https:\/\//.test(body.photoUri) ? body.photoUri : null;
           if (url) {
-            const author = place.photos[0].authorAttributions?.[0]?.displayName;
+            const author = chosen.authorAttributions?.[0]?.displayName;
             photo = {
               query: name,
               url,

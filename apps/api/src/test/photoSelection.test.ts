@@ -27,3 +27,24 @@ describe("photo selection", () => {
     expect(workshopQuery("Concert de musique classique", "Vienne")).toBeNull();
   });
 });
+
+import { pickEstablishmentPhoto } from "../tools/googlePlaces";
+
+describe("hotel photo from Google Places", () => {
+  const place = {
+    displayName: { text: "Green Hill Homestay & Tours" },
+    photos: [
+      { name: "p/guest", widthPx: 3000, heightPx: 4000, authorAttributions: [{ displayName: "Marion D." }] },
+      { name: "p/owner-portrait", widthPx: 1000, heightPx: 1500, authorAttributions: [{ displayName: "Green Hill Homestay & Tour" }] },
+      { name: "p/owner-wide", widthPx: 1600, heightPx: 1000, authorAttributions: [{ displayName: "Green Hill Homestay & Tour" }] }
+    ]
+  };
+
+  it("takes the establishment's own photo, landscape first", () => {
+    expect(pickEstablishmentPhoto(place, "Green Hill Homestay & Tours")?.name).toBe("p/owner-wide");
+  });
+
+  it("returns nothing when only guests photographed the place", () => {
+    expect(pickEstablishmentPhoto({ ...place, photos: [place.photos[0]] }, "Green Hill Homestay & Tours")).toBeNull();
+  });
+});

@@ -241,6 +241,7 @@ export async function resolveItineraryPhotos(
   research: any = null
 ): Promise<boolean> {
   let changed = await resolveHotelPhotos(itinerary, tools, destination, research);
+  if (await resolveViatorActivities(itinerary, tools, destination, locale)) changed = true;
 
   const slots = collectPhotoSlots(itinerary, destination, research);
   const pending = slots.filter((slot) => slot.get()?.query && !slot.get()?.url);
@@ -281,6 +282,42 @@ export async function resolveItineraryPhotos(
     }
   }
 
+  return changed;
+}
+
+/**
+ * Every paid experience is looked up on Viator: when the product is found,
+ * its own photo illustrates the card and its affiliate page becomes the first
+ * booking link. A ticketed place (a museum) keeps its official site.
+ */
+async function resolveViatorActivities(
+  itinerary: ItineraryByDay,
+  tools: LiveTools,
+  destination: string,
+  locale: "fr" | "en"
+): Promise<boolean> {
+  const jobs: (() => Promise<boolean>)[] = [];
+  for (const day of itinerary.itinerary_by_day ?? []) {
+    for (const option of day.paid_options ?? []) {
+      if (option.kind === "ticket" || option.photo?.credit === "Viator") continue;
+      jobs.push(async () => {
+        const match = await tools.find_viator_activity({ title: option.title, destination, locale });
+        if (!match) return false;
+        option.photo = match.photo;
+        const label = locale === "fr" ? `Réserver sur Viator${match.price_from_eur != null ? ` · dès ${Math.round(match.price_from_eur)} €` : ""}` : `Book on Viator${match.price_from_eur != null ? ` · from ${Math.round(match.price_from_eur)} €` : ""}`;
+        option.booking_links = [
+          { provider: "viator", label, url: match.url },
+          ...(option.booking_links ?? []).filter((link) => link.provider !== "viator")
+        ];
+        return true;
+      });
+    }
+  }
+  let changed = false;
+  for (let index = 0; index < jobs.length; index += HOTEL_LOOKUPS_IN_PARALLEL) {
+    const results = await Promise.all(jobs.slice(index, index + HOTEL_LOOKUPS_IN_PARALLEL).map((job) => job().catch(() => false)));
+    if (results.some(Boolean)) changed = true;
+  }
   return changed;
 }
 

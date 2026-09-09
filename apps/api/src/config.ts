@@ -44,6 +44,8 @@ const EnvSchema = z.object({
   // Viator affiliate ids, stamped on every Viator link (see tools/links.ts).
   VIATOR_AFFILIATE_PID: z.string().default("P00277065"),
   VIATOR_AFFILIATE_MCID: z.string().default("42383"),
+  // Viator Partner API key (affiliate access): the exact activity, with its photo.
+  VIATOR_API_KEY: z.string().trim().optional().transform((v) => v || undefined),
   // How many departure dates are tried when the traveler gave a month or no
   // date at all: each is a flight search.
   SERPAPI_FLEX_DATE_SAMPLES: z.coerce.number().int().min(1).max(6).default(3),

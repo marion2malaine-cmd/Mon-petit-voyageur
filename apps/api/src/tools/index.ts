@@ -7,6 +7,7 @@ import { getWeather } from "./weather";
 import { getLocalTransportInfo } from "./googleTransit";
 import { findPhoto, findPhotos } from "./photos";
 import { findHotelPhoto, type HotelPhotoQuery } from "./googlePlaces";
+import { findViatorActivity } from "./viator";
 import { ok, type ToolResult } from "./types";
 import type { AppDb } from "../db";
 
@@ -69,6 +70,9 @@ export function createTools(config: AppConfig, db?: AppDb) {
       findPhotos({ config, locale: input.locale, destination: input.destination }, input.queries),
 
     find_hotel_photo: (input: HotelPhotoQuery) => findHotelPhoto(config, input),
+
+    find_viator_activity: (input: { title: string; destination: string; locale: "fr" | "en" }) =>
+      findViatorActivity(config, input),
 
     save_trip: async (input: {
       userId: number;
