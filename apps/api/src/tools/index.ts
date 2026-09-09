@@ -6,6 +6,7 @@ import { getCheapestMonths, getPriceCalendar } from "./travelpayouts";
 import { getWeather } from "./weather";
 import { getLocalTransportInfo } from "./googleTransit";
 import { findPhoto, findPhotos } from "./photos";
+import { findHotelPhoto, type HotelPhotoQuery } from "./googlePlaces";
 import { ok, type ToolResult } from "./types";
 import type { AppDb } from "../db";
 
@@ -66,6 +67,8 @@ export function createTools(config: AppConfig, db?: AppDb) {
 
     find_photos: (input: { queries: string[]; locale: "fr" | "en"; destination?: string | null }) =>
       findPhotos({ config, locale: input.locale, destination: input.destination }, input.queries),
+
+    find_hotel_photo: (input: HotelPhotoQuery) => findHotelPhoto(config, input),
 
     save_trip: async (input: {
       userId: number;

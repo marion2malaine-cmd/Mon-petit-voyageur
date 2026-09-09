@@ -240,14 +240,15 @@ export async function resolveItineraryPhotos(
   /** The researched blocks that also carry photos: hotels are on the days, cars are here. */
   research: any = null
 ): Promise<boolean> {
+  let changed = await resolveHotelPhotos(itinerary, tools, destination, research);
+
   const slots = collectPhotoSlots(itinerary, destination, research);
   const pending = slots.filter((slot) => slot.get()?.query && !slot.get()?.url);
-  if (!pending.length) return false;
+  if (!pending.length) return changed;
 
   const queries = pending.map((slot) => slot.get()!.query);
   const resolved = await tools.find_photos({ queries, locale, destination });
 
-  let changed = false;
   const stillEmpty: PhotoSlot[] = [];
 
   for (const slot of pending) {
@@ -280,6 +281,52 @@ export async function resolveItineraryPhotos(
     }
   }
 
+  return changed;
+}
+
+// Google is asked a few hotels at a time: enough to finish a three-week
+// trip in seconds, few enough to stay polite with the quota.
+const HOTEL_LOOKUPS_IN_PARALLEL = 4;
+
+/**
+ * Every hotel the plan proposes gets its picture from Google Maps — the
+ * night's lodging on each day, and the suggested stays — unless the hotel
+ * engine already illustrated it. Returns true when a photo was added.
+ */
+async function resolveHotelPhotos(
+  itinerary: ItineraryByDay,
+  tools: LiveTools,
+  destination: string,
+  research: any
+): Promise<boolean> {
+  const jobs: (() => Promise<boolean>)[] = [];
+
+  for (const day of itinerary.itinerary_by_day ?? []) {
+    const lodging = day.lodging;
+    if (!lodging?.name || lodging.photo?.url) continue;
+    jobs.push(async () => {
+      const photo = await tools.find_hotel_photo({ name: lodging.name, town: lodging.town ?? day.area ?? null, destination });
+      if (!photo?.url) return false;
+      lodging.photo = photo;
+      return true;
+    });
+  }
+
+  for (const stay of research?.recommended_stays ?? []) {
+    if (!stay?.name || stay.photo_url) continue;
+    jobs.push(async () => {
+      const photo = await tools.find_hotel_photo({ name: stay.name, town: stay.area ?? null, destination });
+      if (!photo?.url) return false;
+      stay.photo_url = photo.url;
+      return true;
+    });
+  }
+
+  let changed = false;
+  for (let index = 0; index < jobs.length; index += HOTEL_LOOKUPS_IN_PARALLEL) {
+    const results = await Promise.all(jobs.slice(index, index + HOTEL_LOOKUPS_IN_PARALLEL).map((job) => job().catch(() => false)));
+    if (results.some(Boolean)) changed = true;
+  }
   return changed;
 }
 
