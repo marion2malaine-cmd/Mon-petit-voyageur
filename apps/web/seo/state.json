@@ -71,8 +71,7 @@
         "Bundle JS principal lourd (three.js, mapbox) chargé sur la landing : mesurer LCP/INP réels après déploiement.",
         "Bundle JS principal lourd (three.js, mapbox) chargé sur la landing : mesurer LCP/INP réels maintenant que l'image LCP est passée de 1,95 Mo à 490 Ko.",
         "?legal=privacy|terms|sales : vues SPA (canonical propre posé par src/seo.ts, pas de HTML statique) : acceptable, non stratégique.",
-        "Email de contact affiché contact@monpetitvoyageur.fr alors que le domaine est .com : à confirmer par Marion (boîte existante ?) avant tout changement.",
-        "Racine https://monpetitvoyageur.com : alerte TLS (SSL IONOS non activé), voir backlog apex-https."
+        "Email de contact affiché contact@monpetitvoyageur.fr alors que le domaine est .com : à confirmer par Marion (boîte existante ?) avant tout changement."
       ],
       "nextOpportunities": [
         "Mention MARA LABS + Lille dans le footer visible de la landing React (déjà présent dans la coquille statique et la section « Qu'est-ce que Mon Petit Voyageur ? »).",
@@ -304,8 +303,8 @@
       "geo": 1,
       "effort": 1,
       "risk": 0,
-      "status": "open",
-      "note": "http:// racine redirige en 302 vers www ; https:// racine échoue (alerte TLS). Action Marion dans IONOS Domaines & SSL. Idéal : 301."
+      "status": "done",
+      "note": "FAIT le 2026-09-09. Cause : le domaine racine était bien configuré en redirection vers www, mais aucun certificat SSL ne lui était attaché — d'où l'échec du handshake TLS. Le compte disposait de 2 certificats « SSL Starter Wildcard » inclus et non configurés (portefeuille 1/3) : l'un a été affecté à monpetitvoyageur.com, sans achat (portefeuille désormais 2/3). Attention : les boutons « Activer » de la fiche domaine et « Configurer un certificat » mènent à une page de vente ; le chemin gratuit passe par Domaines & SSL > Certificats > la carte SSL Starter Wildcard > « Activer maintenant » > choix du domaine. Certificat émis par Sectigo (DV R36), CN=*.monpetitvoyageur.com, SAN = *.monpetitvoyageur.com + monpetitvoyageur.com, valide du 2026-09-09 au 2027-03-08. Vérifié : https://monpetitvoyageur.com/ répond 302 vers https://www.monpetitvoyageur.com/ puis 200."
     },
     {
       "id": "images-poids",
@@ -414,6 +413,18 @@
       "risk": 0,
       "status": "open",
       "note": "Après déploiement : passer https://www.monpetitvoyageur.com/ dans les débogueurs de partage pour purger le cache de l'ancienne image (une WebP animée de 1,95 Mo, que la plupart des plateformes n'affichaient pas)."
+    },
+    {
+      "id": "apex-301",
+      "title": "La redirection de la racine est un 302 (temporaire) et non un 301",
+      "score": 25,
+      "impact": 1,
+      "commercial": 0,
+      "geo": 0,
+      "effort": 2,
+      "risk": 1,
+      "status": "open",
+      "note": "Sans gravité : la racine n'a jamais été indexée et le canonical de toutes les pages pointe sur www, donc Google consolide correctement. La redirection IONOS n'est pas paramétrable en 301 dans l'offre actuelle. Relevé aussi : un appel sur trois met ~18 s à répondre côté redirection IONOS (les autres ~2,5 s)."
     }
   ],
   "kpi": {
@@ -569,6 +580,18 @@
       "url": "/",
       "action": "audit",
       "justification": "Le repli prefers-reduced-motion vers une carte fixe a été retiré sur décision de Marion : son propre Chrome annonce reduce, elle n'aurait jamais vu l'avion voler. L'animation est désormais servie à tous."
+    },
+    {
+      "date": "2026-09-09",
+      "url": "/",
+      "action": "technique",
+      "justification": "HTTPS de la racine réparé : un certificat SSL Starter Wildcard inclus (non configuré, 2 disponibles) a été affecté à monpetitvoyageur.com. Sectigo DV, SAN couvrant la racine et les sous-domaines, valide jusqu'au 2027-03-08. https://monpetitvoyageur.com répond désormais 302 vers www puis 200, au lieu d'une erreur TLS."
+    },
+    {
+      "date": "2026-09-09",
+      "url": "/",
+      "action": "mesure",
+      "justification": "Déploiement vérifié en production : /logo-hero.avif servi en 200 image/avif (490 480 o), la page d'accueil référence bien l'AVIF et garde la WebP en repli ; og-image.jpg et logo.png allégés en ligne."
     }
   ]
 }

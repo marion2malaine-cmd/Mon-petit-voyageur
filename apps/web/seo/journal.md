@@ -99,3 +99,17 @@ Une entrée par run de la routine (`~/.claude/scheduled-tasks/routine-mon-petit-
 **Vérifié.** 30 tests verts, build OK, `/logo-hero.avif` servi en `image/avif` (490 480 o), `/logo-hero-static.webp` en 404. Dans Chrome : la source retenue est bien `logo-hero.avif` malgré `reduce`, et deux captures espacées montrent **l'avion à deux positions différentes** — l'animation tourne.
 
 **Prochain run.** Vérifier l'AVIF en production (`curl -sI https://www.monpetitvoyageur.com/logo-hero.avif` → `200 image/avif`) et mesurer le LCP réel maintenant que l'image critique est passée de 1,95 Mo à 490 Ko. Relever les premières impressions Search Console (~16/09).
+
+## 2026-09-09 — HTTPS de la racine réparé, AVIF en production
+
+**AVIF déployé et vérifié.** `main` poussé (97645c8), Railway a reconstruit. Production : `/logo-hero.avif` répond **200 `image/avif`, 490 480 o** ; le HTML d'accueil référence `logo-hero.avif` avec `logo-hero.webp` en repli. L'image LCP est passée de 1,95 Mo à 490 Ko en production, l'avion vole toujours.
+
+**Racine HTTPS : cause trouvée et corrigée.** Le domaine racine était correctement configuré en redirection vers `www`, mais **aucun certificat SSL ne lui était attaché** — le handshake TLS échouait donc avant même la redirection. Le compte IONOS disposait de **deux certificats « SSL Starter Wildcard » inclus et non configurés** (portefeuille 1/3 utilisé) : l'un a été affecté à `monpetitvoyageur.com`, **sans achat** (portefeuille désormais 2/3).
+
+**Piège à retenir.** Le bouton « Activer » de la fiche domaine **et** le bouton « Configurer un certificat » mènent tous deux à une page de vente où tout est « Acheter ». Le chemin gratuit est : *Domaines & SSL > Certificats > carte SSL Starter Wildcard > « Activer maintenant » > sélection du domaine*. La page de configuration finale n'affiche aucun prix — c'est le signe qu'on consomme bien un certificat inclus.
+
+**Preuves.** Certificat émis par Sectigo (Public Server Authentication CA DV R36), `CN=*.monpetitvoyageur.com`, SAN = `*.monpetitvoyageur.com` **et** `monpetitvoyageur.com`, valide du 09/09/2026 au 08/03/2027 (180 jours, nouvelle norme IONOS). `https://monpetitvoyageur.com/` → **302** vers `https://www.monpetitvoyageur.com/` → **200**, chaîne suivie de bout en bout.
+
+**Réserve.** La redirection est un **302** (temporaire), pas un 301 : sans gravité ici puisque la racine n'a jamais été indexée et que tous les canonical pointent sur `www`, mais consigné en backlog (`apex-301`). Relevé aussi : un appel sur trois met ~18 s côté redirection IONOS contre ~2,5 s pour les autres.
+
+**Prochain run.** Mesurer le LCP réel maintenant que l'image critique est divisée par quatre ; relever les premières impressions Search Console (~16/09) ; relancer Marion sur les backlinks, seul item ouvert qui dépende d'elle.
