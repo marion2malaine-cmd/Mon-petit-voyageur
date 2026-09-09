@@ -5,6 +5,7 @@ import {
   LodgingSchema,
   type ForumFinding,
   type Lodging,
+  type Photo,
   type StayOption,
   type ItineraryByDay,
   type ItineraryDay,
@@ -958,6 +959,41 @@ export function applyStayAsLodging(days: ItineraryDay[], stay: StayOption | null
   });
 }
 
+/**
+ * Gives every stage hotel what the live hotel search knows about it: the
+ * listing's own picture, its price, its rating and its booking link.
+ *
+ * The model names the hotels; Google Hotels photographs them. Matching the
+ * two by name means the guide shows the real façade rather than a stock
+ * bedroom, without spending a search credit the plan has already paid.
+ */
+export function applyStayDetails(days: ItineraryDay[], stays: StayOption[], locale: "fr" | "en"): void {
+  if (!stays.length) return;
+  const key = (value: string) => value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const bookLabel = locale === "fr" ? "Réserver" : "Book";
+
+  for (const day of days) {
+    const lodging = day.lodging;
+    if (!lodging?.name || lodging.photo?.url) continue;
+    const wanted = key(lodging.name);
+    const stay = stays.find((candidate) => {
+      const name = key(candidate.name ?? "");
+      return name && (name === wanted || name.includes(wanted) || wanted.includes(name));
+    });
+    if (!stay) continue;
+
+    if (stay.photo_url) {
+      lodging.photo = { query: stay.name, url: stay.photo_url, thumb_url: null, credit: null, source_url: stay.booking_url ?? null, license: null };
+    }
+    if (lodging.price_per_night_eur == null && stay.price_per_night != null) lodging.price_per_night_eur = stay.price_per_night;
+    if (lodging.rating == null && stay.rating != null) lodging.rating = stay.rating;
+    if (!lodging.coordinates && stay.coordinates) lodging.coordinates = { lat: stay.coordinates.lat, lon: stay.coordinates.lon };
+    if (stay.booking_url && !lodging.booking_links.some((link) => link.url === stay.booking_url)) {
+      lodging.booking_links = [{ provider: "booking", label: bookLabel, url: stay.booking_url }, ...lodging.booking_links];
+    }
+  }
+}
+
 const EMPTY_PHOTO = { query: "", url: null, thumb_url: null, credit: null, source_url: null };
 
 function firstText(...values: (string | null | undefined)[]): string | null {
@@ -985,6 +1021,9 @@ export function stageSummary(days: ItineraryDay[]): StageRow[] {
       price_from: day.lodging?.price_per_night_eur ?? null,
       price_to: day.lodging?.price_max_per_night_eur ?? null,
       price_note: day.lodging?.price_note ?? null,
+      // The overview table shows the hotel: a bed is chosen on a picture as
+      // much as on a price.
+      photo: day.lodging?.photo ?? null,
       nights: 1,
       dates: [day.date ?? null]
     });
@@ -998,6 +1037,7 @@ export interface StageRow {
   price_from: number | null;
   price_to: number | null;
   price_note: string | null;
+  photo: Photo | null;
   nights: number;
   dates: (string | null)[];
 }

@@ -1,3 +1,7 @@
+import { createTripSchema, updateTripSchema, tripListQuerySchema } from "./tripValidation";
+import { createPlanJobs } from "./planJobs";
+import { createUserSessions, SESSION_SECONDS } from "./userSessions";
+import { createDownloadLimit } from "./downloadLimit";
 import type { z } from "zod";
 import { registerAdmin } from "./admin";
 import Fastify from "fastify";
@@ -40,7 +44,6 @@ interface PlanJob {
   error?: string;
 }
 const planJobs = new Map<string, PlanJob>();
-const PLAN_JOB_TTL_MS = 30 * 60 * 1000;
 
 /** How many trips are being planned right now — a restart must wait for them. */
 export function runningPlanJobs(): number {
@@ -58,6 +61,8 @@ const DEV_SEED_USER = {
 export function buildServer() {
   const config = getConfig();
   const db = initDb(config.SQLITE_PATH);
+  const jobs = createPlanJobs(db);
+  const sessions = createUserSessions(db);
   const tools = createTools(config, db);
   const skillRegistry = loadSkillRegistry();
   const orchestrator = createOrchestrator(config, tools, skillRegistry);
@@ -167,6 +172,7 @@ export function buildServer() {
   app.decorate("authenticate", async (request: any, reply: any) => {
     try {
       await request.jwtVerify();
+      if (!sessions.valid(request.user.sid, request.user.userId)) return reply.code(401).send({ error: "Unauthorized" });
     } catch {
       return reply.code(401).send({ error: "Unauthorized" });
     }
@@ -211,7 +217,7 @@ export function buildServer() {
       preferredLanguage: parsed.data.preferred_language
     });
 
-    const token = await reply.jwtSign({ userId: user.id, email: user.email });
+    const token = await reply.jwtSign({ userId: user.id, email: user.email, sid: sessions.create(user.id) }, { expiresIn: SESSION_SECONDS });
     reply.setCookie("mlt_token", token, sessionCookieOptions);
 
     return serializeUser(user);
@@ -233,13 +239,17 @@ export function buildServer() {
       return reply.code(401).send({ error: "Invalid credentials" });
     }
 
-    const token = await reply.jwtSign({ userId: user.id, email: user.email });
+    const token = await reply.jwtSign({ userId: user.id, email: user.email, sid: sessions.create(user.id) }, { expiresIn: SESSION_SECONDS });
     reply.setCookie("mlt_token", token, sessionCookieOptions);
 
     return serializeUser(user);
   });
 
-  app.post("/api/auth/logout", async (_request, reply) => {
+  app.post("/api/auth/logout", async (request, reply) => {
+    try {
+      await request.jwtVerify();
+      sessions.revoke((request.user as { sid?: string }).sid);
+    } catch { /* Logout remains idempotent for expired sessions. */ }
     reply.clearCookie("mlt_token", {
       path: "/"
     });
@@ -379,7 +389,7 @@ export function buildServer() {
       }
     }
 
-    const token = await reply.jwtSign({ userId: user!.id, email: user!.email });
+    const token = await reply.jwtSign({ userId: user!.id, email: user!.email, sid: sessions.create(user!.id) }, { expiresIn: SESSION_SECONDS });
     reply.setCookie("mlt_token", token, sessionCookieOptions);
     return reply.redirect(`${config.APP_URL}/?login=google`);
   });
@@ -412,37 +422,42 @@ export function buildServer() {
       });
     }
 
-    const runId = randomUUID();
+    if (parsed.data.trip_id && !db.getTrip(userId, parsed.data.trip_id)) return reply.code(404).send({ error: "Trip not found" });
+    const reservation = jobs.start(userId, parsed.data);
+    if (reservation.busy) return reply.code(409).send({ error: "planning_in_progress", message: "Un voyage est déjà en cours de génération. Attendez sa fin avant d’en lancer un autre." });
+    if (reservation.duplicate) return reply.code(202).send({ job_id: reservation.id, status: "running" });
+    const runId = reservation.id;
     const job: PlanJob = { userId, status: "running", startedAt: Date.now() };
     planJobs.set(runId, job);
 
     void (async () => {
+      const heartbeat = setInterval(() => {
+        try { jobs.heartbeat(runId); }
+        catch (error) { app.log.error({ err: error, run_id: runId }, "Planning heartbeat failed"); }
+      }, 10_000);
+      heartbeat.unref();
       try {
         job.result = await runPlan(parsed.data, userId, runId);
         job.status = "done";
+        jobs.finish(runId, job.result);
       } catch (error) {
         job.status = "error";
         job.error = (error as Error).message || "planning_failed";
+        jobs.fail(runId, job.error);
         app.log.error({ err: error, run_id: runId }, "Trip planning run failed");
+      } finally {
+        clearInterval(heartbeat);
+        planJobs.delete(runId);
       }
-      // Finished jobs are kept a while so a slow poll still finds them.
-      setTimeout(() => planJobs.delete(runId), PLAN_JOB_TTL_MS).unref();
     })();
 
     return reply.code(202).send({ job_id: runId, status: "running" });
   });
 
   app.get("/api/trips/plan/:jobId", { preHandler: (app as any).authenticate }, async (request: any, reply) => {
-    const job = planJobs.get(String(request.params.jobId));
-    if (!job || job.userId !== request.user?.userId) {
-      return reply.code(404).send({ error: "job_not_found" });
-    }
-    return {
-      status: job.status,
-      elapsed_ms: Date.now() - job.startedAt,
-      ...(job.status === "done" ? { result: job.result } : {}),
-      ...(job.status === "error" ? { error: job.error } : {})
-    };
+    const job = jobs.get(String(request.params.jobId), request.user.userId);
+    if (!job) return reply.code(404).send({ error: "job_not_found" });
+    return job;
   });
 
   async function runPlan(
@@ -525,10 +540,9 @@ export function buildServer() {
   }
 
   app.post("/api/trips", { preHandler: (app as any).authenticate }, async (request: any, reply) => {
-    const body = request.body as any;
-    if (!body?.title || !body?.brief_json || !body?.plan_json) {
-      return reply.code(400).send({ error: "Missing required fields" });
-    }
+    const parsed = createTripSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
+    const body = parsed.data;
 
     const tripId = db.createTrip({
       userId: request.user.userId,
@@ -541,8 +555,12 @@ export function buildServer() {
     return db.getTrip(request.user.userId, tripId);
   });
 
-  app.get("/api/trips", { preHandler: (app as any).authenticate }, async (request: any) => {
-    return db.listTrips(request.user.userId);
+  app.get("/api/trips", { preHandler: (app as any).authenticate }, async (request: any, reply) => {
+    const parsed = tripListQuerySchema.safeParse(request.query);
+    if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
+    // Existing native clients still expect full plans; web opts into summaries.
+    if (!parsed.data.summary) return db.listTrips(request.user.userId);
+    return db.listTripSummaries(request.user.userId, parsed.data.limit, parsed.data.offset);
   });
 
   app.get("/api/trips/:id", { preHandler: (app as any).authenticate }, async (request: any, reply) => {
@@ -613,7 +631,13 @@ export function buildServer() {
     };
   }
 
-  app.get("/api/trips/:id/guide", { preHandler: (app as any).authenticate }, async (request: any, reply) => {
+  const downloadLimit = createDownloadLimit();
+  const downloadOptions = {
+    preHandler: [(app as any).authenticate, downloadLimit.preHandler],
+    onResponse: downloadLimit.onResponse
+  };
+
+  app.get("/api/trips/:id/guide", downloadOptions, async (request: any, reply) => {
     const guide = await buildGuide(request.user.userId, Number(request.params.id), {
       locale: request.query?.locale,
       embed: request.query?.embed !== "0"
@@ -634,7 +658,7 @@ export function buildServer() {
   });
 
   // The same guide as a PDF file, produced server-side.
-  app.get("/api/trips/:id/guide.pdf", { preHandler: (app as any).authenticate }, async (request: any, reply) => {
+  app.get("/api/trips/:id/guide.pdf", downloadOptions, async (request: any, reply) => {
     const guide = await buildGuide(request.user.userId, Number(request.params.id), {
       locale: request.query?.locale,
       embed: true
@@ -743,7 +767,9 @@ export function buildServer() {
 
   app.put("/api/trips/:id", { preHandler: (app as any).authenticate }, async (request: any, reply) => {
     const tripId = Number(request.params.id);
-    const body = request.body as any;
+    const parsed = updateTripSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
+    const body = parsed.data;
 
     db.updateTrip({
       userId: request.user.userId,

@@ -7,7 +7,7 @@ import { randomBytes, createHash } from 'node:crypto';
 import nodemailer from 'nodemailer';
 
 /** Admin rights are explicit user IDs, never a claim supplied by a browser. */
-export function registerAdmin(app: FastifyInstance, db: AppDb, options: { sendResetEmail?: (to:string,url:string)=>Promise<void> } = {}) {
+export function registerAdmin(app: FastifyInstance, db: AppDb, options: { sendResetEmail?: (to:string,url:string)=>Promise<void>; billingConfigured?: boolean; compEmails?: Set<string> } = {}) {
   db.raw.exec(`CREATE TABLE IF NOT EXISTS admin_auth_state(user_id INTEGER PRIMARY KEY,password_hash TEXT,version INTEGER NOT NULL DEFAULT 0); CREATE TABLE IF NOT EXISTS admin_password_resets(token_hash TEXT PRIMARY KEY,user_id INTEGER NOT NULL,expires_at INTEGER NOT NULL);`);
   const authState=(id:number)=>db.raw.prepare('SELECT password_hash,version FROM admin_auth_state WHERE user_id=?').get(id) as {password_hash:string|null;version:number}|undefined;
   const digest=(value:string)=>createHash('sha256').update(value).digest('hex');

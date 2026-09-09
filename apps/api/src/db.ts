@@ -24,6 +24,7 @@ export interface UserRecord {
   current_period_end: string | null;
   // 1 once a free trial has been consumed, so a second checkout starts paid.
   trial_used: number;
+  complimentary_unlimited?: number;
 }
 
 export interface BillingUpdate {
@@ -63,6 +64,7 @@ export interface AppDb {
     verificationFlags: string[];
   }): number;
   listTrips(userId: number): unknown[];
+  listTripSummaries(userId: number, limit: number, offset: number): unknown[];
   getTrip(userId: number, tripId: number): unknown | null;
   updateTrip(input: {
     userId: number;
@@ -117,6 +119,12 @@ export function initDb(sqlitePath: string): AppDb {
       FOREIGN KEY(user_id) REFERENCES users(id)
     );
 
+    CREATE TABLE IF NOT EXISTS admin_generations (
+      run_id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, trip_id INTEGER,
+      status TEXT NOT NULL, started_at TEXT NOT NULL DEFAULT (datetime('now')),
+      finished_at TEXT, duration_ms INTEGER
+    );
+
     CREATE INDEX IF NOT EXISTS idx_trips_user_id ON trips(user_id);
     CREATE INDEX IF NOT EXISTS idx_trip_runs_trip_id ON trip_runs(trip_id);
   `);
@@ -134,6 +142,7 @@ export function initDb(sqlitePath: string): AppDb {
   addColumn("subscription_plan", "TEXT");
   addColumn("current_period_end", "TEXT");
   addColumn("trial_used", "INTEGER NOT NULL DEFAULT 0");
+  addColumn("complimentary_unlimited", "INTEGER NOT NULL DEFAULT 0");
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id) WHERE google_id IS NOT NULL");
   db.exec("CREATE INDEX IF NOT EXISTS idx_users_stripe_customer ON users(stripe_customer_id)");
 
@@ -222,6 +231,10 @@ export function initDb(sqlitePath: string): AppDb {
         JSON.stringify(input.verificationFlags)
       );
       return Number(result.lastInsertRowid);
+    },
+    listTripSummaries(userId, limit, offset) {
+      const rows = db.prepare("SELECT id, title, brief_json, created_at, updated_at FROM trips WHERE user_id=? ORDER BY updated_at DESC, id DESC LIMIT ? OFFSET ?").all(userId, limit, offset) as { brief_json: string }[];
+      return rows.map(row => ({ ...row, brief_json: JSON.parse(row.brief_json) }));
     },
     listTrips(userId) {
       const stmt = db.prepare(

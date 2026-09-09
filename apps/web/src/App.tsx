@@ -1,3 +1,6 @@
+import { SavedTrips } from "./SavedTrips";
+import { text } from "./appTranslations";
+import { PricingPlans } from "./PricingPlans";
 import { lazy, Suspense, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, downloadGuide, downloadGuidePdf, previewGuide, type AuthUser } from "./api";
 import { legLabel, useHotelTravelTimes } from "./travelTimes";
@@ -23,373 +26,6 @@ const CATEGORY_LABELS: Record<Locale, Record<string, string>> = {
   fr: { culture: "culture", sport: "sport", discovery: "découverte", relax: "farniente", food: "gastronomie" },
   en: { culture: "culture", sport: "sport", discovery: "discovery", relax: "leisure", food: "food" }
 };
-
-const text = {
-  fr: {
-    title: "Mon Petit Voyageur",
-    subtitle: "Voyages sur mesure, orchestrés par l'IA",
-    login: "Connexion",
-    register: "Inscription",
-    email: "Email",
-    password: "Mot de passe",
-    logout: "Déconnexion",
-    language: "Langue",
-    plannerTitle: "Décris ton voyage",
-    plannerPlaceholder: "Ex: Je veux partir 10 jours en septembre, budget 1800 €, départ de Lyon...",
-    planTrip: "Lancer l'agent",
-    recentTrips: "Mes voyages",
-    tripsHint: "Retrouvez ici chaque voyage planifié, avec son programme et son guide illustré.",
-    navPlan: "Planifier",
-    navTrips: "Mes voyages",
-    tripsEmpty: "Aucun voyage pour le moment.",
-    tripsEmptyCta: "Planifier mon premier voyage",
-    openTrip: "Ouvrir le voyage",
-    tripOpen: "Ouvert",
-    travelersShort: "voyageur(s)",
-    daysShort: "jours",
-    updatedOn: "Mis à jour le",
-    datesFlexible: "Dates à préciser",
-    travelerSummary: "Résumé voyageur",
-    finalPlan: "Plan final",
-    openVerifications: "Vérifications ouvertes",
-    nextSteps: "Prochaines étapes",
-    trace: "Trace orchestration",
-    flightsHotels: "Vols & hébergements",
-    loading: "Chargement...",
-    budget: "Budget estimé",
-    itinerary: "Itinéraire jour par jour",
-    bookingLinks: "Réserver au meilleur tarif",
-    experiences: "Excursions & restaurants",
-    withinBudget: "dans le budget",
-    overBudget: "au-dessus du budget",
-    book: "Réserver",
-    perNight: "/nuit",
-    direct: "direct",
-    stops: "escale(s)",
-    morning: "Matin",
-    afternoon: "Après-midi",
-    evening: "Soir",
-    tagline:
-      "Le planificateur de voyage IA qui crée votre itinéraire sur mesure : destination, vols, hôtels, activités et restaurants au meilleur prix, dans votre budget.",
-    ctaStart: "Commencer mon voyage",
-    ctaHow: "Découvrir comment ça marche",
-    featuresTitle: "Une expérience complète de A à Z",
-    featuresSub: "Nous nous occupons de tout, de la planification aux réservations",
-    howTitle: "Comment ça marche ?",
-    howSub: "En quelques étapes simples, créez le voyage de vos rêves",
-    ctaCardTitle: "Prêt à vivre une expérience unique ?",
-    ctaCardSub: "Laissez notre IA créer le voyage parfait pour vous",
-    ctaCardBtn: "Créer mon voyage",
-    footerDesc: "Votre compagnon de voyage intelligent pour des aventures inoubliables.",
-    footerLinks: "Liens utiles",
-    footerGuides: "Guides",
-    footerPrivacy: "Politique de confidentialité",
-    footerTerms: "Conditions d'utilisation",
-    footerSales: "Conditions générales de vente",
-    backHome: "Retour à l\u2019accueil",
-    footerContact: "Contact",
-    footerRights: "Tous droits réservés.",
-    authSub: "Accédez à vos voyages",
-    serverDown: "Serveur injoignable — lance l'API avec « npm run dev » puis réessaie.",
-    badCredentials: "Email ou mot de passe incorrect. Pas encore de compte ? Cliquez sur Inscription.",
-    planningInterrupted: "La génération a été interrompue (redémarrage du serveur). Relancez l'agent.",
-    flightTag: "Vol",
-    stayTag: "Hôtel",
-    internalFlightsTitle: "Vols internes entre étapes",
-    dayShort: "Jour",
-
-    styleQuestion: "Quel type de voyage ?",
-    paceLabel: "Rythme",
-    paceSlow: "Tranquille",
-    paceModerate: "Équilibré",
-    paceFast: "Soutenu",
-    shapeLabel: "Forme du voyage",
-    shapeBase: "Séjour — une ville, on rayonne",
-    shapeRoadtrip: "Itinérant — on change d'hôtel en route",
-    lodgingChange: "Nouvel hôtel",
-    lodgingSame: "Même hôtel",
-    budgetLabel: "Budget total (€)",
-    durationLabel: "Durée (jours)",
-    travelersLabel: "Voyageurs",
-    departureLabel: "Ville de départ",
-    destinationLabel: "Destination",
-    destinationPlaceholder: "Laisser vide pour une suggestion",
-    continentLabel: "Continent",
-    countryLabel: "Pays",
-    stateLabel: "État",
-    cityLabel: "Ville",
-    anyDestination: "Peu importe — surprenez-moi",
-    anyCountry: "Peu importe dans ce continent",
-    anyState: "Peu importe dans le pays",
-    anyCity: "Peu importe — toute la région",
-    pickContinentFirst: "Choisissez d'abord un continent",
-    pickCountryFirst: "Choisissez d'abord un pays",
-    pickStateFirst: "Choisissez d'abord un État",
-
-    statesCountLabel: "Combien d'États voulez-vous visiter ?",
-    statesCountAny: "Un seul, à définir",
-    oneState: "1 État",
-    severalStates: "États",
-    statesCountHint: "Au-delà d'un État, les vols internes entre étapes sont recherchés.",
-
-    monthLabel: "Mois de départ",
-    anyMonth: "Indifférent",
-    freeTextLabel: "Précisions (destination, envies...)",
-    excursionsTitle: "Excursions proposées",
-    excursionTag: "Excursion",
-    perPerson: "€ / pers.",
-    freeLabel: "Gratuit",
-    moreLinks: "Autres liens utiles",
-    guideTitle: "Votre guide illustré",
-    guideSub: "Le programme complet, jour par jour, avec photos et liens de réservation",
-    downloadGuide: "Télécharger le guide",
-    previewGuide: "Aperçu",
-    guideBusy: "Préparation du guide...",
-    guideError: "Guide indisponible pour le moment.",
-    freeVisitsLabel: "Visites gratuites",
-    optionsLabel: "Activités au choix",
-    restaurantsLabel: "Tables présélectionnées",
-    reviewsShort: "avis",
-    forumTitle: "Ce que disent les voyageurs",
-    readThread: "Lire le fil",
-    calendarTitle: "Le mois en un coup d'œil",
-    calendarSourceCalendar: "prix par jour et par personne (Aviasales) — jour retenu en vert",
-    calendarSourceSampled: "départs testés, prix par personne — jour retenu en vert",
-    carTitle: "Location de voiture",
-    carRecommended: "Recommandé",
-    carAlerts: "À savoir avant de réserver",
-    carPerDay: "€ / jour",
-    carTotalLabel: "pour le séjour",
-    savingHint: "Moins cher en direct :",
-    planningHint: "cela prend généralement 1 à 3 minutes",
-    emailGuide: "Envoyer par mail",
-    emailPlaceholder: "Adresse du destinataire",
-    guideSent: "Guide envoyé à",
-    guideEmailError: "Envoi impossible pour le moment.",
-    downloadPdf: "Télécharger en PDF",
-    pdfError: "PDF indisponible : ouvrez l'aperçu puis Imprimer / PDF.",
-    chooseStay: "Choisir cet hôtel",
-    chosenStay: "Hôtel choisi",
-    chooseStayHint: "Choisissez votre hôtel : les temps de trajet vers chaque activité s'affichent ensuite.",
-    fromHotel: "Depuis l'hôtel :",
-    bestChannel: { on_site: "Le moins cher : sur place", official: "Le moins cher : site officiel", online: "Le moins cher : en ligne", unknown: "Moins cher en direct" },
-    onSite: "sur place",
-    crossing: "Traversée en bateau depuis",
-    carModel: "Modèle type",
-    perPersonShort: "€ / pers.",
-    googleLogin: "Continuer avec Google",
-    orDivider: "ou",
-    planTitle: "Choisissez votre formule",
-    planSub: "Essai gratuit de 7 jours, sans engagement. Annulable à tout moment.",
-    planMonthlyName: "Mensuel",
-    planMonthlyPrice: "5,99 €",
-    planMonthlyPer: "/ mois",
-    planAnnualName: "Annuel",
-    planAnnualPrice: "49 €",
-    planAnnualPer: "/ an",
-    planAnnualNote: "Économisez 32 % — soit 4,08 €/mois",
-    planPopular: "Le plus choisi",
-    planFeatures: [
-      "Voyages illimités générés par l'IA",
-      "Guide illustré en PDF, jour par jour",
-      "Liens de réservation au meilleur prix",
-      "Envoi du guide par email"
-    ],
-    planTrialCta: "Démarrer l'essai gratuit",
-    planCta: "S'abonner",
-    planTrialUsedNote: "Essai déjà utilisé — l'abonnement démarre immédiatement.",
-    planReassurance: "Sans engagement — résiliez en un clic depuis votre espace, à tout moment.",
-    manageBilling: "Gérer mon abonnement",
-    subscriptionRequired: "Votre essai est terminé. Choisissez une formule pour continuer à planifier.",
-    trialActiveBadge: "Essai en cours",
-    subActiveBadge: "Abonnement actif",
-    checkoutError: "Le paiement n'a pas pu démarrer. Réessayez.",
-    checkoutSuccess: "Bienvenue ! Votre accès est activé.",
-    billingSoon: "Le paiement sera bientôt disponible."
-  },
-  en: {
-    title: "My Little Traveler",
-    subtitle: "Tailor-made trips, orchestrated by AI",
-    login: "Login",
-    register: "Register",
-    email: "Email",
-    password: "Password",
-    logout: "Logout",
-    language: "Language",
-    plannerTitle: "Describe your trip",
-    plannerPlaceholder: "Ex: I want to travel 10 days in September, budget 1800€, leaving from Lyon...",
-    planTrip: "Run agent",
-    recentTrips: "My trips",
-    tripsHint: "Every trip you planned, with its program and illustrated guide.",
-    navPlan: "Plan",
-    navTrips: "My trips",
-    tripsEmpty: "No trip yet.",
-    tripsEmptyCta: "Plan my first trip",
-    openTrip: "Open trip",
-    tripOpen: "Open",
-    travelersShort: "traveler(s)",
-    daysShort: "days",
-    updatedOn: "Updated on",
-    datesFlexible: "Dates to confirm",
-    travelerSummary: "Traveler summary",
-    finalPlan: "Final plan",
-    openVerifications: "Open verifications",
-    nextSteps: "Next steps",
-    trace: "Orchestration trace",
-    flightsHotels: "Flights & stays",
-    loading: "Loading...",
-    budget: "Estimated budget",
-    itinerary: "Day-by-day itinerary",
-    bookingLinks: "Book at the best price",
-    experiences: "Tours & restaurants",
-    withinBudget: "within budget",
-    overBudget: "over budget",
-    book: "Book",
-    perNight: "/night",
-    direct: "nonstop",
-    stops: "stop(s)",
-    morning: "Morning",
-    afternoon: "Afternoon",
-    evening: "Evening",
-    tagline:
-      "The AI travel planner that builds your tailor-made itinerary: destination, flights, hotels, activities and restaurants at the best price, within your budget.",
-    ctaStart: "Start my trip",
-    ctaHow: "See how it works",
-    featuresTitle: "A complete experience from A to Z",
-    featuresSub: "We take care of everything, from planning to bookings",
-    howTitle: "How does it work?",
-    howSub: "Create the trip of your dreams in a few simple steps",
-    ctaCardTitle: "Ready for a unique experience?",
-    ctaCardSub: "Let our AI craft the perfect trip for you",
-    ctaCardBtn: "Create my trip",
-    footerDesc: "Your intelligent travel companion for unforgettable adventures.",
-    footerLinks: "Useful links",
-    footerGuides: "Guides",
-    footerPrivacy: "Privacy policy",
-    footerTerms: "Terms of use",
-    footerSales: "Terms of sale",
-    backHome: "Back to home",
-    footerContact: "Contact",
-    footerRights: "All rights reserved.",
-    authSub: "Access your trips",
-    serverDown: "Server unreachable — start the API with “npm run dev” and try again.",
-    badCredentials: "Wrong email or password. No account yet? Click Sign up.",
-    planningInterrupted: "Planning was interrupted (server restart). Please launch the agent again.",
-    flightTag: "Flight",
-    stayTag: "Stay",
-    internalFlightsTitle: "Domestic flights between stages",
-    dayShort: "Day",
-
-    styleQuestion: "What kind of trip?",
-    paceLabel: "Pace",
-    paceSlow: "Relaxed",
-    paceModerate: "Balanced",
-    paceFast: "Packed",
-    shapeLabel: "Shape of the trip",
-    shapeBase: "Stay — one town, day trips around",
-    shapeRoadtrip: "Road trip — a new hotel along the way",
-    lodgingChange: "New hotel",
-    lodgingSame: "Same hotel",
-    budgetLabel: "Total budget (€)",
-    durationLabel: "Duration (days)",
-    travelersLabel: "Travelers",
-    departureLabel: "Departure city",
-    destinationLabel: "Destination",
-    destinationPlaceholder: "Leave empty for a suggestion",
-    continentLabel: "Continent",
-    countryLabel: "Country",
-    stateLabel: "State",
-    cityLabel: "City",
-    anyDestination: "Anywhere — surprise me",
-    anyCountry: "Anywhere on this continent",
-    anyState: "Anywhere in the country",
-    anyCity: "Anywhere — the whole region",
-    pickContinentFirst: "Pick a continent first",
-    pickCountryFirst: "Pick a country first",
-    pickStateFirst: "Pick a state first",
-
-    statesCountLabel: "How many states do you want to visit?",
-    statesCountAny: "Just one, to be decided",
-    oneState: "1 state",
-    severalStates: "states",
-    statesCountHint: "Beyond one state, domestic flights between stages are searched.",
-
-    monthLabel: "Departure month",
-    anyMonth: "Flexible",
-    freeTextLabel: "Details (destination, wishes...)",
-    excursionsTitle: "Suggested excursions",
-    excursionTag: "Excursion",
-    perPerson: "€ / pers.",
-    freeLabel: "Free",
-    moreLinks: "More useful links",
-    guideTitle: "Your illustrated guide",
-    guideSub: "The complete day-by-day program, with photos and booking links",
-    downloadGuide: "Download the guide",
-    previewGuide: "Preview",
-    guideBusy: "Preparing the guide...",
-    guideError: "Guide unavailable right now.",
-    freeVisitsLabel: "Free visits",
-    optionsLabel: "Activity options",
-    restaurantsLabel: "Preselected tables",
-    reviewsShort: "reviews",
-    forumTitle: "What travelers say",
-    readThread: "Read the thread",
-    calendarTitle: "The month at a glance",
-    calendarSourceCalendar: "price per day and per person (Aviasales) — chosen day in green",
-    calendarSourceSampled: "departures tried, price per person — chosen day in green",
-    carTitle: "Car rental",
-    carRecommended: "Recommended",
-    carAlerts: "Read before booking",
-    carPerDay: "€ / day",
-    carTotalLabel: "for the stay",
-    savingHint: "Cheaper booked direct:",
-    planningHint: "this usually takes 1 to 3 minutes",
-    emailGuide: "Send by email",
-    emailPlaceholder: "Recipient address",
-    guideSent: "Guide sent to",
-    guideEmailError: "Sending failed for now.",
-    downloadPdf: "Download as PDF",
-    pdfError: "PDF unavailable: open the preview, then Print / PDF.",
-    chooseStay: "Choose this hotel",
-    chosenStay: "Chosen hotel",
-    chooseStayHint: "Pick your hotel: travel times to every activity then appear.",
-    fromHotel: "From the hotel:",
-    bestChannel: { on_site: "Cheapest: on the spot", official: "Cheapest: official site", online: "Cheapest: online", unknown: "Cheaper booked direct" },
-    onSite: "on the spot",
-    crossing: "Boat crossing from",
-    carModel: "Typical model",
-    perPersonShort: "€ / pers.",
-    googleLogin: "Continue with Google",
-    orDivider: "or",
-    planTitle: "Choose your plan",
-    planSub: "7-day free trial, no commitment. Cancel anytime.",
-    planMonthlyName: "Monthly",
-    planMonthlyPrice: "€5.99",
-    planMonthlyPer: "/ month",
-    planAnnualName: "Annual",
-    planAnnualPrice: "€49",
-    planAnnualPer: "/ year",
-    planAnnualNote: "Save 32% — €4.08/mo",
-    planPopular: "Most popular",
-    planFeatures: [
-      "Unlimited AI-generated trips",
-      "Illustrated PDF guide, day by day",
-      "Booking links at the best price",
-      "Guide sent by email"
-    ],
-    planTrialCta: "Start free trial",
-    planCta: "Subscribe",
-    planTrialUsedNote: "Trial already used — the subscription starts right away.",
-    planReassurance: "No commitment — cancel anytime, in one click from your account.",
-    manageBilling: "Manage my subscription",
-    subscriptionRequired: "Your trial has ended. Pick a plan to keep planning.",
-    trialActiveBadge: "Trial active",
-    subActiveBadge: "Subscription active",
-    checkoutError: "Checkout could not start. Please try again.",
-    checkoutSuccess: "Welcome! Your access is active.",
-    billingSoon: "Payments will be available soon."
-  }
-} as const;
 
 const PLANNING_STEPS = {
   fr: [
@@ -590,6 +226,20 @@ function TravelerApp() {
   const [elapsed, setElapsed] = useState(0);
   const [result, setResult] = useState<(PlanTripResponse & { trip_id?: number; run_id?: string }) | null>(null);
   const [trips, setTrips] = useState<any[]>([]);
+  const [tripsError, setTripsError] = useState("");
+  const [tripsBusy, setTripsBusy] = useState(false);
+  const [hasMoreTrips, setHasMoreTrips] = useState(false);
+  function replaceTrips(items: any[]) { setTrips(items); setHasMoreTrips(items.length === 20); }
+  async function loadMoreTrips() {
+    if (tripsBusy) return;
+    setTripsBusy(true); setTripsError("");
+    try {
+      const items = await api.listTrips(trips.length);
+      setTrips(current => [...current, ...items.filter(item => !current.some(old => old.id === item.id))]);
+      setHasMoreTrips(items.length === 20);
+    } catch (error) { setTripsError((error as Error).message); }
+    finally { setTripsBusy(false); }
+  }
   // Saved trips live on their own page; the planner page only plans.
   const [page, setPage] = useState<"planner" | "trips" | "legal">("planner");
   const [legalDoc, setLegalDoc] = useState<LegalDoc["key"]>("privacy");
@@ -681,7 +331,7 @@ function TravelerApp() {
 
   useEffect(() => {
     if (!user) return;
-    api.listTrips().then(setTrips).catch(() => setTrips([]));
+    api.listTrips().then(replaceTrips).catch(() => setTrips([]));
   }, [user]);
 
   const continent = DESTINATION_CATALOGUE.find((entry) => entry.key === continentKey) ?? null;
@@ -816,7 +466,7 @@ function TravelerApp() {
       setResult(response);
       void waitForPhotos(response);
       // Refreshing the sidebar must not turn a successfully saved trip into an error.
-      void api.listTrips().then(setTrips).catch(() => undefined);
+      void api.listTrips().then(replaceTrips).catch(() => undefined);
     } catch (error) {
       const message = (error as Error).message;
       if (/subscription_required/.test(message)) {
@@ -847,18 +497,16 @@ function TravelerApp() {
 
   const planningStep = Math.min(Math.floor(elapsed / 25), PLANNING_STEPS[locale].length - 1);
 
-  // Saved trips already carry their full plan, so reopening one is just
-  // restoring it into the results view — no re-planning, no server round-trip.
-  function openTrip(trip: any) {
-    if (!trip?.plan_json) return;
-    setResult({ ...trip.plan_json, trip_id: trip.id });
-    setGuideError("");
-    setGuideSent("");
-    setPage("planner");
-    window.setTimeout(
-      () => document.querySelector(".results")?.scrollIntoView({ behavior: "smooth", block: "start" }),
-      50
-    );
+  async function openTrip(trip: any) {
+    if (tripsBusy) return;
+    setTripsBusy(true); setTripsError("");
+    try {
+      const saved = await api.getTrip(trip.id);
+      setResult({ ...saved.plan_json, trip_id: saved.id });
+      setGuideError(""); setGuideSent(""); setPage("planner");
+      window.setTimeout(() => document.querySelector(".results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    } catch (error) { setTripsError((error as Error).message); }
+    finally { setTripsBusy(false); }
   }
 
   async function handleLogout() {
@@ -1176,64 +824,9 @@ function TravelerApp() {
           </section>
         </main>
             ) : page === "trips" ? (
-        <main className="layout trips-page">
-          <section className="card trips">
-            <div className="trips-head">
-              <div>
-                <h3>{t.recentTrips}</h3>
-                <p className="trips-hint">{t.tripsHint}</p>
-              </div>
-              <button type="button" className="secondary" onClick={() => setPage("planner")}>
-                {t.navPlan}
-              </button>
-            </div>
-
-            {trips.length === 0 ? (
-              <div className="trips-empty">
-                <span className="feature-icon">{featureIcons.compass}</span>
-                <p>{t.tripsEmpty}</p>
-                <button type="button" onClick={() => setPage("planner")}>
-                  {t.tripsEmptyCta}
-                </button>
-              </div>
-            ) : (
-              <div className="trip-grid">
-                {trips.map((trip) => {
-                  const brief = trip.brief_json ?? {};
-                  const dates = brief.exact_dates ?? {};
-                  const isOpen = result?.trip_id === trip.id;
-                  const destination = brief.destination ?? trip.title?.replace(/^Trip - /, "") ?? "";
-                  const dateLabel =
-                    dates.start && dates.end
-                      ? `${formatDate(dates.start, locale)} → ${formatDate(dates.end, locale)}`
-                      : brief.date_window ?? t.datesFlexible;
-                  const facts = [
-                    brief.duration_days ? `${brief.duration_days} ${t.daysShort}` : null,
-                    brief.travelers_count ? `${brief.travelers_count} ${t.travelersShort}` : null,
-                    brief.budget_total ? `${brief.budget_total} ${brief.currency ?? "EUR"}` : null
-                  ].filter(Boolean);
-                  return (
-                    <article key={trip.id} className={`trip-card${isOpen ? " is-open" : ""}`}>
-                      <div className="trip-card-head">
-                        <span className="trip-card-icon">{featureIcons.map}</span>
-                        {isOpen && <span className="tag">{t.tripOpen}</span>}
-                      </div>
-                      <h4>{destination || trip.title}</h4>
-                      <p className="trip-card-dates">{dateLabel}</p>
-                      {facts.length > 0 && <p className="trip-card-facts">{facts.join(" · ")}</p>}
-                      <small>
-                        {t.updatedOn} {formatDate(trip.updated_at, locale)}
-                      </small>
-                      <button type="button" onClick={() => openTrip(trip)}>
-                        {t.openTrip}
-                      </button>
-                    </article>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        </main>
+        <SavedTrips locale={locale} trips={trips} activeTripId={result?.trip_id} tripsError={tripsError}
+          hasMoreTrips={hasMoreTrips} tripsBusy={tripsBusy} loadMoreTrips={loadMoreTrips} openTrip={openTrip}
+          onPlan={() => setPage("planner")} featureIcons={featureIcons} />
       ) : (
         <main className="layout">
           <section className="card planner">
@@ -1851,63 +1444,4 @@ function PhotoCredit({ photo }: { photo: any }) {
       )}
     </small>
   );
-}
-
-/** The two subscription plans, shown on the paywall. */
-function PricingPlans({
-  t,
-  trialUsed,
-  busy,
-  onChoose
-}: {
-  t: (typeof text)["fr"] | (typeof text)["en"];
-  trialUsed: boolean;
-  busy: boolean;
-  onChoose: (plan: "monthly" | "annual") => void;
-}) {
-  const cta = trialUsed ? t.planCta : t.planTrialCta;
-  return (
-    <div className="pricing">
-      <div className="pricing-grid">
-        <article className="plan-card">
-          <h3>{t.planMonthlyName}</h3>
-          <p className="plan-price">
-            <strong>{t.planMonthlyPrice}</strong> <span>{t.planMonthlyPer}</span>
-          </p>
-          <ul className="plan-features">
-            {t.planFeatures.map((f) => (
-              <li key={f}>{f}</li>
-            ))}
-          </ul>
-          <button type="button" onClick={() => onChoose("monthly")} disabled={busy}>
-            {cta}
-          </button>
-        </article>
-        <article className="plan-card is-featured">
-          <span className="plan-badge">{t.planPopular}</span>
-          <h3>{t.planAnnualName}</h3>
-          <p className="plan-price">
-            <strong>{t.planAnnualPrice}</strong> <span>{t.planAnnualPer}</span>
-          </p>
-          <p className="plan-save">{t.planAnnualNote}</p>
-          <ul className="plan-features">
-            {t.planFeatures.map((f) => (
-              <li key={f}>{f}</li>
-            ))}
-          </ul>
-          <button type="button" onClick={() => onChoose("annual")} disabled={busy}>
-            {cta}
-          </button>
-        </article>
-      </div>
-      {trialUsed && <p className="plan-note">{t.planTrialUsedNote}</p>}
-      <p className="plan-reassurance">{t.planReassurance}</p>
-    </div>
-  );
-}
-
-function formatDate(value: string, locale: "fr" | "en"): string {
-  const date = new Date(value.length === 10 ? `${value}T12:00:00` : value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString(locale === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "short", year: "numeric" });
 }

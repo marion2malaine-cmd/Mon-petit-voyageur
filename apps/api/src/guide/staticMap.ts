@@ -1,4 +1,4 @@
-import type { MapRoute } from "./renderGuide";
+import type { JourneyLeg, MapRoute } from "./renderGuide";
 
 // The same day colours as the interactive map, without the "#".
 const PALETTE = ["78a189", "334d3e", "c98a4b", "5b7f9c", "8d6a9f", "b0623f", "4f8a6d", "7d7f45"];
@@ -14,8 +14,20 @@ const TIMEOUT_MS = 10000;
  * Static requests count in the same free tier (50 000 a month). Returns null
  * when nothing is located or the overlays would exceed the URL limit.
  */
-export function buildStaticMapUrl(routes: MapRoute[], token: string, size = "1200x640"): string | null {
+export function buildStaticMapUrl(routes: MapRoute[], token: string, size = "1200x640", legs: JourneyLeg[] = []): string | null {
   const overlays: string[] = [];
+
+  // The thread of the trip first, so the day walks are drawn on top of it:
+  // one line per hop, coloured and pinned by the way it is travelled.
+  legs.forEach((leg) => {
+    const style = LEG_STYLES[leg.mode] ?? LEG_STYLES.car;
+    overlays.push(
+      `path-3+${style.colour}-0.9(${encodeURIComponent(encodePolyline([[leg.from.lat, leg.from.lon], [leg.to.lat, leg.to.lon]]))})`
+    );
+    overlays.push(
+      `pin-s-${style.pin}+${style.colour}(${((leg.from.lon + leg.to.lon) / 2).toFixed(5)},${((leg.from.lat + leg.to.lat) / 2).toFixed(5)})`
+    );
+  });
 
   routes.forEach((route, index) => {
     const colour = PALETTE[index % PALETTE.length];
@@ -37,6 +49,16 @@ export function buildStaticMapUrl(routes: MapRoute[], token: string, size = "120
   return url.length <= MAX_URL_LENGTH ? url : null;
 }
 
+// Mapbox maki icons that exist on the static pins, per way of travelling.
+const LEG_STYLES: Record<string, { colour: string; pin: string }> = {
+  car: { colour: "c0664a", pin: "car" },
+  train: { colour: "c0664a", pin: "rail" },
+  bus: { colour: "c0664a", pin: "bus" },
+  boat: { colour: "5b7f9c", pin: "ferry" },
+  plane: { colour: "22384a", pin: "airport" },
+  foot: { colour: "78a189", pin: "pitch" }
+};
+
 // A guide is previewed, downloaded and mailed: the same picture three times.
 const cache = new Map<string, string | null>();
 
@@ -44,9 +66,13 @@ const cache = new Map<string, string | null>();
  * The still map of the trip as a data URI, ready to be inlined so the guide
  * shows it before the interactive map loads, offline and on paper.
  */
-export async function stillMapDataUri(routes: MapRoute[], serverToken: string | null | undefined): Promise<string | null> {
+export async function stillMapDataUri(
+  routes: MapRoute[],
+  serverToken: string | null | undefined,
+  legs: JourneyLeg[] = []
+): Promise<string | null> {
   if (!serverToken) return null;
-  const url = buildStaticMapUrl(routes, serverToken);
+  const url = buildStaticMapUrl(routes, serverToken, "1200x640", legs);
   if (!url) return null;
   if (cache.has(url)) return cache.get(url) ?? null;
   const dataUri = await fetchStaticMapDataUri(url);

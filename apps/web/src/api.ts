@@ -3,31 +3,6 @@ import type { PlanTripResponse, TripPreferences } from "@mlt/contracts";
 const PLAN_POLL_MS = 3000;
 const SAVED_TRIP_WAIT_MS = 10 * 60 * 1000;
 
-/**
- * After the planning job disappeared (API restart), waits for the trip the
- * old process was writing: a saved trip created after the job started, or
- * the re-planned trip when one was being updated.
- */
-async function waitForSavedTrip(startedAt: number, tripId?: number): Promise<PlanTripResponse & { trip_id: number; run_id: string }> {
-  const deadline = startedAt + SAVED_TRIP_WAIT_MS;
-  while (Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, PLAN_POLL_MS * 2));
-    let trips: any[] = [];
-    try {
-      trips = await http<any[]>("/api/trips");
-    } catch (error) {
-      if (isTerminal(error)) throw error;
-      continue;
-    }
-    const found = trips.find((trip) => {
-      if (!trip?.plan_json) return false;
-      if (tripId) return trip.id === tripId && Date.parse(`${String(trip.updated_at ?? trip.created_at).replace(" ", "T")}Z`) >= startedAt - 1000;
-      return Date.parse(`${String(trip.created_at).replace(" ", "T")}Z`) >= startedAt - 1000;
-    });
-    if (found) return { ...found.plan_json, trip_id: found.id, run_id: "" };
-  }
-  throw new Error("planning_interrupted");
-}
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? "http://localhost:8787" : "https://api.monpetitvoyageur.com")).replace(/\/$/, "");
 
 export class ApiError extends Error {
@@ -78,7 +53,8 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
     let message = text;
     try {
       const parsed = JSON.parse(text);
-      if (parsed && typeof parsed.error === "string") message = parsed.error;
+      if (["download_limit_reached", "planning_in_progress"].includes(parsed?.error) && typeof parsed.message === "string") message = parsed.message;
+      else if (parsed && typeof parsed.error === "string") message = parsed.error;
     } catch {
       // Not JSON: keep the body as is.
     }
@@ -123,10 +99,9 @@ export const api = {
       try {
         job = await http(`/api/trips/plan/${started.job_id}`);
       } catch (error) {
-        // A blip on one poll is not a failed plan. A vanished job means the
-        // API restarted: the old process still saves the trip when it finishes,
-        // so the saved trips are watched for it instead of giving up.
-        if (/job_not_found/.test((error as Error).message)) return waitForSavedTrip(startedAt, payload.trip_id);
+        // Jobs survive server restarts. Never substitute another recent trip
+        // if this exact job cannot be found.
+        if (/job_not_found/.test((error as Error).message)) throw new Error("planning_interrupted");
         if (isTerminal(error)) throw error;
         continue;
       }
@@ -135,7 +110,7 @@ export const api = {
     }
     throw new Error("planning_timeout");
   },
-  listTrips: () => http<any[]>("/api/trips"),
+  listTrips: (offset = 0) => http<any[]>(`/api/trips?summary=1&limit=20&offset=${offset}`),
   getTrip: (tripId: number) => http<any>(`/api/trips/${tripId}`),
   editItinerary: (tripId: number, edit: unknown) => http<PlanTripResponse & { trip_id: number }>(`/api/trips/${tripId}/itinerary`, { method: "PATCH", body: JSON.stringify(edit) }),
   getGuide: (tripId: number, locale: "fr" | "en", embed: boolean) =>
@@ -190,7 +165,13 @@ export async function downloadGuide(tripId: number, locale: "fr" | "en"): Promis
 export async function downloadGuidePdf(tripId: number, locale: "fr" | "en"): Promise<void> {
   const response = await fetch(`${API_BASE}/api/trips/${tripId}/guide.pdf?locale=${locale}`, { credentials: "include" });
   if (!response.ok) {
-    throw new Error(await response.text());
+    const text = await response.text();
+    let message = text;
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed.message === "string") message = parsed.message;
+    } catch { /* Keep non-JSON server errors readable. */ }
+    throw new Error(message);
   }
   const blob = await response.blob();
   const url = URL.createObjectURL(blob);

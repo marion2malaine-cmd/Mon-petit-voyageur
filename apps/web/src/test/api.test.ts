@@ -49,14 +49,13 @@ describe("planning request recovery", () => {
     await assertion;
   });
 
-  it("stops saved-trip recovery on a lost session too", async () => {
+  it("never substitutes a recent unrelated trip for a missing job", async () => {
     fetchMock.mockResolvedValueOnce(response({ job_id: "one" }))
-      .mockResolvedValueOnce(response({ error: "job_not_found" }, 404))
-      .mockResolvedValueOnce(response({ error: "Unauthorized" }, 401));
+      .mockResolvedValueOnce(response({ error: "job_not_found" }, 404));
     const pending = api.planTrip({ message: "Paris", locale: "fr" });
-    const assertion = expect(pending).rejects.toMatchObject({ status: 401 });
-    await vi.advanceTimersByTimeAsync(9000);
+    const assertion = expect(pending).rejects.toThrow("planning_interrupted");
+    await vi.advanceTimersByTimeAsync(3000);
     await assertion;
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

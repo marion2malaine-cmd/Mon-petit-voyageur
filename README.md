@@ -162,3 +162,12 @@ Validation exécutée avec le script skill-creator:
 ```bash
 python3 /Users/MarionDEMALAINE/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/<skill>
 ```
+
+## Fiabilité des sessions, voyages et téléchargements
+
+- Sessions voyageurs : JWT valable 7 jours, associé à une session SQLite et révoqué à la déconnexion. Les anciens jetons sans session doivent se reconnecter après mise à jour.
+- Génération : une seule tâche active par utilisateur. Un deuxième envoi identique retrouve la tâche en cours ; un autre voyage reçoit une réponse 409. Le suivi et le résultat sont persistés dans `planning_jobs`, par identifiant exact. Après un arrêt brutal, une tâche sans signal de vie pendant 60 secondes est signalée comme interrompue ; elle n’est pas relancée automatiquement.
+- Téléchargements : trois requêtes de guide maximum en parallèle par utilisateur, HTML et PDF confondus (aperçu inclus). La quatrième reçoit 429 et un message invitant à réessayer. Le compteur est local à l’instance API ; un déploiement multi-instance nécessiterait un compteur partagé.
+- Création/modification des voyages : validation du titre, du brief, de la réponse de planification et des sections connues ; données invalides refusées avec 400.
+- Liste web : `GET /api/trips?summary=1&limit=20&offset=0` ne retourne pas les programmes complets. « Charger plus de voyages » affiche la page suivante et ouvrir un voyage charge son détail. Sans `summary=1`, le format historique reste disponible pour les clients mobiles existants.
+- Interface : les traductions, les formules et la liste des voyages sont séparées dans `appTranslations.ts`, `PricingPlans.tsx` et `SavedTrips.tsx`.
