@@ -1,6 +1,6 @@
 {
   "site": "https://www.monpetitvoyageur.com",
-  "updated": "2026-09-08",
+  "updated": "2026-09-09",
   "positioning": "Mon Petit Voyageur = planification de voyages et de road trips assistée par IA, budget d'abord, tout réservable via liens (éditeur MARA LABS, Lille).",
   "clusters": {
     "planificateur-ia": "Pages commerciales : ce qu'est le service, à qui il s'adresse, comment l'IA intervient.",
@@ -21,7 +21,7 @@
         "créer mon voyage"
       ],
       "created": "2026-07-02",
-      "lastOptimized": "2026-09-08",
+      "lastOptimized": "2026-09-09",
       "title": "Mon Petit Voyageur · Planificateur de voyage et road trip IA",
       "h1": "Mon Petit Voyageur",
       "faqVisible": 7,
@@ -56,13 +56,16 @@
         {
           "date": "2026-09-08",
           "what": "Title et description de l'accueil réécrits pour le clic (promesse « votre voyage planifié par l'IA, dans votre budget », « Inscription gratuite » en fin de description) ; Offer gratuite ajoutée au SoftwareApplication du JSON-LD."
+        },
+        {
+          "date": "2026-09-09",
+          "what": "Polices Google chargées par <link rel=preconnect> + <link rel=stylesheet> au lieu de l'@import CSS bloquant ; og:image statique 1200x630 (og-image.jpg) avec dimensions, alt et twitter:image ; carte fixe (95 Ko) servie via <picture> aux visiteurs en prefers-reduced-motion, avec preload conditionnel ; logo.png ramené de 568 Ko à 61 Ko."
         }
       ],
       "openIssues": [
         "H1 = marque seule (« Mon Petit Voyageur ») : choix design (titre serif géant) ; le positionnement est porté par le title, la tagline et l'eyebrow.",
-        "Google Fonts chargé par @import CSS (chaîne bloquante) : à passer en <link rel=preload>/preconnect ou en polices locales (CWV).",
         "Bundle JS principal lourd (three.js, mapbox) chargé sur la landing : mesurer LCP/INP réels après déploiement.",
-        "Images lourdes : /logo-hero.webp ≈ 1,95 Mo (image LCP du hero) et /logo.png ≈ 568 Ko. À recompresser / redimensionner (cible < 200 Ko) : voir backlog images-poids.",
+        "DÉCISION MARION ATTENDUE — /logo-hero.webp pèse toujours 1,95 Mo : c'est l'image LCP. Mesures du 2026-09-09 : le format est déjà optimal (ré-encodages libwebp q68/q70/q80 et -min_size : 1,85 à 2,03 Mo, aucun gain). Les seules vraies options sont visuelles : (A) 18 images au lieu de 36, 1,10 Mo, animation deux fois moins fluide ; (B) toile réduite à 688 px, 1,30 Mo, légère perte de netteté ; (C) toile 480 px, 0,83 Mo, flou visible car la carte s'affiche jusqu'à 544 px CSS ; (D) carte fixe sans animation, 0,095 Mo (−95 %), qualité identique mais l'avion ne vole plus. En attendant, la carte fixe est déjà servie aux visiteurs qui limitent les animations.",
         "?legal=privacy|terms|sales : vues SPA (canonical propre posé par src/seo.ts, pas de HTML statique) : acceptable, non stratégique.",
         "Email de contact affiché contact@monpetitvoyageur.fr alors que le domaine est .com : à confirmer par Marion (boîte existante ?) avant tout changement.",
         "Racine https://monpetitvoyageur.com : alerte TLS (SSL IONOS non activé), voir backlog apex-https."
@@ -79,6 +82,10 @@
         {
           "date": "2026-09-08",
           "what": "Title avec promesse concrète (« en 5 étapes »), description qui répond à « combien prévoir et dans quel ordre » ; HowTo (5 étapes visibles) ajouté au JSON-LD ; Article enrichi."
+        },
+        {
+          "date": "2026-09-09",
+          "what": "og:image statique 1200x630 + og:image:width/height/alt + twitter:image ; logo d'en-tête déclaré 66x44 au lieu de 160x44 (le ratio annoncé contredisait l'image 3:2 et provoquait un décalage de mise en page au chargement)."
         }
       ],
       "openIssues": [],
@@ -120,6 +127,10 @@
         {
           "date": "2026-09-08",
           "what": "Title recentré sur la requête (« Organiser un voyage avec l'IA : la méthode en 6 étapes ») ; description ce que l'IA fait bien / rate ; HowTo (6 étapes visibles) ajouté au JSON-LD."
+        },
+        {
+          "date": "2026-09-09",
+          "what": "og:image statique 1200x630 + og:image:width/height/alt + twitter:image ; logo d'en-tête déclaré 66x44 au lieu de 160x44 (le ratio annoncé contredisait l'image 3:2 et provoquait un décalage de mise en page au chargement)."
         }
       ],
       "openIssues": [],
@@ -162,6 +173,10 @@
         {
           "date": "2026-09-08",
           "what": "Title précisé (« hôtel chaque nuit, temps de route »), description qui décrit le roadbook livré (hôtel + prix, route, voiture, carte, imprimable) ; Article enrichi (isPartOf, about, keywords)."
+        },
+        {
+          "date": "2026-09-09",
+          "what": "og:image statique 1200x630 + og:image:width/height/alt + twitter:image ; logo d'en-tête déclaré 66x44 au lieu de 160x44 (le ratio annoncé contredisait l'image 3:2 et provoquait un décalage de mise en page au chargement)."
         }
       ],
       "openIssues": [],
@@ -204,6 +219,10 @@
         {
           "date": "2026-09-08",
           "what": "Title orienté bénéfice (« itinéraire complet, vols et hôtels au prix réel »), description réécrite comme une réponse à l'intention commerciale + « Inscription gratuite » ; Offer gratuite dans le JSON-LD SoftwareApplication."
+        },
+        {
+          "date": "2026-09-09",
+          "what": "og:image statique 1200x630 + og:image:width/height/alt + twitter:image ; logo d'en-tête déclaré 66x44 au lieu de 160x44 (le ratio annoncé contredisait l'image 3:2 et provoquait un décalage de mise en page au chargement)."
         }
       ],
       "openIssues": [],
@@ -293,8 +312,8 @@
       "geo": 1,
       "effort": 1,
       "risk": 1,
-      "status": "open",
-      "note": "cwebp -q 80 -resize 1720 0 ; logo.png → webp/png optimisé ; vérifier le rendu sur la home et les pages guides (og:image)."
+      "status": "partiel",
+      "note": "2026-09-09 : logo.png 568 Ko -> 61 Ko (480x320, PNG8) ; nouvelle og-image.jpg 1200x630 (88 Ko) qui remplace l'animation comme image de partage ; carte fixe logo-hero-static.webp (95 Ko) servie en prefers-reduced-motion. RESTE : logo-hero.webp 1,95 Mo, image LCP — le format est déjà optimal, seule une décision visuelle de Marion peut le réduire (4 options chiffrées dans pages['/'].openIssues)."
     },
     {
       "id": "cwv-fonts",
@@ -305,7 +324,8 @@
       "geo": 1,
       "effort": 2,
       "risk": 1,
-      "status": "open"
+      "status": "done",
+      "note": "FAIT le 2026-09-09 : @import retiré de src/styles.css, remplacé par preconnect googleapis + gstatic et <link rel=stylesheet> dans index.html (même schéma que les pages guides). Vérifié au navigateur : les 5 fontes (DM Sans 400/500/600/700, Instrument Serif 400) sont chargées, aucune régression visuelle."
     },
     {
       "id": "faq-home",
@@ -366,6 +386,30 @@
       "risk": 1,
       "status": "open",
       "note": "Action Marion (soumissions manuelles, aucune inscription automatisée). Cibles honnêtes : annuaires d'outils IA en français, forums et groupes voyage (présentation transparente de l'outil), page entreprise LinkedIn MARA LABS, Product Hunt, un article invité sur la méthode « budget d'abord ». Jamais d'achat de liens ni de réseau de sites."
+    },
+    {
+      "id": "hero-poids-decision",
+      "title": "Trancher le poids de l'animation du hero (1,95 Mo, image LCP) : 4 options chiffrées",
+      "score": 75,
+      "impact": 5,
+      "commercial": 2,
+      "geo": 1,
+      "effort": 1,
+      "risk": 2,
+      "status": "open",
+      "note": "Décision de Marion, pas de la routine : A) 18 images = 1,10 Mo, moins fluide ; B) 688 px = 1,30 Mo ; C) 480 px = 0,83 Mo, flou ; D) carte fixe = 0,095 Mo (-95 %), qualité intacte mais sans animation. Recommandation : D, avec l'avion animé en CSS par-dessus la carte fixe si le mouvement compte. Mesures dans le journal du 2026-09-09."
+    },
+    {
+      "id": "og-image-verif",
+      "title": "Vérifier le rendu de la nouvelle og:image dans les partages (LinkedIn, X, Facebook, WhatsApp)",
+      "score": 40,
+      "impact": 2,
+      "commercial": 2,
+      "geo": 2,
+      "effort": 1,
+      "risk": 0,
+      "status": "open",
+      "note": "Après déploiement : passer https://www.monpetitvoyageur.com/ dans les débogueurs de partage pour purger le cache de l'ancienne image (une WebP animée de 1,95 Mo, que la plupart des plateformes n'affichaient pas)."
     }
   ],
   "kpi": {
@@ -374,9 +418,13 @@
       "createdAt": "2026-09-08",
       "sitemapSubmitted": "https://www.monpetitvoyageur.com/sitemap.xml",
       "urlsDiscovered": 5,
-      "note": "Aucune donnée d'impressions encore (traitement en cours). Dernière exploration de / par Googlebot : 2026-09-06 en 404 (avant la mise en production du 08) ; réindexation demandée le 08."
+      "note": "Aucune donnée d'impressions encore (traitement en cours). Dernière exploration de / par Googlebot : 2026-09-06 en 404 (avant la mise en production du 08) ; réindexation demandée le 08.",
+      "checkedAt": "2026-09-09",
+      "indexation": "Les 5 URL sont indexées (inspection URL du 2026-09-09) : /, /planificateur-voyage-ia, /budget-voyage, /planificateur-road-trip-ia, /organiser-un-voyage-avec-l-ia. Fils d'Ariane valide détecté sur les 4 guides, HTTPS OK partout.",
+      "performance": "0 clic / 0 impression au 2026-09-09 ; le rapport Performances ne couvre que les 5-6/09 (avant indexation) et le rapport Indexation affiche encore « traitement des données en cours ». Règle CTR inapplicable avant ~28 jours de données.",
+      "piege": "L'inspection d'URL de Search Console garde en mémoire la « canonique déclarée » de l'URL précédente quand on enchaîne les inspections sans rechargement complet. Vérifié le 2026-09-09 : les canoniques servies sont correctes (curl Googlebot desktop et smartphone, dist/, un seul <link rel=canonical> par page, aucun en-tête Link). Recharger la page d'inspection avant de conclure à une anomalie."
     },
-    "note": "Aucune donnée Search Console au 2026-09-08 (propriété non créée). Le site est désormais déployé et indexable : créer sc-domain:monpetitvoyageur.com et soumettre le sitemap est la prochaine action à plus fort effet.",
+    "note": "Search Console opérationnelle et les 5 URL indexées au 2026-09-09, mais aucune donnée de performance exploitable (0 impression). Prochaine mesure utile : impressions/requêtes à partir de ~2026-09-16, règle CTR à partir de ~2026-10-06.",
     "ctrRule": "Dès que Search Console existe : requêtes des 28 derniers jours avec ≥ 50 impressions, CTR < 2 % et position ≤ 15 → réécrire title/description de la page ciblée (une par run), noter la requête ici, comparer 28 j après."
   },
   "history": [
@@ -469,6 +517,36 @@
       "url": "site",
       "action": "mesure",
       "justification": "Propriété Search Console créée et validée via IONOS, sitemap soumis (5 URL), réindexation de / demandée après constat d'un 404 Googlebot du 06/09. Commit 72a7277 poussé sur main : Railway redéploie les titles/descriptions/JSON-LD."
+    },
+    {
+      "date": "2026-09-09",
+      "url": "/",
+      "action": "mesure",
+      "justification": "Search Console : les 5 URL sont indexées (inspection du 2026-09-09) ; 0 clic / 0 impression, règle CTR inapplicable. Production vérifiée : 9 URL aux bons codes, 404 réel, sitemap XML, llms.txt."
+    },
+    {
+      "date": "2026-09-09",
+      "url": "/",
+      "action": "technique",
+      "justification": "Polices : @import CSS bloquant remplacé par preconnect + <link rel=stylesheet> (backlog cwv-fonts). Chaîne de requêtes critique raccourcie d'un cran."
+    },
+    {
+      "date": "2026-09-09",
+      "url": "/",
+      "action": "technique",
+      "justification": "Partage social : og:image passée d'une WebP animée de 1,95 Mo à une image fixe 1200x630 de 88 Ko, avec og:image:width/height/alt et twitter:image. Une WebP animée n'est pas affichée comme aperçu par la plupart des plateformes."
+    },
+    {
+      "date": "2026-09-09",
+      "url": "/",
+      "action": "technique",
+      "justification": "Accessibilité et poids : la carte fixe (95 Ko) est servie via <picture> aux visiteurs en prefers-reduced-motion, preload conditionnel assorti (WCAG 2.2.2). logo.png ramené de 568 Ko à 61 Ko."
+    },
+    {
+      "date": "2026-09-09",
+      "url": "/budget-voyage",
+      "action": "technique",
+      "justification": "Logo d'en-tête : attributs width/height corrigés de 160x44 à 66x44 ; le ratio annoncé (3,64) contredisait l'image (1,50) et provoquait un décalage de mise en page au chargement. Même correction sur les 4 guides."
     }
   ]
 }

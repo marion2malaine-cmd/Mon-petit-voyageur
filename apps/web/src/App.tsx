@@ -964,7 +964,11 @@ function TravelerApp() {
             <h1 className="hero-title">{t.title}</h1>
             <p className="hero-tagline">{t.tagline}</p>
             <div className="hero-plane" aria-hidden="true">
-              <img className="hero-card" src="/logo-hero.webp" alt="" width="860" height="577" />
+              <picture>
+                <source srcSet="/logo-hero-static.webp" media="(prefers-reduced-motion: reduce)" type="image/webp" />
+                {/* La priorité de chargement est portée par le <link rel="preload"> d'index.html. */}
+                <img className="hero-card" src="/logo-hero.webp" alt="" width="860" height="577" />
+              </picture>
             </div>
             <div className="hero-actions">
               <button onClick={() => document.getElementById("connexion")?.scrollIntoView({ behavior: "smooth" })}>

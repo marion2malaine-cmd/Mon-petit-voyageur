@@ -201,7 +201,7 @@ export function renderPage(page, allPages) {
           author: { "@id": `${SITE_URL}/#organization` },
           publisher: { "@id": `${SITE_URL}/#organization` },
           mainEntityOfPage: url,
-          image: `${SITE_URL}/logo-hero.webp`,
+          image: `${SITE_URL}/og-image.jpg`,
           isPartOf: { "@id": `${SITE_URL}/#website` },
           about: { "@id": `${SITE_URL}/#app` },
           keywords: page.secondaryKeywords?.join(", ")
@@ -240,8 +240,12 @@ export function renderPage(page, allPages) {
 <meta property="og:title" content="${escapeHtml(page.title)}">
 <meta property="og:description" content="${escapeHtml(page.description)}">
 <meta property="og:url" content="${url}">
-<meta property="og:image" content="${SITE_URL}/logo-hero.webp">
+<meta property="og:image" content="${SITE_URL}/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Mon Petit Voyageur — voyages sur mesure, orchestrés par l'IA">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="${SITE_URL}/og-image.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
@@ -250,7 +254,7 @@ ${jsonLd(graph)}
 </head>
 <body>
 <header class="topbar">
-<a href="/" aria-label="${SITE_NAME} — accueil"><img src="/logo.png" alt="${SITE_NAME}" width="160" height="44"></a>
+<a href="/" aria-label="${SITE_NAME} — accueil"><img src="/logo.png" alt="${SITE_NAME}" width="66" height="44"></a>
 <nav aria-label="Guides">${nav}</nav>
 </header>
 <section class="hero">

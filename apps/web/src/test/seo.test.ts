@@ -207,3 +207,60 @@ describe("seo/state.json (mémoire de la routine)", () => {
     }
   });
 });
+
+describe("images de partage et poids des ressources", () => {
+  // Une animation WebP ne s'affiche pas comme aperçu de partage : og:image doit
+  // rester une image fixe 1200x630, et tout fichier référencé doit exister.
+  const referenced = new Set<string>();
+  for (const html of [indexHtml, ...files.values()]) {
+    for (const m of html.matchAll(/(?:src|href|content|srcset|srcSet)="(\/[^"]+\.(?:png|jpe?g|webp|svg|gif))"/g)) referenced.add(m[1]);
+    for (const m of html.matchAll(/content="https:\/\/www\.monpetitvoyageur\.com(\/[^"]+\.(?:png|jpe?g|webp|svg|gif))"/g)) referenced.add(m[1]);
+  }
+
+  it("ne référence que des fichiers présents dans public/", () => {
+    expect(referenced.size).toBeGreaterThan(0);
+    for (const rel of referenced) {
+      expect(fs.existsSync(path.join(webRoot, "public", rel.replace(/^\//, ""))), `public${rel} manquant`).toBe(true);
+    }
+  });
+
+  it("déclare une og:image fixe 1200x630 avec alt et twitter:image sur l'accueil et chaque guide", () => {
+    for (const [name, html] of [["index.html", indexHtml] as const, ...[...files.entries()].filter(([n]) => n.endsWith(".html") && n !== "404.html")]) {
+      const og = html.match(/<meta property="og:image" content="([^"]+)"/)?.[1];
+      expect(og, `${name} : og:image manquante`).toBe(`${SITE_URL}/og-image.jpg`);
+      expect(html, `${name} : og:image:width`).toMatch(/<meta property="og:image:width" content="1200"/);
+      expect(html, `${name} : og:image:height`).toMatch(/<meta property="og:image:height" content="630"/);
+      expect(html, `${name} : og:image:alt`).toMatch(/<meta property="og:image:alt" content="[^"]{10,}"/);
+      expect(html, `${name} : twitter:image`).toMatch(/<meta name="twitter:image" content="[^"]+og-image\.jpg"/);
+    }
+  });
+
+  it("l'og:image fait bien 1200x630 et reste sous 300 Ko", () => {
+    const file = path.join(webRoot, "public/og-image.jpg");
+    const buf = fs.readFileSync(file);
+    expect(buf.byteLength).toBeLessThan(300 * 1024);
+    // Dimensions lues dans le marqueur SOF0/SOF2 du JPEG.
+    let i = 2;
+    let size: [number, number] | null = null;
+    while (i < buf.length - 9) {
+      if (buf[i] !== 0xff) { i += 1; continue; }
+      const marker = buf[i + 1];
+      if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) {
+        size = [buf.readUInt16BE(i + 7), buf.readUInt16BE(i + 5)];
+        break;
+      }
+      i += 2 + buf.readUInt16BE(i + 2);
+    }
+    expect(size).toEqual([1200, 630]);
+  });
+
+  it("propose la carte fixe aux visiteurs qui limitent les animations (WCAG 2.2.2) et préserve le poids", () => {
+    expect(indexHtml).toMatch(/<source srcset="\/logo-hero-static\.webp" media="\(prefers-reduced-motion: reduce\)"/);
+    expect(indexHtml).toMatch(/rel="preload"[^>]+logo-hero-static\.webp[^>]+media="\(prefers-reduced-motion: reduce\)"/);
+    expect(indexHtml).toMatch(/rel="preload"[^>]+logo-hero\.webp[^>]+media="\(prefers-reduced-motion: no-preference\)"/);
+    const light = fs.statSync(path.join(webRoot, "public/logo-hero-static.webp")).size;
+    const logo = fs.statSync(path.join(webRoot, "public/logo.png")).size;
+    expect(light).toBeLessThan(200 * 1024);
+    expect(logo).toBeLessThan(100 * 1024);
+  });
+});
