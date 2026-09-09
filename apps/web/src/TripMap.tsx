@@ -173,6 +173,7 @@ export default function TripMap({ routes, locale = "fr", hotel = null }: { route
   useEffect(() => {
     if (!MAPBOX_TOKEN || !container.current || !routes.length) return;
     let map: any = null;
+    let resizeObserver: ResizeObserver | null = null;
     let cancelled = false;
     setWalks({});
     setMapError(false);
@@ -191,6 +192,12 @@ export default function TripMap({ routes, locale = "fr", hotel = null }: { route
         cooperativeGestures: true
       });
       map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+      // The map is created while the results section is still settling its
+      // layout: measured at the wrong size, it painted nothing until the
+      // window was resized. Following the container's real size fixes that.
+      resizeObserver = new ResizeObserver(() => map?.resize());
+      resizeObserver.observe(container.current);
+      map.once("load", () => map?.resize());
       map.on("error", (event: any) => {
         if (!cancelled) setMapError(true);
         if (!cancelled && !fallback) setFallback(true);
@@ -290,6 +297,7 @@ export default function TripMap({ routes, locale = "fr", hotel = null }: { route
 
     return () => {
       cancelled = true;
+      resizeObserver?.disconnect();
       map?.remove();
     };
   }, [visibleRoutes, city, locale, hotel?.lat, hotel?.lon, hotel?.name, hotel?.photo, fallback]);

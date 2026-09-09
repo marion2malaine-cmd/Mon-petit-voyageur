@@ -360,13 +360,16 @@ function collectPhotoSlots(itinerary: ItineraryByDay, destination = "", research
       get: () => day.photo,
       set: (photo) => (day.photo = photo),
       themeQuery: angle("day", DAY_QUERIES),
+      strict: true,
       width: HERO_WIDTH
     });
-    // The bed of the night. A traveler chooses a hotel on a picture and a
-    // price, so the card needs both — and the picture was never resolved.
-    if (day.lodging?.name) {
+    // The bed of the night. Its picture comes from the hotel engine (the same
+    // photos Booking shows), matched by name in the planner. It is never
+    // looked up in the photo libraries: an encyclopedia has no page for a
+    // guesthouse, and a stock library answers "hotel" with someone else's
+    // hotel — which a traveler would take for this one.
+    if (day.lodging?.name && day.lodging.photo?.url) {
       const lodging = day.lodging;
-      lodging.photo = ensureQuery(lodging.photo, `${lodging.name} ${lodging.town ?? place}`.trim());
       slots.push({
         get: () => lodging.photo,
         set: (photo) => (lodging.photo = photo),
