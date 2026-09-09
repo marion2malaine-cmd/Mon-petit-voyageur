@@ -109,6 +109,54 @@ function popupNode(title: string, label: string): HTMLElement {
  * with a popup. mapbox-gl is imported lazily so the initial bundle (and the
  * jsdom tests) never load WebGL code.
  */
+// When the interactive map cannot start (WebGL refused, a browser without
+// hardware acceleration), the same route is drawn by Mapbox's still-image
+// service: numbered pins and the day's line, no WebGL involved. The URL is
+// bounded, so a long trip keeps the first pins of each day.
+const STILL_PIN_BUDGET = 60;
+function buildStaticMapUrl(routes: MapRoute[], city: boolean): string | null {
+  const overlays: string[] = [];
+  let pins = 0;
+  routes.forEach((route, index) => {
+    const colour = (city ? "#ed775e" : PALETTE[index % PALETTE.length]).replace("#", "");
+    const points = stops(route);
+    if (points.length >= 2) {
+      overlays.push(`path-4+${colour}-0.85(${encodeURIComponent(encodePolyline(points.map((p) => [p.lat, p.lon])))})`);
+    }
+    points.forEach((point, order) => {
+      if (pins >= STILL_PIN_BUDGET) return;
+      pins += 1;
+      overlays.push(`pin-s-${Math.min(order + 1, 99)}+${colour}(${point.lon.toFixed(5)},${point.lat.toFixed(5)})`);
+    });
+  });
+  if (!overlays.length) return null;
+  return `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/static/${overlays.join(",")}/auto/1200x640@2x?padding=50&access_token=${encodeURIComponent(MAPBOX_TOKEN)}`;
+}
+
+// Google's polyline encoding, what the static API expects for a path.
+function encodePolyline(points: [number, number][]): string {
+  let output = "";
+  let previousLat = 0;
+  let previousLon = 0;
+  const encodeValue = (value: number) => {
+    let v = value < 0 ? ~(value << 1) : value << 1;
+    let chunk = "";
+    while (v >= 0x20) {
+      chunk += String.fromCharCode((0x20 | (v & 0x1f)) + 63);
+      v >>= 5;
+    }
+    return chunk + String.fromCharCode(v + 63);
+  };
+  for (const [lat, lon] of points) {
+    const roundedLat = Math.round(lat * 1e5);
+    const roundedLon = Math.round(lon * 1e5);
+    output += encodeValue(roundedLat - previousLat) + encodeValue(roundedLon - previousLon);
+    previousLat = roundedLat;
+    previousLon = roundedLon;
+  }
+  return output;
+}
+
 export default function TripMap({ routes, locale = "fr", hotel = null }: { routes: MapRoute[]; locale?: "fr" | "en"; hotel?: { name: string; photo?: string; lat: number; lon: number } | null }) {
   const container = useRef<HTMLDivElement>(null);
   const [walks, setWalks] = useState<Record<number, Walk>>({});
@@ -233,7 +281,12 @@ export default function TripMap({ routes, locale = "fr", hotel = null }: { route
       });
 
       if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 65, maxZoom: city ? 16 : 14, duration: 0 });
-    }).catch(() => { if (!cancelled) setMapError(true); });
+    }).catch((error) => {
+      // Typically WebGL refused by the browser: no interactive map is
+      // possible, the still image below takes over.
+      console.warn("Map loading:", (error as Error)?.message ?? error);
+      if (!cancelled) setMapError(true);
+    });
 
     return () => {
       cancelled = true;
@@ -242,6 +295,8 @@ export default function TripMap({ routes, locale = "fr", hotel = null }: { route
   }, [visibleRoutes, city, locale, hotel?.lat, hotel?.lon, hotel?.name, hotel?.photo, fallback]);
 
   if (!MAPBOX_TOKEN || !routes.length) return null;
+
+  const staticMap = mapError ? buildStaticMapUrl(visibleRoutes, city) : null;
 
   return (
     <div className={`trip-map-block${city ? " city-map-block" : ""}`}>
@@ -260,6 +315,7 @@ export default function TripMap({ routes, locale = "fr", hotel = null }: { route
         </nav>}
         <div className="city-map-stage">
           <div ref={container} className="trip-map" />
+          {mapError && staticMap && <img className="trip-map-still" src={staticMap} alt={fr ? "Carte du séjour" : "Trip map"} />}
           {mapError && <p className="city-map-notice" role="status">{fr ? "Certaines données cartographiques sont indisponibles." : "Some map data is unavailable."}</p>}
           {fallback && !mapError && <p className="city-map-notice" role="status">{fr ? "Vue 2D · Le fond 3D est temporairement indisponible" : "2D view · 3D map temporarily unavailable"}</p>}
           {selected && <aside className="city-map-detail"><button type="button" aria-label={fr ? "Fermer" : "Close"} onClick={() => setSelected(null)}>×</button><small>{fr ? "VOTRE ÉTAPE" : "YOUR STOP"}</small><strong>{selected.name}</strong><a href={`https://www.google.com/maps/search/?api=1&query=${selected.lat},${selected.lon}`} target="_blank" rel="noreferrer">{fr ? "Voir l’adresse ↗" : "View location ↗"}</a></aside>}

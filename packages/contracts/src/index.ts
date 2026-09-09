@@ -213,7 +213,12 @@ export const CarRentalAdviceSchema = z.object({
   // the difference between a 15 €/day rental and a 60 €/day one at the desk.
   alerts: z.array(z.string()).default([]),
   documents: z.array(z.string()).default([]),
-  search_links: z.array(SearchLinkSchema).default([])
+  search_links: z.array(SearchLinkSchema).default([]),
+  // The dates the quoted rates are computed on: a daily rate means nothing
+  // without the days it is multiplied by.
+  pickup_date: z.string().nullable().default(null),
+  return_date: z.string().nullable().default(null),
+  rental_days: z.number().int().positive().nullable().default(null)
 });
 export type CarRentalAdvice = z.infer<typeof CarRentalAdviceSchema>;
 
@@ -255,10 +260,38 @@ export const CityTransportSchema = z.object({
 });
 export type CityTransport = z.infer<typeof CityTransportSchema>;
 
+export const LocalMobilityOptionSchema = z.object({
+  name: z.string(),
+  kind: z.enum(["ride_hailing", "taxi", "tuk_tuk", "moto_taxi", "private_driver", "other"]),
+  availability: z.enum(["available", "limited", "unavailable", "unknown"]).default("unknown"),
+  booking_method: z.string().default(""),
+  typical_fares: z.array(z.object({
+    duration_minutes: z.number().int().positive(),
+    price_min_eur: z.number().nonnegative().nullable().default(null),
+    price_max_eur: z.number().nonnegative().nullable().default(null),
+    price_note: z.string().default("")
+  })).default([]),
+  notes: z.array(z.string()).default([]),
+  estimated: z.boolean().default(true)
+});
+export type LocalMobilityOption = z.infer<typeof LocalMobilityOptionSchema>;
+
+export const DriverServiceSchema = z.object({
+  name: z.string(),
+  service_type: z.enum(["airport_transfer", "intercity", "hourly_driver", "local_driver", "tour_driver"]).default("local_driver"),
+  availability: z.enum(["available", "limited", "unknown"]).default("unknown"),
+  website: z.string().url(),
+  notes: z.string().default("")
+});
+export type DriverService = z.infer<typeof DriverServiceSchema>;
+
 export const GroundTransportSchema = z.object({
   airport_to_center: z.array(TransferOptionSchema).default([]),
   recommended: z.string().default(""),
   city_transport: CityTransportSchema.nullable().default(null),
+  local_mobility: z.array(LocalMobilityOptionSchema).default([]),
+  driver_services: z.array(DriverServiceSchema).default([]),
+  mobility_checked_on: z.string().nullable().default(null),
   total_estimate_eur: z.number().nonnegative().nullable().default(null),
   search_links: z.array(SearchLinkSchema).default([])
 });
@@ -356,7 +389,10 @@ export type FreeVisit = z.infer<typeof FreeVisitSchema>;
 // official site and the international platform all resell it. This is where
 // the cheaper route is written down, with what travelers report about it.
 export const LocalAlternativeSchema = z.object({
-  how_to_book: z.string().default(""),
+  // Models answer null here as often as they answer a sentence ("nothing to
+  // book"), and rejecting the whole batch over it cost a full retry — several
+  // seconds — on plans that were otherwise perfect.
+  how_to_book: z.string().nullable().default("").transform((value) => value ?? ""),
   typical_saving: z.string().nullable().default(null),
   forum_tip: z.string().nullable().default(null),
   // What the same outing costs bought on the spot (harbour kiosk, site
@@ -376,9 +412,39 @@ export type LocalAlternative = z.infer<typeof LocalAlternativeSchema>;
 export const ActivityCategorySchema = z.enum(["culture", "sport", "discovery", "relax", "food"]);
 export type ActivityCategory = z.infer<typeof ActivityCategorySchema>;
 
+// Models reach for the whole English vocabulary of effort — "leisurely",
+// "relaxed", "challenging" — and one unlisted word used to throw away an
+// entire batch of days. The nearest of the three levels is taken instead.
+const INTENSITY_SYNONYMS: Record<string, "easy" | "moderate" | "sporty"> = {
+  leisurely: "easy",
+  relaxed: "easy",
+  gentle: "easy",
+  light: "easy",
+  low: "easy",
+  medium: "moderate",
+  average: "moderate",
+  active: "moderate",
+  intense: "sporty",
+  challenging: "sporty",
+  demanding: "sporty",
+  strenuous: "sporty",
+  hard: "sporty",
+  difficult: "sporty",
+  high: "sporty"
+};
+
+export const IntensitySchema = z
+  .preprocess((value) => {
+    if (typeof value !== "string") return value;
+    const key = value.trim().toLowerCase();
+    return INTENSITY_SYNONYMS[key] ?? key;
+  }, z.enum(["easy", "moderate", "sporty"]).catch("easy"))
+  .default("easy");
+
 // Paid activities are always offered as alternatives (option A / B / C) so the
 // traveler picks by budget, energy and weather on the day itself.
 export const PaidOptionSchema = z.object({
+  selected: z.boolean().default(false),
   option_label: z.string(),
   title: z.string(),
   category: ActivityCategorySchema.default("discovery"),
@@ -387,7 +453,7 @@ export const PaidOptionSchema = z.object({
   price_from_eur: z.number().nonnegative().nullable().default(null),
   price_note: z.string().nullable().default(null),
   suited_for: z.array(z.string()).default([]),
-  intensity: z.enum(["easy", "moderate", "sporty"]).default("easy"),
+  intensity: IntensitySchema,
   // A "ticket" is a fixed place you enter (museum, monument, palace, site,
   // show); an "experience" is a guided activity (tour, cruise, class, day
   // trip). They are booked through different channels, so the kind decides
@@ -742,7 +808,7 @@ export const AuthUserSchema = z.object({
 });
 export type AuthUser = z.infer<typeof AuthUserSchema>;
 
-export const BillingPlanSchema = z.enum(["monthly", "annual"]);
+export const BillingPlanSchema = z.enum(["monthly", "annual", "premium"]);
 export type BillingPlan = z.infer<typeof BillingPlanSchema>;
 
 export const BillingCheckoutRequestSchema = z.object({

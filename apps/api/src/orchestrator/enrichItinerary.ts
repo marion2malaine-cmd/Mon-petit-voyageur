@@ -14,6 +14,11 @@ import { geocodePlaces, geocodeRequestCount } from "../tools/geocode";
 import { sanitizeOfficialUrl } from "../tools/links";
 import type { LiveTools } from "../tools";
 
+// What makes a guide photo beautiful: distance. A wide view of the place,
+// its landscape around it, rather than a close-up or a crowd.
+const SCENIC_HINT = "scenic wide landscape view";
+const WIDE_CATEGORIES = new Set(["viewpoint", "nature", "beach", "village", "old_town", "monument", "archaeology", "garden"]);
+
 const FOOD_ANGLES = ["food dish", "taverna table", "grilled seafood", "local specialty", "meze plate", "street food"];
 
 export interface EnrichOptions {
@@ -57,7 +62,8 @@ export async function enrichItinerary(
   for (const day of itinerary.itinerary_by_day ?? []) {
     for (const visit of day.free_visits ?? []) {
       visit.map_url = buildMapUrl(visit.name, destination);
-      visit.photo = ensureQuery(visit.photo, `${visit.name} ${destination}`);
+      const scenic = WIDE_CATEGORIES.has(visit.category) ? ` ${SCENIC_HINT}` : "";
+      visit.photo = ensureQuery(visit.photo, `${visit.name} ${destination}${scenic}`);
     }
 
     for (const option of day.paid_options ?? []) {
@@ -115,7 +121,10 @@ export async function enrichItinerary(
 
     // Area alone would give the arrival and departure days, both based in the
     // same town, the very same cover photo.
-    day.photo = ensureQuery(day.photo, `${[day.area, day.theme].filter(Boolean).join(" ")} ${destination}`.trim());
+    // The hero of the day is a landscape seen from afar, not a doorway: the
+    // scenic words steer the photo libraries, and are dropped for the
+    // encyclopedias, which are asked the place name alone.
+    day.photo = ensureQuery(day.photo, `${[day.area, day.theme].filter(Boolean).join(" ")} ${destination} ${SCENIC_HINT}`.trim());
   }
 
   for (const excursion of itinerary.suggested_excursions ?? []) {
@@ -205,8 +214,8 @@ export async function locateItinerary(
  * Rewrites every photo as a data URI so a downloaded guide keeps its
  * illustrations offline — the traveler reads it on the plane, not online.
  */
-export async function embedItineraryPhotos(itinerary: ItineraryByDay): Promise<ItineraryByDay> {
-  const slots = collectPhotoSlots(itinerary);
+export async function embedItineraryPhotos(itinerary: ItineraryByDay, research: any = null): Promise<ItineraryByDay> {
+  const slots = collectPhotoSlots(itinerary, "", research);
 
   for (const slot of slots) {
     const photo = slot.get();
@@ -227,9 +236,11 @@ export async function resolveItineraryPhotos(
   itinerary: ItineraryByDay,
   tools: LiveTools,
   locale: "fr" | "en",
-  destination: string
+  destination: string,
+  /** The researched blocks that also carry photos: hotels are on the days, cars are here. */
+  research: any = null
 ): Promise<boolean> {
-  const slots = collectPhotoSlots(itinerary, destination);
+  const slots = collectPhotoSlots(itinerary, destination, research);
   const pending = slots.filter((slot) => slot.get()?.query && !slot.get()?.url);
   if (!pending.length) return false;
 
@@ -249,13 +260,17 @@ export async function resolveItineraryPhotos(
     }
   }
 
-  // Second pass: places with no photo of their own get a photo of what they
-  // are, in the region — a market, a village, a beach — rather than a blank.
-  if (stillEmpty.length) {
-    const themeQueries = [...new Set(stillEmpty.map((slot) => slot.themeQuery))];
+  // Second pass: the day's hero and the lodging may be illustrated by what
+  // they are, in the region — a village, a beach, a guesthouse. A visit, an
+  // activity or a restaurant may not: a card showing a market that is not
+  // this market misleads the traveler, so those stay blank until a photo of
+  // the place itself is found.
+  const substitutable = stillEmpty.filter((slot) => !slot.strict);
+  if (substitutable.length) {
+    const themeQueries = [...new Set(substitutable.map((slot) => slot.themeQuery))];
     const themePhotos = await tools.find_photos({ queries: themeQueries, locale, destination });
 
-    for (const slot of stillEmpty) {
+    for (const slot of substitutable) {
       const photo = themePhotos.get(slot.themeQuery);
       if (!photo?.url) continue;
       // The original query is kept as the alt text: it says what the card is
@@ -277,6 +292,8 @@ interface PhotoSlot {
    * village shot of the region beats leaving a blank card in the guide.
    */
   themeQuery: string;
+  /** True when only a photo of this very place will do (visits, activities, tables). */
+  strict?: boolean;
   /** Display width, so a thumbnail card never embeds a full-width photo. */
   width: number;
 }
@@ -294,18 +311,30 @@ const CATEGORY_QUERIES: Record<string, string[]> = {
   archaeology: ["archaeological site ruins", "ancient columns ruins", "excavation site stones"],
   old_town: ["old town street", "narrow alley old houses", "historic quarter facades"],
   market: ["local market stalls", "spice market", "farmers market produce"],
-  viewpoint: ["panoramic viewpoint landscape", "hilltop view sunset", "coastal overlook"],
-  nature: ["nature landscape", "mountain trail", "gorge canyon"],
-  beach: ["beach coast", "turquoise sea cove", "sandy shoreline"],
+  viewpoint: ["panoramic viewpoint landscape", "hilltop wide view sunset", "coastal overlook panorama"],
+  nature: ["nature landscape panorama", "mountain valley wide view", "gorge canyon aerial view"],
+  beach: ["beach coast aerial view", "turquoise sea cove panorama", "sandy shoreline wide view"],
   street_art: ["street art mural", "graffiti wall art", "colourful painted alley"],
   garden: ["public garden park", "botanical garden path", "shaded park bench"],
   village: ["traditional village", "hillside village houses", "village square"]
 };
 
 const DEFAULT_QUERIES = ["landmark", "historic place", "scenic spot"];
-const DAY_QUERIES = ["landscape", "coastline", "countryside", "town view"];
+const DAY_QUERIES = ["panoramic landscape wide view", "aerial coastline scenery", "countryside panorama", "town skyline distant view"];
 const ACTIVITY_QUERIES = ["excursion tourists", "boat trip", "guided tour group", "hiking group"];
 const RESTAURANT_QUERIES = ["restaurant food", "taverna dinner", "local dishes", "seafood plate", "traditional meal"];
+// A hotel rarely has a photo of its own in a free library: the fallback shows
+// the kind of place it is, in the region.
+const LODGING_QUERIES: Record<string, string[]> = {
+  hotel: ["hotel room", "boutique hotel bedroom", "hotel facade"],
+  guesthouse: ["guesthouse room", "bed and breakfast bedroom", "small guesthouse"],
+  homestay: ["homestay room", "traditional house bedroom", "family home stay"],
+  ecolodge: ["eco lodge", "wooden lodge nature", "bungalow garden"],
+  resort: ["resort pool", "beach resort", "resort terrace"],
+  apartment: ["apartment living room", "studio apartment", "holiday apartment"],
+  boat: ["cabin boat interior", "cruise boat deck", "houseboat"]
+};
+const CAR_QUERIES = ["rental car", "small car parked", "car on the road"];
 
 /**
  * Walks the itinerary's photo slots.
@@ -314,7 +343,7 @@ const RESTAURANT_QUERIES = ["restaurant food", "taverna dinner", "local dishes",
  * in the database with plain morning/afternoon/evening days, and the guide has
  * to render them instead of crashing.
  */
-function collectPhotoSlots(itinerary: ItineraryByDay, destination = ""): PhotoSlot[] {
+function collectPhotoSlots(itinerary: ItineraryByDay, destination = "", research: any = null): PhotoSlot[] {
   const place = destination.normalize("NFD").replace(/[̀-ͯ]/g, "");
   const slots: PhotoSlot[] = [];
   const counters = new Map<string, number>();
@@ -333,11 +362,24 @@ function collectPhotoSlots(itinerary: ItineraryByDay, destination = ""): PhotoSl
       themeQuery: angle("day", DAY_QUERIES),
       width: HERO_WIDTH
     });
+    // The bed of the night. A traveler chooses a hotel on a picture and a
+    // price, so the card needs both — and the picture was never resolved.
+    if (day.lodging?.name) {
+      const lodging = day.lodging;
+      lodging.photo = ensureQuery(lodging.photo, `${lodging.name} ${lodging.town ?? place}`.trim());
+      slots.push({
+        get: () => lodging.photo,
+        set: (photo) => (lodging.photo = photo),
+        themeQuery: angle(lodging.kind ?? "hotel", LODGING_QUERIES[lodging.kind ?? "hotel"] ?? LODGING_QUERIES.hotel),
+        width: CARD_WIDTH
+      });
+    }
     for (const visit of day.free_visits ?? []) {
       slots.push({
         get: () => visit.photo,
         set: (photo) => (visit.photo = photo),
         themeQuery: angle(visit.category, CATEGORY_QUERIES[visit.category] ?? DEFAULT_QUERIES),
+        strict: true,
         width: CARD_WIDTH
       });
     }
@@ -346,6 +388,7 @@ function collectPhotoSlots(itinerary: ItineraryByDay, destination = ""): PhotoSl
         get: () => option.photo,
         set: (photo) => (option.photo = photo),
         themeQuery: angle("activity", ACTIVITY_QUERIES),
+        strict: true,
         width: CARD_WIDTH
       });
     }
@@ -354,6 +397,7 @@ function collectPhotoSlots(itinerary: ItineraryByDay, destination = ""): PhotoSl
         get: () => restaurant.photo,
         set: (photo) => (restaurant.photo = photo),
         themeQuery: angle("restaurant", RESTAURANT_QUERIES),
+        strict: true,
         width: CARD_WIDTH
       });
     }
@@ -363,7 +407,21 @@ function collectPhotoSlots(itinerary: ItineraryByDay, destination = ""): PhotoSl
       get: () => excursion.photo,
       set: (photo) => (excursion.photo = photo),
       themeQuery: angle("excursion", DAY_QUERIES),
+      strict: true,
       width: HERO_WIDTH
+    });
+  }
+
+  // The rental categories: the traveler picks between a city car and a
+  // 7-seater far more easily on a picture of the model than on a label.
+  for (const option of research?.car_rental?.options ?? []) {
+    const model = option.example_model ?? option.category;
+    option.photo = ensureQuery(option.photo, `${model} car`.trim());
+    slots.push({
+      get: () => option.photo,
+      set: (photo: Photo) => (option.photo = photo),
+      themeQuery: angle("car", CAR_QUERIES),
+      width: CARD_WIDTH
     });
   }
 

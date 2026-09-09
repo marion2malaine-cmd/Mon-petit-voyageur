@@ -78,6 +78,7 @@ export function buildServer() {
       subscription_plan: user.subscription_plan ?? null,
       current_period_end: user.current_period_end ?? null,
       trial_used: !!user.trial_used,
+      complimentary_unlimited: user.complimentary_unlimited === 1 || compEmails.has(user.email.toLowerCase()),
       billing_enabled: billing.isConfigured,
       has_premium: premiumAccess(user, compEmails),
       has_access: hasActiveAccess(user, billing.isConfigured, compEmails)
@@ -121,6 +122,8 @@ export function buildServer() {
   // with their session. The web app, its www variant and the iOS app (Capacitor)
   // are allowed; localhost dev origins only outside production.
   const allowedOrigins = new Set<string>([
+    "https://admin-dashboard-production-b0b2.up.railway.app",
+    "https://admin.monpetitvoyageur.com",
     config.APP_URL,
     config.APP_URL.replace("https://", "https://www."),
     "capacitor://localhost",
@@ -185,7 +188,7 @@ export function buildServer() {
   });
 
   app.get("/api/health", async () => ({ ok: true }));
-  registerAdmin(app, db);
+  registerAdmin(app, db, {billingConfigured:billing.isConfigured,compEmails});
 
   // Tighter limit on account creation and login: brute force / enumeration.
   const authRateLimit = { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } };
@@ -321,6 +324,7 @@ export function buildServer() {
       }
     }
 
+    db.raw.prepare("INSERT INTO admin_meta(key,value) VALUES('last_webhook',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(new Date().toISOString());
     return { received: true };
   });
 
@@ -446,6 +450,9 @@ export function buildServer() {
     userId: number,
     runId: string
   ): Promise<PlanTripResponse & { trip_id: number; run_id: string }> {
+    const adminStarted=Date.now();
+    db.raw.prepare("INSERT OR REPLACE INTO admin_generations(run_id,user_id,status) VALUES(?,?,'running')").run(runId,userId);
+    try {
     const result = await orchestrator.planTrip(input);
 
     let tripId = input.trip_id;
@@ -471,9 +478,50 @@ export function buildServer() {
       status: "ok"
     });
 
+    // The photos are the longest single part of a plan — four minutes on a
+    // three-week trip, longer than writing the program — and nothing in the
+    // itinerary depends on them. The traveler gets the program the moment it is
+    // written; the images land on the saved trip a few seconds later, and the
+    // web app polls the trip until they are there.
+    void resolvePhotosInBackground(userId, tripId, result, input.locale === "en" ? "en" : "fr");
+
     app.log.info({ run_id: runId, trip_id: tripId, tool_statuses: flattenToolStatuses(result) }, "Trip planning run completed");
 
+    db.raw.prepare("UPDATE admin_generations SET status='ok',trip_id=?,finished_at=datetime('now'),duration_ms=? WHERE run_id=?").run(tripId,Date.now()-adminStarted,runId);
     return { ...result, trip_id: tripId, run_id: runId };
+    } catch(error) {
+      db.raw.prepare("UPDATE admin_generations SET status='error',finished_at=datetime('now'),duration_ms=? WHERE run_id=?").run(Date.now()-adminStarted,runId);
+      throw error;
+    }
+  }
+
+  /**
+   * Resolves the plan's photos after the traveler already has their program.
+   *
+   * Runs detached: a failure here costs illustrations, never the trip, so it
+   * only logs. The places are geocoded in the same pass, which also makes the
+   * map ready before the first guide download.
+   */
+  async function resolvePhotosInBackground(
+    userId: number,
+    tripId: number,
+    plan: PlanTripResponse,
+    locale: "fr" | "en"
+  ): Promise<void> {
+    const itinerary = (plan.structured_json as any)?.itinerary;
+    const destination = String((plan.final_trip_plan as any)?.destination ?? "");
+    if (!itinerary?.itinerary_by_day?.length || !destination) return;
+
+    const startedAt = Date.now();
+    try {
+      const research = (plan.structured_json as any)?.research;
+      const resolved = await resolveItineraryPhotos(itinerary, tools, locale, destination, research);
+      const located = await locateItinerary(itinerary, destination);
+      if (resolved || located) db.updateTrip({ userId, tripId, plan });
+      app.log.info({ trip_id: tripId, duration_ms: Date.now() - startedAt }, "Trip photos resolved in background");
+    } catch (error) {
+      app.log.warn({ err: error, trip_id: tripId }, "Background photo resolution failed");
+    }
   }
 
   app.post("/api/trips", { preHandler: (app as any).authenticate }, async (request: any, reply) => {

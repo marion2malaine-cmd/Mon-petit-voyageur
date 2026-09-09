@@ -30,6 +30,8 @@
 .companion-budget summary { cursor: pointer; font-weight: 600; margin-bottom: 12px; }
 .companion-stop { background: white; padding: 16px; margin: 12px 0; border-radius: 14px; display: grid; gap: 10px; }
 .companion-stop a { color: #a74b36; }
+.trip-map-still { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 18px; z-index: 1; }
+.companion-photo { width: 100%; max-width: 420px; height: 160px; object-fit: cover; border-radius: 10px; }
 .companion-stop input[type="checkbox"] { width: 20px; min-height: 20px; vertical-align: middle; margin-right: 8px; }
 .companion-actions select { width: auto; max-width: 100%; }
 @media(max-width: 640px) { .trip-companion { padding: 14px; } .companion-days { flex-wrap: nowrap; overflow-x: auto; } .companion-days button { flex-shrink: 0; } }
@@ -1692,7 +1694,14 @@ select:focus, input:focus, textarea:focus {
 /* ---------- Hotel choice, activity cards, travel times ---------- */
 
 .stay-card.chosen { border: 2px solid var(--primary); }
+/* Same footprint as a hotel photo, so flights and stays line up in the grid. */
+.leg-plane { width: 0.95em; height: 0.95em; margin-right: 0.35rem; vertical-align: -0.1em; color: var(--primary); }
+.flight-illustration { width: 100%; height: 150px; border-radius: 10px; margin-bottom: 0.6rem; display: block; }
+
 .stay-photo, .car-photo { width: 100%; height: 150px; object-fit: cover; border-radius: 10px; margin-bottom: 0.6rem; display: block; }
+/* The car is an illustration of the category, not the hero of the section: a
+   full-width crop of a bumper says less than a small picture of the whole car. */
+.car-photo { width: 240px; max-width: 100%; height: 140px; }
 .choose-stay { margin-top: 0.6rem; font-size: 0.85rem; padding: 0.4rem 0.8rem; }
 .choose-stay.chosen { background: var(--primary); color: #fff; border-color: var(--primary); }
 .stay-hint { color: var(--muted-fg); margin: 0.2rem 0 0.8rem; }

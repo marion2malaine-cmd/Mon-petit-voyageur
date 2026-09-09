@@ -498,6 +498,46 @@ const TripDescription = memo(function TripDescription({ draft, onFilledChange, l
     }} /></label>;
 });
 
+// True while photos are still being resolved server-side: a slot the AI asked
+// an image for that has no URL yet. The plan is delivered before its
+// illustrations, so this is what tells the app to keep watching the trip.
+function photosPending(plan: any): boolean {
+  const days = plan?.structured_json?.itinerary?.itinerary_by_day ?? [];
+  for (const day of days) {
+    const slots = [day.photo, ...(day.free_visits ?? []).map((v: any) => v.photo), ...(day.paid_options ?? []).map((o: any) => o.photo)];
+    if (slots.some((photo: any) => photo?.query && !photo?.url)) return true;
+  }
+  return false;
+}
+
+// A flight card has nothing to illustrate itself with — no photo, no facade —
+// so it draws its own sky: the same little plane the loading screen flies,
+// on the house colours, so a row of flights and hotels reads as one grid.
+function FlightIllustration() {
+  return (
+    <svg className="flight-illustration" viewBox="0 0 260 150" role="presentation" aria-hidden="true">
+      <defs>
+        <linearGradient id="flight-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#dbe7e0" />
+          <stop offset="100%" stopColor="#f0ebe6" />
+        </linearGradient>
+      </defs>
+      <rect width="260" height="150" fill="url(#flight-sky)" />
+      {/* The flight path: two cities, an arc between them. */}
+      <path d="M30 108 Q130 26 230 108" fill="none" stroke="#78a189" strokeWidth="2" strokeDasharray="5 6" strokeLinecap="round" />
+      <circle cx="30" cy="108" r="5" fill="#334d3e" />
+      <circle cx="230" cy="108" r="5" fill="#334d3e" />
+      {/* The plane at the top of the arc, nose along the climb. */}
+      <g transform="translate(130 46) rotate(12)" fill="#334d3e">
+        <path d="M0 -3 L26 -3 L34 0 L26 3 L0 3 Z" />
+        <path d="M6 -3 L-4 -16 L2 -16 L14 -3 Z" />
+        <path d="M6 3 L-4 16 L2 16 L14 3 Z" />
+        <path d="M-8 -2 L-14 -9 L-10 -9 L-2 -2 Z" />
+      </g>
+    </svg>
+  );
+}
+
 function TravelerApp() {
   const [locale, setLocale] = useState<Locale>("fr");
   const t = text[locale];
@@ -718,6 +758,34 @@ function TravelerApp() {
     }
   }
 
+  /**
+   * Fills the cards in once the server has resolved the photos.
+   *
+   * The program is delivered as soon as it is written; its two hundred images
+   * are looked up right after, which used to make the traveler wait four extra
+   * minutes in front of a spinner. The saved trip is re-read until they land,
+   * and only a trip still on screen is refreshed.
+   */
+  async function waitForPhotos(plan: any) {
+    const tripId = plan?.trip_id;
+    if (!tripId || !photosPending(plan)) return;
+
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 6000));
+      try {
+        const trip = await api.getTrip(tripId);
+        const fresh = trip?.plan_json;
+        if (!fresh || photosPending(fresh)) continue;
+        setResult((current: any) => (current?.trip_id === tripId ? { ...fresh, trip_id: tripId } : current));
+        return;
+      } catch {
+        // A blip while the images are landing is not worth an error banner:
+        // the plan on screen is complete, only its pictures are missing.
+        return;
+      }
+    }
+  }
+
   async function handlePlan(event: React.FormEvent) {
     event.preventDefault();
     if (!canSubmit) return;
@@ -746,6 +814,7 @@ function TravelerApp() {
         }
       });
       setResult(response);
+      void waitForPhotos(response);
       // Refreshing the sidebar must not turn a successfully saved trip into an error.
       void api.listTrips().then(setTrips).catch(() => undefined);
     } catch (error) {
@@ -1378,6 +1447,9 @@ function TravelerApp() {
                   {(research.internal_flights as any[]).map((leg) => (
                     <p key={`${leg.day}-${leg.from}-${leg.to}`} className="internal-flight">
                       <strong>
+                        <svg className="leg-plane" viewBox="0 0 16 16" role="presentation" aria-hidden="true">
+                          <path d="M1 8.6l14-6.2-3.4 6.2L15 14.8 1 8.6z" fill="currentColor" />
+                        </svg>
                         {t.dayShort} {leg.day} · {leg.from} → {leg.to}
                       </strong>
                       {leg.search_links.map((link: any) => (
@@ -1393,6 +1465,9 @@ function TravelerApp() {
                 {(research?.recommended_flights ?? []).slice(0, 3).map((f: any, idx: number) => (
 
                   <article key={`flight-${idx}`}>
+                    {/* A flight has no photo to show, where a hotel has one: rather than a
+                        blank half-card next to the stays, it gets its own drawn sky. */}
+                    <FlightIllustration />
                     <span className="tag">{t.flightTag}</span>
                     <br />
                     <strong>{f.label}</strong>

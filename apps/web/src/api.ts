@@ -136,6 +136,7 @@ export const api = {
     throw new Error("planning_timeout");
   },
   listTrips: () => http<any[]>("/api/trips"),
+  getTrip: (tripId: number) => http<any>(`/api/trips/${tripId}`),
   editItinerary: (tripId: number, edit: unknown) => http<PlanTripResponse & { trip_id: number }>(`/api/trips/${tripId}/itinerary`, { method: "PATCH", body: JSON.stringify(edit) }),
   getGuide: (tripId: number, locale: "fr" | "en", embed: boolean) =>
     http<{ filename: string; html: string }>(

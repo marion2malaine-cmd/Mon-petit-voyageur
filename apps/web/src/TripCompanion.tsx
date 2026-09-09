@@ -53,6 +53,7 @@ export default function TripCompanion({ result, onChange, locale }: { result: an
     {error && <p role="alert">{error}</p>}
     {s.previous_itinerary && <button type="button" className="secondary" disabled={busy} onClick={() => edit({ action: "undo" })}>{fr ? "Annuler la dernière modification" : "Undo last edit"}</button>}
     {(["free_visits", "paid_options", "restaurants"] as const).map(collection => <div key={collection}><h5>{collection === "free_visits" ? (fr ? "Visites" : "Visits") : collection === "paid_options" ? (fr ? "Activités au choix" : "Optional activities") : (fr ? "Restaurants" : "Restaurants")}</h5>{(current[collection] ?? []).map((p: any, index: number) => <article key={`${current.day}-${collection}-${index}`} className="companion-stop">
+      {p.photo?.url && <img className="companion-photo" src={p.photo.url} alt={p.name ?? p.title} loading="lazy" />}
       <strong>{p.name ?? p.title}</strong>{p.address && <p>{p.address}</p>}
       {(collection !== "paid_options" || p.selected) && <label><input type="checkbox" disabled={busy} checked={!!p.completed} onChange={e => edit({ action: "complete", day: current.day, collection, index, completed: e.target.checked })} />{fr ? "Étape terminée" : "Stop completed"}</label>}
       <small>{p.opening_hours ?? (fr ? "Horaires à vérifier sur le site officiel" : "Check opening hours with the venue")}</small>

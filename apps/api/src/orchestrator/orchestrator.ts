@@ -16,7 +16,7 @@ import {
 } from "@mlt/contracts";
 import { detectIntent } from "../skills/intent";
 import { SkillExecutor } from "../skills/executor";
-import { applyStayAsLodging, planItinerary } from "../skills/itineraryPlanner";
+import { applyStayAsLodging, applyStayDetails, planItinerary } from "../skills/itineraryPlanner";
 import { buildExcursions, completeBriefDates, mergePreferencesIntoBrief, runFlightHotelResearch } from "../skills/handlers";
 import { buildExperienceLinks, buildSearchLinks, buildTransferLinks } from "../tools/links";
 import { resolveAirportCodes } from "../tools/serpapi";
@@ -24,6 +24,10 @@ import { buildCarRentalAdvice } from "../tools/carRental";
 import { buildInternalFlights } from "../tools/internalFlights";
 
 import { enrichItinerary } from "./enrichItinerary";
+import { scalePhoto } from "../tools/photos";
+
+// The car card shows a thumbnail, not a banner: see .car-photo in styles.css.
+const CAR_PHOTO_WIDTH = 480;
 import type { SkillDefinition } from "../skills/types";
 import type { AppConfig } from "../config";
 import type { LiveTools } from "../tools";
@@ -300,6 +304,9 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
       stays[Number.isInteger(chosen) && chosen >= 0 && chosen < stays.length ? chosen : 0] ?? null,
       locale
     );
+    // The stage hotels the model named get their listing photo and price
+    // from the same live search when it found them.
+    applyStayDetails(itineraryResult.output.itinerary_by_day ?? [], stays, locale);
 
     // The closing summary only reads titles and totals, none of which the
     // enrichment below changes, so the model writes it while the photos and
@@ -334,13 +341,15 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
 
       itineraryResult.output.experience_links = buildExperienceLinks(destinationResolved, locale);
 
-      // withPhotos resolves the real images now, so both the in-app view and
-      // the guide show them. It costs a few seconds of parallel image lookups,
-      // but the guide download then needs none — the cost simply moves earlier.
+      // The images are deliberately NOT resolved here. On a three-week trip the
+      // two hundred lookups took longer than writing the program itself, and
+      // nothing in the plan depends on them: the traveler now gets the
+      // itinerary as soon as it is written, and the server fills the photos in
+      // the background (see resolvePhotosInBackground in server.ts).
       itineraryResult.output = await enrichItinerary(itineraryResult.output, tools, {
         destination: destinationResolved,
         locale,
-        withPhotos: true,
+        withPhotos: false,
         travelers: brief.travelers_count
       });
 
@@ -396,8 +405,11 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
           advice.options.map(async (option) => {
             if (!option.example_model) return;
             try {
-              const photo = await tools.find_photo({ query: `${option.example_model} car`, locale });
-              option.photo = photo?.url ? photo : null;
+              // "side view" steers the libraries away from the bumper close-ups
+              // they return for a bare model name; the card is small, so the
+              // source's own preview is enough and weighs a fraction.
+              const photo = await tools.find_photo({ query: `${option.example_model} car side view`, locale });
+              option.photo = photo?.url ? scalePhoto(photo, CAR_PHOTO_WIDTH) : null;
             } catch {
               option.photo = null;
             }
@@ -461,7 +473,7 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
       }
     }
 
-    lap("enrichment (links, photos, car)");
+    lap("enrichment (links, car)");
     const exportResult = await exportPromise;
     lap(`trip-summary-export (${exportResult.meta.source})`);
     trace.push({ skill: "trip-summary-export", status: "ok", source: exportResult.meta.source, tool_statuses: exportResult.meta.toolStatuses });
