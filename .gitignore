@@ -20,3 +20,6 @@ apps/web/.git-old/
 
 # SEO routine run lock (never committed)
 apps/web/seo/.run.lock
+
+# Fichiers de travail temporaires
+tmp/
