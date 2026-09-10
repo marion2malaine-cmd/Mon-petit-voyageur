@@ -446,7 +446,10 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
             research.destination_code ?? resolveAirportCodes(destinationResolved)?.split(",")[0] ?? null,
           departureDate: brief.exact_dates.start,
           returnDate: brief.exact_dates.end,
-          adults: brief.travelers_count
+          adults: brief.travelers_count,
+          originCodes: research.origin_code ?? resolveAirportCodes(originCity) ?? null,
+          destinationCodes: research.destination_code ?? resolveAirportCodes(destinationResolved) ?? null,
+          aviasalesMarker: config.TRAVELPAYOUTS_MARKER ?? null
         });
         researchResult.output.search_links = searchLinks;
 
@@ -456,7 +459,8 @@ export function createOrchestrator(config: AppConfig, tools: LiveTools, skillReg
         researchResult.output.internal_flights = buildInternalFlights(itineraryResult.output.itinerary_by_day ?? [], {
           locale,
           travelers: brief.travelers_count,
-          multiState: (brief.states_to_visit ?? 1) > 1
+          multiState: (brief.states_to_visit ?? 1) > 1,
+          aviasalesMarker: config.TRAVELPAYOUTS_MARKER ?? null
         });
 
 

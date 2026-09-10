@@ -33,6 +33,37 @@ describe("crossing links", () => {
   });
 });
 
+describe("flight affiliation", () => {
+  const input = {
+    locale: "fr" as const,
+    originCity: "Paris",
+    originCode: "CDG",
+    destinationCity: "Héraklion",
+    destinationCode: "HER",
+    departureDate: "2026-10-04",
+    returnDate: "2026-10-11",
+    adults: 2
+  };
+
+  it("offers no Aviasales link when the site is not enrolled", () => {
+    const links = buildSearchLinks(input);
+    expect(links.find((l) => l.provider === "aviasales")).toBeUndefined();
+  });
+
+  it("signs the Aviasales search with the marker and uses the metro code", () => {
+    const links = buildSearchLinks({
+      ...input,
+      originCodes: "CDG,ORY",
+      destinationCodes: "HER",
+      aviasalesMarker: "mlt-42"
+    });
+    const aviasales = links.find((l) => l.provider === "aviasales");
+    // PAR, not CDG: the metro code only exists in the full airport list.
+    expect(aviasales?.url).toBe("https://www.aviasales.com/search/PAR0410HER11102?marker=mlt-42");
+    expect(aviasales?.category).toBe("flights");
+  });
+});
+
 describe("search links pre-filled from the trip", () => {
   const links = buildSearchLinks({
     locale: "fr",

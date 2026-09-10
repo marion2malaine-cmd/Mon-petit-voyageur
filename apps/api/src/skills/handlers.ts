@@ -15,7 +15,7 @@ import type {
 import type { LiveTools } from "../tools";
 import { buildExperienceLinks, buildSearchLinks } from "../tools/links";
 import { resolveAirportCodes } from "../tools/serpapi";
-import { aviasalesSearchUrl, type CalendarDay } from "../tools/travelpayouts";
+import { type CalendarDay } from "../tools/travelpayouts";
 import { degraded } from "../tools/types";
 import type { SkillRunResult } from "./types";
 
@@ -411,16 +411,11 @@ export async function runFlightHotelResearch(
     destinationCode: flightsData.destination_code ?? destinationCode?.split(",")[0] ?? null,
     departureDate: start ?? null,
     returnDate: end ?? null,
-    adults: travelers
+    adults: travelers,
+    originCodes: originCode ?? null,
+    destinationCodes: destinationCode ?? null,
+    aviasalesMarker: ctx.aviasalesMarker ?? null
   });
-  if (originCode && destinationCode && start) {
-    searchLinks.push({
-      provider: "aviasales",
-      label: fr ? "Calendrier des prix sur Aviasales" : "Price calendar on Aviasales",
-      url: aviasalesSearchUrl(originCode, destinationCode, start, end, travelers, ctx.aviasalesMarker ?? null),
-      category: "flights"
-    });
-  }
   const flightLink = searchLinks.find((l) => l.provider === "skyscanner")?.url ?? null;
   const stayLink = searchLinks.find((l) => l.provider === "booking")?.url ?? null;
 

@@ -1,4 +1,5 @@
 import type { BookingLink, SearchLink } from "@mlt/contracts";
+import { aviasalesSearchUrl } from "./travelpayouts";
 
 /**
  * Every Viator link carries the affiliate tracking of the site, so a booking
@@ -25,6 +26,19 @@ export interface LinkBuilderInput {
   departureDate?: string | null; // YYYY-MM-DD
   returnDate?: string | null; // YYYY-MM-DD
   adults?: number;
+  /**
+   * Every airport of the origin/destination ("CDG,ORY"), when known. Aviasales
+   * addresses such cities by their metro code, which can only be derived from
+   * the full list — the single code above loses it.
+   */
+  originCodes?: string | null;
+  destinationCodes?: string | null;
+  /**
+   * Travelpayouts affiliate marker. Present, the flight search opens on
+   * Aviasales and a booking made from the guide is commissioned; absent, the
+   * link is simply not offered.
+   */
+  aviasalesMarker?: string | null;
 }
 
 // Skyscanner and Booking.com do not expose a free public API: live prices come
@@ -36,6 +50,27 @@ export function buildSearchLinks(input: LinkBuilderInput): SearchLink[] {
   const city = input.destinationCity.trim();
   const cityParam = encodeURIComponent(city);
   const links: SearchLink[] = [];
+
+  // Aviasales is the only flight comparator of the set that pays a commission,
+  // so it leads the category when the site is enrolled. Skyscanner and Google
+  // Flights have no affiliate programme open to us and stay as alternatives.
+  const originForAviasales = input.originCodes ?? input.originCode;
+  const destinationForAviasales = input.destinationCodes ?? input.destinationCode;
+  if (input.aviasalesMarker && originForAviasales && destinationForAviasales && input.departureDate) {
+    links.push({
+      provider: "aviasales",
+      label: fr ? "Comparer les vols sur Aviasales" : "Compare flights on Aviasales",
+      url: aviasalesSearchUrl(
+        originForAviasales,
+        destinationForAviasales,
+        input.departureDate,
+        input.returnDate ?? null,
+        adults,
+        input.aviasalesMarker
+      ),
+      category: "flights"
+    });
+  }
 
   const skyscannerHost = fr ? "www.skyscanner.fr" : "www.skyscanner.net";
   if (input.originCode && input.destinationCode) {

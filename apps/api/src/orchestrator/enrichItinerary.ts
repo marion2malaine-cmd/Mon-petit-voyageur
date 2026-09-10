@@ -327,8 +327,14 @@ const HOTEL_LOOKUPS_IN_PARALLEL = 4;
 
 /**
  * Every hotel the plan proposes gets its picture from Google Maps — the
- * night's lodging on each day, and the suggested stays — unless the hotel
- * engine already illustrated it. Returns true when a photo was added.
+ * night's lodging on each day, and the suggested stays.
+ *
+ * Google Places is asked first, even when the hotel engine already attached
+ * an image: Places names the author of each photo, so the one published by
+ * the establishment itself can be kept, while Google Hotels returns
+ * unattributed traveller snapshots — a bathroom close-up as often as the
+ * facade. The engine's image stays as the fallback for the hotels Places
+ * cannot find. Returns true when a photo was replaced or added.
  */
 async function resolveHotelPhotos(
   itinerary: ItineraryByDay,
@@ -340,22 +346,24 @@ async function resolveHotelPhotos(
 
   for (const day of itinerary.itinerary_by_day ?? []) {
     const lodging = day.lodging;
-    if (!lodging?.name || lodging.photo?.url) continue;
+    if (!lodging?.name) continue;
     jobs.push(async () => {
       const photo = await tools.find_hotel_photo({ name: lodging.name, town: lodging.town ?? day.area ?? null, destination });
       if (!photo?.url) return false;
+      const replaced = lodging.photo?.url !== photo.url;
       lodging.photo = photo;
-      return true;
+      return replaced;
     });
   }
 
   for (const stay of research?.recommended_stays ?? []) {
-    if (!stay?.name || stay.photo_url) continue;
+    if (!stay?.name) continue;
     jobs.push(async () => {
       const photo = await tools.find_hotel_photo({ name: stay.name, town: stay.area ?? null, destination });
       if (!photo?.url) return false;
+      const replaced = stay.photo_url !== photo.url;
       stay.photo_url = photo.url;
-      return true;
+      return replaced;
     });
   }
 

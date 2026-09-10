@@ -21,7 +21,7 @@ const GROUND_MODE = /car|voiture|route|road|drive|train|bus|boat|bateau|ferry|wa
  */
 export function buildInternalFlights(
   days: ItineraryDay[],
-  options: { locale: "fr" | "en"; travelers?: number | null; multiState: boolean }
+  options: { locale: "fr" | "en"; travelers?: number | null; multiState: boolean; aviasalesMarker?: string | null }
 ): InternalFlight[] {
   const legs: InternalFlight[] = [];
 
@@ -47,7 +47,10 @@ export function buildInternalFlights(
       destinationCode: toCode,
       departureDate: day.date ?? null,
       returnDate: null,
-      adults: options.travelers ?? 1
+      adults: options.travelers ?? 1,
+      originCodes: resolveAirportCodes(from),
+      destinationCodes: resolveAirportCodes(to),
+      aviasalesMarker: options.aviasalesMarker ?? null
     }).filter((link) => link.category === "flights");
 
     legs.push({ day: day.day, date: day.date ?? null, from, to, from_code: fromCode, to_code: toCode, search_links: searchLinks });
