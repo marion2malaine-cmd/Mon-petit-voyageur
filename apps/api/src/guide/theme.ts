@@ -114,14 +114,13 @@ svg {
 }
 
 .cover-note {
-  display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem 1.6rem;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem 1.6rem;
   margin: 3rem auto 0; padding: 1.1rem 1.4rem; max-width: 820px;
   background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
   font-size: 0.86rem; color: var(--muted);
 }
 .cover-note span {
-  display: flex; align-items: flex-start; gap: 0.5rem;
-  flex: 1 1 220px; max-width: 260px; text-align: left;
+  display: flex; align-items: flex-start; gap: 0.5rem; text-align: left;
 }
 .cover-note svg { margin-top: 0.22em; }
 .cover-note strong { color: var(--ink); }
@@ -143,9 +142,13 @@ svg {
 
 /* ---------- Calendar ---------- */
 
-.calendar { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; }
+.calendar {
+  display: grid; gap: 0.6rem;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+}
 .cal-day {
-  width: 104px; padding: 0.75rem 0.5rem; text-align: center;
+  padding: 0.75rem 0.5rem; text-align: center;
+  display: flex; flex-direction: column; justify-content: flex-start;
   background: var(--card); border: 1px solid var(--border); border-radius: 10px;
 }
 .cal-day.is-highlight { background: var(--primary); border-color: var(--primary); color: #fff; }
@@ -339,6 +342,15 @@ svg {
   margin: 0; padding: 2rem; text-align: center; color: var(--muted); font-size: 0.9rem;
 }
 .map-legend { justify-content: center; margin-top: 1rem; }
+.map-modes { justify-content: center; margin-top: 1rem; }
+/* The way each hop is travelled, shown at the middle of its line. */
+.map-leg {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: #fff; border: 2px solid var(--primary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+.map-leg svg { width: 14px; height: 14px; color: inherit; }
 .map-legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 0.4rem; }
 .leaflet-container, .mapboxgl-map { font: inherit; }
 .map-marker {
@@ -374,8 +386,26 @@ svg {
   border-radius: 10px; padding: 1rem 1.15rem; margin-bottom: 0.8rem;
 }
 .car-option.is-recommended { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary) inset; }
-.car-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.5rem; }
+.car-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 0.75rem; margin-bottom: 0.5rem; }
 .car-head h4 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+/* The rental categories side by side, each with the car it stands for: the
+   choice is made on the picture as much as on the label. */
+.car-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.8rem; }
+.car-option { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.car-photo { aspect-ratio: 16 / 9; background: var(--secondary); }
+.car-photo img { width: 100%; height: 100%; object-fit: cover; }
+.car-photo-fallback { width: 100%; height: 100%; background: linear-gradient(135deg, #e3d6c9, #c9b8a6); }
+.car-body { padding: 0.95rem 1.15rem 1.1rem; }
+.car-model { margin: 0 0 0.5rem; font-size: 0.82rem; color: var(--muted); }
+.car-dates {
+  display: flex; align-items: center; gap: 0.45rem;
+  margin: 0 0 1.1rem; font-size: 0.9rem; color: var(--ink); font-weight: 500;
+}
+/* The rule that decides the real price of a rental: it must be impossible to
+   miss above the rates. */
+.alert-card-required { border-left-color: #a4543b; background: var(--primary-pale); }
+.alert-card-required .alert-title svg { color: #a4543b; }
+.alert-card-required p { color: var(--ink); }
 /* The comparator links of a flight between two stages: a chip the traveler
    taps, so it has to read as clickable next to the plain informative ones. */
 .chip-link { color: var(--primary); text-decoration: none; font-weight: 600; }
@@ -473,6 +503,13 @@ svg {
 .stages tr:last-child td { border-bottom: none; }
 .stages td:nth-child(3), .stages th:nth-child(3) { text-align: center; }
 .stages td:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.stage-hotel { display: flex; align-items: center; gap: 0.6rem; }
+.stage-thumb {
+  flex: none; width: 54px; height: 40px; border-radius: 6px; overflow: hidden;
+  background: rgba(255, 255, 255, 0.12); display: block;
+}
+.stage-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.stage-thumb-fallback { width: 100%; height: 100%; background: linear-gradient(135deg, #cfdfd5, #a8c4b4); }
 
 /* The drive of the day, above the timeline. */
 .route { margin: 0 0 1rem; padding: 0.8rem 1rem; border-left: 3px solid var(--primary); background: var(--secondary); border-radius: 0 var(--radius) var(--radius) 0; }
@@ -485,7 +522,7 @@ svg {
 .lodging-change { border-color: var(--primary); box-shadow: inset 4px 0 0 var(--primary); }
 .lodging-photo { height: 100%; min-height: 120px; }
 .lodging-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.lodging-body { padding: 0.9rem 1rem 1rem 0.2rem; }
+.lodging-body { padding: 1rem 1.1rem; }
 .lodging-change .lodging-body .kicker { color: var(--primary); }
 .lodging .btn-row { margin-top: 0.6rem; }
 
@@ -507,7 +544,7 @@ svg {
   body { background: #fff; }
   .band { padding: 1.6rem 0; }
   .band-deep { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .free-card, .option, .resto, .info-card, .tables, .lodging, .route { break-inside: avoid; page-break-inside: avoid; }
+  .free-card, .option, .resto, .info-card, .tables, .lodging, .route, .car-option, .alert { break-inside: avoid; page-break-inside: avoid; }
   .stages tr { break-inside: avoid; }
   .day { break-before: page; }
   .fold[open] summary::before { transform: rotate(90deg); }

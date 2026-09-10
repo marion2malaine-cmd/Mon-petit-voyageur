@@ -94,7 +94,10 @@ export function buildCarRentalAdvice(input: CarRentalInput): CarRentalAdvice {
     options,
     alerts: buildRentalAlerts(fr),
     documents: buildRequiredDocuments(fr),
-    search_links: buildCarSearchLinks(input)
+    search_links: buildCarSearchLinks(input),
+    pickup_date: input.pickupDate ?? null,
+    return_date: input.returnDate ?? null,
+    rental_days: days
   };
 }
 

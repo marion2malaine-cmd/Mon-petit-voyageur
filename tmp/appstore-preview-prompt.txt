@@ -1,0 +1,14 @@
+Use case: App Store product page preview
+Primary request: A polished vertical mobile app preview for My Little Traveler, an elegant travel-planning app. Show a stylized smartphone interface with a warm cream background, deep navy typography, soft coral accents, and a small illustrated airplane motif. The experience feels calm, curious, and premium.
+Scene/background: Clean editorial studio backdrop with subtle paper texture and soft travel-photo glimpses inspired by city streets, coastlines, and mountain landscapes; no identifiable real people.
+Subject: The My Little Traveler mobile app interface, represented as a realistic modern smartphone mockup with crisp, stable UI panels.
+Action: The app smoothly transitions from discovering destinations on a globe/map, to saving a destination, to assembling a simple itinerary with cards and map pins, ending on a confident branded lockup.
+Camera: Vertical 9:16 composition, centered phone mockup, gentle push-in and slight parallax, clean match cuts between screens, no shaky movement.
+Lighting/mood: Soft daylight, optimistic, refined, tactile, welcoming.
+Color palette: warm ivory, deep navy, coral, muted sky blue, olive green.
+Style/format: Premium App Store preview, minimal editorial motion design, realistic but slightly illustrative UI, high legibility, generous negative space, no browser chrome.
+Timing/beats: 0-3s destination discovery; 3-6s save and explore; 6-9s itinerary cards assemble; 9-12s final brand moment.
+Audio: Light original instrumental travel-inspired sound design with soft chimes and a subtle airy whoosh; no copyrighted music, no voiceover.
+Text (verbatim): "Plan your next escape"; "Discover"; "Build your itinerary"; "My Little Traveler".
+Constraints: Keep all text exactly as written and stable; make the product clearly read as a travel-planning app; under-18 suitable; no real people, no logos other than the fictional My Little Traveler wordmark.
+Avoid: garbled text, flicker, UI morphing, unreadable buttons, excessive motion, hands holding the phone, copyrighted characters, branded destinations, watermarks.

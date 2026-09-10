@@ -191,11 +191,12 @@ function mapStatus(status: Stripe.Subscription.Status): SubscriptionStatus {
 
 /** Whether a user may use paid features right now. */
 export function hasActiveAccess(
-  user: Pick<UserRecord, "subscription_status" | "email">,
+  user: Pick<UserRecord, "subscription_status" | "email" | "complimentary_unlimited">,
   billingConfigured: boolean,
   compEmails?: Set<string>
 ): boolean {
   // Comp accounts (team / founder) always have access, even once billing is on.
+  if (user.complimentary_unlimited === 1) return true;
   if (compEmails && user.email && compEmails.has(user.email.toLowerCase())) return true;
   // Before Stripe is configured the app is open, so nothing breaks in the
   // meantime; once it is configured, only trialing/active accounts get in.

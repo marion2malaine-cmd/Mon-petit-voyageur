@@ -4,6 +4,7 @@ import type { AppDb } from "./db";
 import type { AppConfig } from "./config";
 
 export function premiumAccess(user: any, compEmails?: Set<string>): boolean {
+  if (user?.complimentary_unlimited === 1) return true;
   if (compEmails && user?.email && compEmails.has(String(user.email).toLowerCase())) return true;
   return user?.subscription_plan === "premium" && user.subscription_status === "active" && !!user.current_period_end && Date.parse(user.current_period_end) > Date.now();
 }

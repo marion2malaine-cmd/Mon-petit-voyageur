@@ -113,6 +113,8 @@ export const api = {
   listTrips: (offset = 0) => http<any[]>(`/api/trips?summary=1&limit=20&offset=${offset}`),
   getTrip: (tripId: number) => http<any>(`/api/trips/${tripId}`),
   editItinerary: (tripId: number, edit: unknown) => http<PlanTripResponse & { trip_id: number }>(`/api/trips/${tripId}/itinerary`, { method: "PATCH", body: JSON.stringify(edit) }),
+  getGuideImages: (id: number) => http<{ image: string; title: string }[]>(`/api/trips/${id}/guide/images`),
+  saveGuideImages: (id: number, images: { image: string; title: string }[]) => http<{ image: string; title: string }[]>(`/api/trips/${id}/guide/images`, { method: "PUT", body: JSON.stringify(images) }),
   getGuide: (tripId: number, locale: "fr" | "en", embed: boolean) =>
     http<{ filename: string; html: string }>(
       `/api/trips/${tripId}/guide?locale=${locale}&embed=${embed ? "1" : "0"}`

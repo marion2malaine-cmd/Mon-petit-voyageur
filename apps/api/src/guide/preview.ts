@@ -5,7 +5,7 @@ import { createTools } from "../tools";
 import { loadSkillRegistry } from "../skills/registry";
 import { createOrchestrator } from "../orchestrator/orchestrator";
 import { embedItineraryPhotos, resolveItineraryPhotos } from "../orchestrator/enrichItinerary";
-import { mapRouteForDay, renderGuideHtml } from "./renderGuide";
+import { journeyLegs, mapRouteForDay, renderGuideHtml } from "./renderGuide";
 import { stillMapDataUri } from "./staticMap";
 
 /**
@@ -34,20 +34,21 @@ async function main(): Promise<void> {
   const itinerary = (plan.structured_json as any)?.itinerary;
   if (itinerary?.itinerary_by_day) {
     console.log("Resolving photos...");
-    await resolveItineraryPhotos(itinerary, tools, locale, destination);
+    await resolveItineraryPhotos(itinerary, tools, locale, destination, (plan.structured_json as any)?.research);
     if (embed) {
       console.log("Embedding photos...");
-      await embedItineraryPhotos(itinerary);
+      await embedItineraryPhotos(itinerary, (plan.structured_json as any)?.research);
     }
   }
 
 
-  const routes = (itinerary?.itinerary_by_day ?? []).map(mapRouteForDay);
+  const previewDays = itinerary?.itinerary_by_day ?? [];
+  const routes = previewDays.map(mapRouteForDay);
   const html = renderGuideHtml(plan, {
     locale,
     title: String((plan.final_trip_plan as any)?.destination ?? "Voyage"),
     mapboxToken: config.MAPBOX_ACCESS_TOKEN,
-    staticMapSrc: await stillMapDataUri(routes, config.MAPBOX_SERVER_TOKEN ?? config.MAPBOX_ACCESS_TOKEN)
+    staticMapSrc: await stillMapDataUri(routes, config.MAPBOX_SERVER_TOKEN ?? config.MAPBOX_ACCESS_TOKEN, journeyLegs(previewDays))
   });
   writeFileSync(outputPath, html, "utf8");
 

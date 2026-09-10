@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ItineraryByDaySchema, type PlanTripResponse } from "@mlt/contracts";
-import { renderGuideHtml } from "../guide/renderGuide";
+import { journeyLegs, renderGuideHtml } from "../guide/renderGuide";
 import { enrichItinerary } from "../orchestrator/enrichItinerary";
 import { mergePreferencesIntoBrief, runItineraryBuilder } from "../skills/handlers";
 import { createTools } from "../tools";
@@ -398,5 +398,65 @@ describe("guide rendering", () => {
     expect(html).toContain('href="https://www.pexels.com/photo/1/"');
     expect(html).toContain("Jane &lt;Doe&gt; / Pexels");
     expect(html).toContain("Pexels License");
+  });
+});
+
+describe("the thread of the trip on the map", () => {
+  const day = (n: number, lat: number, lon: number, mode?: "car" | "boat" | "plane") => ({
+    day: n,
+    date: `2026-03-0${n}`,
+    title: `Jour ${n}`,
+    theme: "",
+    area: `Étape ${n}`,
+    narrative: "",
+    morning: "",
+    afternoon: "",
+    evening: "",
+    timeline: [],
+    free_visits: [],
+    paid_options: [],
+    restaurants: [],
+    travel_note: null,
+    stage: `Étape ${n}`,
+    route: mode ? { from: `Étape ${n - 1}`, to: `Étape ${n}`, duration: null, distance_km: null, mode, road_note: "", departure_time: null, stops: [] } : null,
+    lodging: null,
+    center: { lat, lon },
+    practical_tips: [],
+    free_day_cost_eur: null,
+    luggage_storage: null,
+    photo: null,
+    backup_option: null
+  }) as any;
+
+  it("joins every place visited, one leg per hop, with how it is travelled", () => {
+    const legs = journeyLegs([day(1, 21.03, 105.85), day(2, 20.95, 107.07, "boat"), day(3, 16.46, 107.59, "plane")]);
+
+    expect(legs.map((leg) => leg.mode)).toEqual(["boat", "plane"]);
+    expect(legs[0].from).toEqual({ lat: 21.03, lon: 105.85 });
+    expect(legs[1].to).toEqual({ lat: 16.46, lon: 107.59 });
+  });
+
+  it("draws no leg for two days spent in the same place", () => {
+    expect(journeyLegs([day(1, 21.03, 105.85), day(2, 21.031, 105.851)])).toHaveLength(0);
+  });
+});
+
+describe("car rental dates", () => {
+  it("carries the dates the quoted rates are computed on", () => {
+    const advice = buildCarRentalAdvice({
+      destinationCity: "Hanoï",
+      locale: "fr",
+      travelers: 2,
+      durationDays: 8,
+      envelope: null,
+      pickupDate: "2026-03-10",
+      returnDate: "2026-03-18"
+    });
+
+    expect(advice.pickup_date).toBe("2026-03-10");
+    expect(advice.return_date).toBe("2026-03-18");
+    expect(advice.rental_days).toBe(8);
+    // The total is the daily rate over exactly those days.
+    expect(advice.options[0].total_estimate_eur).toBe((advice.options[0].price_per_day_eur ?? 0) * 8);
   });
 });

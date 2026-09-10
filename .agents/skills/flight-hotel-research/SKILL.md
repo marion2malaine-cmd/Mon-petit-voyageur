@@ -64,6 +64,35 @@ any multi-day or tourist card in `multi_day_pass`, and whether the pass is
 worth it in `notes`. Set `estimated_total_eur` for the whole group over the
 whole stay — and put 0 when the centre is walkable, saying so in `notes`.
 
+### `local_mobility`
+
+Always state whether app-based rides and informal local transport exist in the
+destination country and city. Include the relevant services by their local
+names: Uber, Bolt, Grab, Gojek, Careem, DiDi, inDrive, FreeNow or the actual
+regional equivalent; also include tuk-tuks, auto-rickshaws or moto-taxis where
+they are a normal option. Do not list a service merely because it exists in a
+neighbouring country.
+
+For every option give `availability`, how it is booked, practical warnings, and
+two or three realistic fare examples in `typical_fares` (normally 10, 20 and
+40 minutes). Convert the useful range to euros and preserve the local-currency
+fare in `price_note`. Set `estimated: true` unless the fare is a regulated,
+published tariff. Mention meter use, app price, cash/card, negotiation and
+night/traffic surcharges when relevant. Use `unknown` rather than guessing.
+
+Set `mobility_checked_on` to today's ISO date. This is a knowledge check date,
+not a claim that a live price was queried.
+
+### `driver_services`
+
+List two to four legitimate sites suitable for this destination when a
+traveler wants a chauffeur: airport transfer, hourly driver, tour driver or
+intercity transfer. Prefer an operator's official site or established services
+such as Welcome Pickups, Daytrip, Blacklane or GetTransfer when they actually
+cover the destination. Give the canonical HTTPS website, coverage confidence
+and one short limitation. Never invent a local operator, URL, availability or
+price. Leave the array empty when uncertain.
+
 ### `total_estimate_eur`
 
 Airport transfers (both ways, whole group) plus city transport. This is the

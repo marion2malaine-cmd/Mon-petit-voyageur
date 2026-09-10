@@ -1,6 +1,7 @@
 import { SavedTrips } from "./SavedTrips";
 import { text } from "./appTranslations";
 import { PricingPlans } from "./PricingPlans";
+import GuideImages from "./GuideImages";
 import { lazy, Suspense, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, downloadGuide, downloadGuidePdf, previewGuide, type AuthUser } from "./api";
 import { legLabel, useHotelTravelTimes } from "./travelTimes";
@@ -989,6 +990,7 @@ function TravelerApp() {
                       {t.previewGuide}
                     </button>
                   </div>
+                  <GuideImages key={result.trip_id} tripId={result.trip_id} />
                   <div className="guide-email">
                     <input
                       type="email"
@@ -1445,3 +1447,5 @@ function PhotoCredit({ photo }: { photo: any }) {
     </small>
   );
 }
+
+/** The two subscription plans, shown on the paywall. */

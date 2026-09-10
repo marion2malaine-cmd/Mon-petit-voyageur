@@ -300,6 +300,20 @@ export async function searchHotels(ctx: ToolContext, input: HotelsInput): Promis
       return degraded(source, { stays: [] }, [describeError(json.error)], url);
     }
 
+    const pickHotelPhoto = (property: any): string | null => {
+      const images = Array.isArray(property.images) ? property.images : [];
+      if (!images.length) return null;
+      // Google Hotels may return captions/alt text. Prefer a recognisable
+      // exterior or full-property view over a room/bathroom close-up.
+      const preferred = images.find((image: any) => {
+        const label = `${image?.title ?? ""} ${image?.alt ?? ""} ${image?.caption ?? ""}`.toLowerCase();
+        return /(exterior|façade|facade|building|property|hotel|entrance|pool|garden|vue extérieure|extérieur)/i.test(label)
+          && !/(room|bedroom|bathroom|chambre|salle de bain)/i.test(label);
+      });
+      const chosen = preferred ?? images[0];
+      return chosen?.original_image ?? chosen?.thumbnail ?? null;
+    };
+
     const all = ((json.properties ?? []) as any[])
       .filter((property) => property?.name && property.rate_per_night?.extracted_lowest != null)
       .map((property) => {
@@ -322,7 +336,7 @@ export async function searchHotels(ctx: ToolContext, input: HotelsInput): Promis
             property.gps_coordinates?.latitude != null && property.gps_coordinates?.longitude != null
               ? { lat: Number(property.gps_coordinates.latitude), lon: Number(property.gps_coordinates.longitude) }
               : null,
-          photo_url: property.images?.[0]?.original_image ?? property.images?.[0]?.thumbnail ?? null
+          photo_url: pickHotelPhoto(property)
         };
       });
 

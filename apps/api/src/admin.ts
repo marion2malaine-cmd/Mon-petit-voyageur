@@ -1,13 +1,16 @@
 import type { FastifyInstance } from "fastify";
 import type { AppDb } from "./db";
 import Stripe from "stripe";
-import { isRealSecretKey } from "./billing";
+import { isRealSecretKey, hasActiveAccess } from "./billing";
 import { verifyPassword, hashPassword } from './auth';
 import { randomBytes, createHash } from 'node:crypto';
 import nodemailer from 'nodemailer';
+import {registerAdminManagement} from './adminManagement';
+import {registerAdminSecurity} from './adminSecurity';
 
 /** Admin rights are explicit user IDs, never a claim supplied by a browser. */
-export function registerAdmin(app: FastifyInstance, db: AppDb, options: { sendResetEmail?: (to:string,url:string)=>Promise<void>; billingConfigured?: boolean; compEmails?: Set<string> } = {}) {
+export function registerAdmin(app: FastifyInstance, db: AppDb, options: { sendResetEmail?: (to:string,url:string)=>Promise<void>; sendCode?: (to:string,code:string)=>Promise<void>; billingConfigured?:boolean; compEmails?:Set<string> } = {}) {
+  let security: ReturnType<typeof registerAdminSecurity>;
   db.raw.exec(`CREATE TABLE IF NOT EXISTS admin_auth_state(user_id INTEGER PRIMARY KEY,password_hash TEXT,version INTEGER NOT NULL DEFAULT 0); CREATE TABLE IF NOT EXISTS admin_password_resets(token_hash TEXT PRIMARY KEY,user_id INTEGER NOT NULL,expires_at INTEGER NOT NULL);`);
   const authState=(id:number)=>db.raw.prepare('SELECT password_hash,version FROM admin_auth_state WHERE user_id=?').get(id) as {password_hash:string|null;version:number}|undefined;
   const digest=(value:string)=>createHash('sha256').update(value).digest('hex');
@@ -15,6 +18,13 @@ export function registerAdmin(app: FastifyInstance, db: AppDb, options: { sendRe
   const sendResetEmail=options.sendResetEmail??(transport?async(to:string,url:string)=>{await transport.sendMail({from:process.env.SMTP_FROM||process.env.SMTP_USER,to,subject:'Réinitialiser votre accès administrateur — Mon Petit Voyageur',text:`Pour choisir un nouveau mot de passe administrateur, ouvrez ce lien valable 30 minutes :\n${url}\n\nSi vous n’êtes pas à l’origine de cette demande, ignorez cet email.`});}:null);
   db.raw.exec(`CREATE TABLE IF NOT EXISTS admin_metrics(day TEXT NOT NULL, kind TEXT NOT NULL, target TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(day,kind,target)); CREATE TABLE IF NOT EXISTS admin_meta(key TEXT PRIMARY KEY,value TEXT NOT NULL); INSERT OR IGNORE INTO admin_meta VALUES ('tracking_since',datetime('now'));`);
   const stripe = isRealSecretKey(process.env.STRIPE_SECRET_KEY) ? new Stripe(process.env.STRIPE_SECRET_KEY, { timeout: 10000, maxNetworkRetries: 1 }) : null;
+  const compEmails=options.compEmails??new Set((process.env.COMP_EMAILS??'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean));
+  const accessSummary=(id:number)=>{
+    const user=db.findUserById(id),offered=user?.complimentary_unlimited===1;
+    const configuredComp=!!user&&compEmails.has(user.email.toLowerCase());
+    const unlimited=!!user&&hasActiveAccess(user,options.billingConfigured??!!stripe,compEmails);
+    return {offered,configured_comp:configuredComp,unlimited,remaining:unlimited?null:0,source:offered||configuredComp?'offert':unlimited?'abonnement':'sans_accès'};
+  };
   app.post("/api/metrics", { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request, reply) => {
     const origin = request.headers.origin;
     const allowed = new Set([process.env.APP_URL, "https://www.monpetitvoyageur.com", "https://monpetitvoyageur.com"]);
@@ -34,7 +44,7 @@ export function registerAdmin(app: FastifyInstance, db: AppDb, options: { sendRe
     if(user&&admins.has(user.id)){
       const token=randomBytes(32).toString('hex');
       db.raw.transaction(()=>{db.raw.prepare('DELETE FROM admin_password_resets WHERE expires_at<? OR user_id=?').run(Date.now(),user.id);db.raw.prepare('INSERT INTO admin_password_resets VALUES(?,?,?)').run(digest(token),user.id,Date.now()+30*60000);})();
-      const origin=process.env.ADMIN_PUBLIC_URL||'https://admin-dashboard-production-b0b2.up.railway.app';
+      const origin=process.env.ADMIN_PUBLIC_URL||'https://admin.monpetitvoyageur.com';
       try{await sendResetEmail(user.email,origin+'/#reset='+token);}catch{db.raw.prepare('DELETE FROM admin_password_resets WHERE token_hash=?').run(digest(token));return reply.code(503).send({error:'L’email n’a pas pu être envoyé. Réessayez dans quelques minutes.'});}
     }
     return {message:'Si cette adresse est associée à un compte administrateur, un lien a été envoyé. Pensez à vérifier les courriers indésirables.'};
@@ -51,6 +61,7 @@ export function registerAdmin(app: FastifyInstance, db: AppDb, options: { sendRe
       db.raw.prepare('DELETE FROM admin_password_resets WHERE user_id=?').run(row.user_id);return true;
     })();
     if(!changed)return reply.code(400).send({error:'Ce lien a expiré ou a déjà été utilisé. Demandez un nouveau lien.'});
+    db.raw.prepare("INSERT INTO admin_audit(action,target) VALUES('Mot de passe réinitialisé','Sécurité')").run();
     return {message:'Votre mot de passe administrateur a été modifié. Vous pouvez vous connecter.'};
   });
   app.post('/api/admin/login', {config:{rateLimit:{max:5,timeWindow:'1 minute'}}}, async(request,reply)=>{
@@ -59,6 +70,10 @@ export function registerAdmin(app: FastifyInstance, db: AppDb, options: { sendRe
     if(typeof body?.email!=='string'||typeof body?.password!=='string'||body.password.length>256) return reply.code(400).send({error:'Identifiants invalides'});
     const user=db.findUserByEmail(body.email.trim());
     if(!user||!admins.has(user.id)||!await verifyPassword(body.password,authState(user.id)?.password_hash||user.password_hash)) return reply.code(401).send({error:'Identifiants invalides ou compte non autorisé'});
+    if(security.enabled(user.id)){
+      try{return {requires_code:true,...await security.issue(user.id,'login')};}catch(e){return reply.code(503).send({error:(e as Error).message});}
+    }
+    db.raw.prepare("INSERT INTO admin_audit(actor_id,action,target) VALUES(?,'Connexion administrateur','Sécurité')").run(user.id);
     return {token:await reply.jwtSign({userId:user.id,adminSession:true,authVersion:authState(user.id)?.version||0},{expiresIn:'30m'})};
   });
   const guard = async (request: any, reply: any) => {
@@ -67,15 +82,17 @@ export function registerAdmin(app: FastifyInstance, db: AppDb, options: { sendRe
     if (!admins.has(request.user.userId) || !db.findUserById(request.user.userId)) return reply.code(403).send({ error: "Accès réservé à l’administratrice" });
     if(!request.user.adminSession || request.user.authVersion!==(authState(request.user.userId)?.version||0))return reply.code(401).send({error:'Votre session a expiré. Reconnectez-vous.'});
   };
+  registerAdminManagement(app,db,guard,stripe,accessSummary);
+  security=registerAdminSecurity(app,db,guard,options.sendCode??(transport?async(to,code)=>{await transport.sendMail({from:process.env.SMTP_FROM||process.env.SMTP_USER,to,subject:'Votre code de sécurité — Mon Petit Voyageur',text:`Votre code administrateur : ${code}\nValable 10 minutes. Ne le communiquez à personne.`});}:null));
   app.get("/api/admin/dashboard", { preHandler: guard }, async (request: any) => {
     const days = [7,30,365].includes(Number(request.query.days)) ? Number(request.query.days) : 30;
-    const since = new Date(Date.now()-days*86400000).toISOString().slice(0,19).replace("T"," ");
+    const since = new Date(Date.now()-(days-1)*86400000).toISOString().slice(0,10)+' 00:00:00';
     const users = db.raw.prepare(`SELECT u.id,u.email,u.preferred_language,u.created_at,u.subscription_status,u.subscription_plan,u.current_period_end,u.stripe_customer_id,(SELECT count(*) FROM trips t WHERE t.user_id=u.id) AS trips FROM users u ORDER BY u.created_at DESC LIMIT 2000`).all();
     const trips = db.raw.prepare(`SELECT t.id,t.title,t.created_at,t.updated_at,u.email FROM trips t LEFT JOIN users u ON u.id=t.user_id ORDER BY t.updated_at DESC LIMIT 500`).all();
     const totals = db.raw.prepare(`SELECT (SELECT count(*) FROM users) AS users,(SELECT count(*) FROM trips) AS trips,(SELECT count(*) FROM users WHERE subscription_status='active') AS active,(SELECT count(*) FROM users WHERE subscription_status='trialing') AS trialing,(SELECT count(*) FROM users WHERE subscription_status='past_due') AS past_due,(SELECT count(*) FROM users WHERE created_at>=?) AS registrations`).get(since);
     const registrations = db.raw.prepare("SELECT date(created_at) AS day,count(*) AS count FROM users WHERE created_at>=? GROUP BY date(created_at) ORDER BY day").all(since);
     const metrics = db.raw.prepare("SELECT kind,target,sum(count) AS count FROM admin_metrics WHERE day>=date(?) GROUP BY kind,target ORDER BY count DESC").all(since);
-    return { updated_at: new Date().toISOString(), days, totals, users, trips, registrations, metrics,
+    return { updated_at: new Date().toISOString(), days, totals, users:users.map((u:any)=>({...u,access:accessSummary(u.id)})), trips, registrations, metrics,
       limits: { users: 2000, trips: 500 },
       sources: { database: "Railway · base de production", stripe: !!stripe, webhook: !!process.env.STRIPE_WEBHOOK_SECRET, analytics: true, tracking_since: (db.raw.prepare("SELECT value FROM admin_meta WHERE key='tracking_since'").get() as any).value },
       revenue: null };

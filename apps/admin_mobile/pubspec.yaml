@@ -1,0 +1,38 @@
+name: mpv_admin
+description: "Administration mobile privée de Mon Petit Voyageur."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  cross_file: ^0.3.5+5
+  firebase_core: ^4.14.0
+  firebase_crashlytics: ^5.3.0
+  flutter:
+    sdk: flutter
+  http: ^1.6.0
+  share_plus: ^13.3.0
+  url_launcher: ^6.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  config:
+    enable-swift-package-manager: false
+  uses-material-design: true
+  assets:
+    - assets/branding/logo.png
+    - assets/branding/icon.png
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/branding/icon.png
+  remove_alpha_ios: true
+  background_color_ios: '#F1ECE6'

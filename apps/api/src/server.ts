@@ -2,6 +2,7 @@ import { createTripSchema, updateTripSchema, tripListQuerySchema } from "./tripV
 import { createPlanJobs } from "./planJobs";
 import { createUserSessions, SESSION_SECONDS } from "./userSessions";
 import { createDownloadLimit } from "./downloadLimit";
+import { registerGuideImages, renderGuideImages } from "./guideImages";
 import type { z } from "zod";
 import { registerAdmin } from "./admin";
 import Fastify from "fastify";
@@ -268,6 +269,7 @@ export function buildServer() {
 
   // --- Billing (Stripe) ---------------------------------------------------
   registerPremium(app, db, config, compEmails);
+  const readGuideImages = registerGuideImages(app, db);
 
   // Starts a Checkout session for the chosen plan and returns its URL. The web
   // app redirects the browser there.
@@ -627,7 +629,7 @@ export function buildServer() {
       locale: locale as "fr" | "en",
       destination,
       filename: buildGuideFilename(trip.title),
-      html: renderGuideHtml(renderable, { locale, title: trip.title, mapboxToken: config.MAPBOX_ACCESS_TOKEN, staticMapSrc })
+      html: renderGuideHtml(renderable, { locale, title: trip.title, mapboxToken: config.MAPBOX_ACCESS_TOKEN, staticMapSrc }).replace('<footer class="footer">', renderGuideImages(readGuideImages(tripId), locale) + '<footer class="footer">')
     };
   }
 

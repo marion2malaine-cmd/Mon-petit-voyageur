@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ItineraryDaySchema, ItineraryOutlineSchema, type ItineraryDay, type ItineraryOutline } from "@mlt/contracts";
-import { applyStayAsLodging, normalizeStages, stageSummary } from "../skills/itineraryPlanner";
+import { applyStayAsLodging, applyStayDetails, normalizeStages, stageSummary } from "../skills/itineraryPlanner";
 import { renderGuideHtml } from "../guide/renderGuide";
 import type { PlanTripResponse } from "@mlt/contracts";
 
@@ -148,5 +148,36 @@ describe("the hotel of a trip that never moves", () => {
     applyStayAsLodging(days, stay, "fr");
 
     expect(days[0].lodging?.name).toBe("Dao Lodge");
+  });
+});
+
+describe("the listing photo of a named stage hotel", () => {
+  const stays = [
+    {
+      name: "Peridot Grand Hotel & Spa",
+      price_per_night: 88,
+      currency: "EUR",
+      area: "Hanoï",
+      rating: 4.6,
+      budget_fit: "within_budget" as const,
+      booking_url: "https://www.booking.com/hotel/vn/peridot-grand.html",
+      notes: [],
+      coordinates: { lat: 21.03, lon: 105.85 },
+      photo_url: "https://example.com/peridot.jpg"
+    }
+  ];
+
+  it("takes the real picture, price and link of the hotel the model named", () => {
+    const days = [day(1, { lodging: { name: "Peridot Grand Hotel" } }), day(2, { lodging: { name: "Dao Lodge" } })];
+    normalizeStages(days, OUTLINE, "Vietnam", "fr");
+    applyStayDetails(days, stays as any, "fr");
+
+    expect(days[0].lodging?.photo?.url).toBe("https://example.com/peridot.jpg");
+    expect(days[0].lodging?.price_per_night_eur).toBe(88);
+    expect(days[0].lodging?.rating).toBe(4.6);
+    expect(days[0].lodging?.booking_links[0].url).toBe(stays[0].booking_url);
+    // A hotel the search never saw keeps its own query for the photo libraries.
+    expect(days[1].lodging?.photo?.url ?? null).toBeNull();
+    expect(days[1].lodging?.photo?.query).toContain("Dao Lodge");
   });
 });
