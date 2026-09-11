@@ -455,20 +455,20 @@
       "geo": 0,
       "effort": 1,
       "risk": 5,
-      "status": "open",
-      "note": "Non vérifiable sans révéler le secret : la valeur de STRIPE_SECRET_KEY n'a délibérément pas été affichée. `isRealSecretKey` accepte sk_live_… COMME sk_test_… : avec une clé de test, le paywall se ferme quand même (isConfigured=true) mais aucun paiement réel n'aboutit — les visiteurs seraient bloqués sans pouvoir s'abonner. Marion peut le lire en un coup d'œil dans l'admin (`sources.stripe` et `test_mode` du tableau de bord) ou dans Stripe. À confirmer avant de pousser du trafic."
+      "status": "done",
+      "note": "RÉSOLU le 2026-09-11 : Marion confirme une clé **live**. Les paiements sont donc réels et le paywall est pleinement opérationnel — les tarifs publiés (5,99 €/mois, 49 €/an, 7 jours d'essai) décrivent un abonnement réellement souscriptible. Aucun texte à revoir."
     },
     {
       "id": "variable-stripe-trial-days-inutile",
-      "title": "Variable STRIPE_TRIAL_DAYS posée sur Railway mais jamais lue par le code",
+      "title": "STRIPE_TRIAL_DAYS=14 supprimée sur Railway — suppression en attente de déploiement",
       "score": 40,
       "impact": 2,
       "commercial": 2,
       "geo": 0,
       "effort": 1,
       "risk": 2,
-      "status": "open",
-      "note": "Relevé le 2026-09-11 : backend-api porte STRIPE_TRIAL_DAYS *et* TRIAL_DAYS. Le schéma de configuration (apps/api/src/config.ts) ne connaît que TRIAL_DAYS ; STRIPE_TRIAL_DAYS n'a donc aucun effet. TRIAL_DAYS vaut 7, ce qui correspond au texte affiché (« Essai gratuit de 7 jours ») : rien n'est faux aujourd'hui. À supprimer pour éviter qu'une future modification de STRIPE_TRIAL_DAYS ne soit silencieusement ignorée."
+      "status": "waiting-deploy",
+      "note": "Le 2026-09-11, la variable valait **14** alors que TRIAL_DAYS, la seule que le code lise, vaut **7** : l'essai réellement accordé était donc de 7 jours, et la variable n'était pas seulement inutile, elle exprimait une intention contraire. Marion a tranché pour **7 jours** (décision du 2026-09-11) : aucun texte à modifier, l'application comme le site annoncent déjà 7 jours. STRIPE_TRIAL_DAYS a été supprimée dans l'interface Railway ; la suppression est **en attente** (« Apply 1 change » / bouton Deploy sur backend-api) car déclencher un déploiement d'API reste l'action de Marion. Sans effet fonctionnel quoi qu'il arrive : la variable n'était lue par personne. À vérifier au prochain run : la variable a-t-elle disparu de backend-api ?"
     }
   ],
   "kpi": {
@@ -702,6 +702,18 @@
       "url": "(tests)",
       "action": "technique",
       "justification": "Quatre garde-fous ajoutés : les prix des données structurées doivent égaler ceux du paywall (src/appTranslations.ts), aucune page ne peut redire « Inscription gratuite », chaque Offer doit être > 0 avec son montant visible dans le texte, et l'appel à l'action doit être identique dans la coquille statique et dans React. Vérifié par mutation."
+    },
+    {
+      "date": "2026-09-11",
+      "url": "(production)",
+      "action": "mesure",
+      "justification": "Marion confirme que la clé Stripe de production est une clé live : les paiements sont réels, le paywall est pleinement opérationnel et les tarifs publiés le matin même décrivent un abonnement réellement souscriptible. Backlog stripe-mode-test-ou-live clos."
+    },
+    {
+      "date": "2026-09-11",
+      "url": "(production)",
+      "action": "technique",
+      "justification": "STRIPE_TRIAL_DAYS valait 14 alors que TRIAL_DAYS, seule variable lue par config.ts, vaut 7 : l'essai réel était de 7 jours et la variable exprimait une intention contraire, jamais appliquée. Marion a tranché pour 7 jours ; la variable a été supprimée dans Railway (suppression en attente de déploiement, action de Marion). Vérifié avant d'y toucher : aucun fichier d'apps/api modifié depuis le déploiement actif, build API et 124 tests verts à HEAD — un redéploiement ne changerait donc aucun code d'API."
     }
   ],
   "privateRoutes": {

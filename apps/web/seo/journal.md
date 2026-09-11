@@ -147,3 +147,15 @@ Une entrée par run de la routine (`~/.claude/scheduled-tasks/routine-mon-petit-
 **Deux réserves pour Marion.** (1) **Le mode de la clé n'a pas été vérifié** : afficher `STRIPE_SECRET_KEY` aurait exposé le secret. Or `isRealSecretKey` accepte `sk_test_…` autant que `sk_live_…` — avec une clé de test, le paywall se ferme quand même mais personne ne peut réellement s'abonner. À confirmer dans l'admin (`test_mode`) ou dans Stripe avant d'envoyer du trafic. Backlog `stripe-mode-test-ou-live`. (2) La variable **`STRIPE_TRIAL_DAYS` n'est lue nulle part** : `config.ts` ne connaît que `TRIAL_DAYS`. Rien de faux aujourd'hui (les deux mènent à 7 jours), mais une future modification de `STRIPE_TRIAL_DAYS` serait silencieusement ignorée. Backlog `variable-stripe-trial-days-inutile`.
 
 **Prochain run.** Après déploiement : `curl -s -A GPTBot https://www.monpetitvoyageur.com/ | grep -o '"price": "[0-9.]*"'` doit renvoyer `5.99` et `49`, et `curl -s .../llms.txt | grep Tarifs` la ligne des tarifs. Puis surveiller dans Search Console si la requalification « gratuit → payant » change les impressions, et relancer Marion sur le mode de la clé Stripe.
+
+## 2026-09-11 (soir) — La clé est live, et l'essai « 14 jours » n'avait jamais existé
+
+**Clé Stripe : live.** Marion confirme. Les paiements sont réels, le paywall pleinement opérationnel, et les tarifs publiés cet après-midi (5,99 €/mois, 49 €/an, 7 jours d'essai) décrivent donc un abonnement réellement souscriptible. Backlog `stripe-mode-test-ou-live` clos.
+
+**La vraie surprise.** En ouvrant `STRIPE_TRIAL_DAYS` avant de la supprimer, elle valait **14**, quand `TRIAL_DAYS` — la seule variable que `config.ts` connaisse — vaut **7**. La variable n'était donc pas seulement inerte : elle exprimait une intention *contraire* à ce que l'application accorde. Un essai de 14 jours n'a jamais existé pour personne, et tous les textes (paywall, FAQ, meta description, llms.txt) disent 7 jours — ils étaient exacts, par chance autant que par construction. Question posée à Marion plutôt que tranchée seule, parce que « 14 » aurait signifié reprendre chaque texte publié le matin : **elle confirme 7 jours**.
+
+**Fait.** `STRIPE_TRIAL_DAYS` supprimée dans l'interface Railway de `backend-api`. La suppression est **en attente** (« Apply 1 change », bouton Deploy) : déclencher un déploiement d'API reste l'action de Marion. Sans conséquence fonctionnelle dans un cas comme dans l'autre, puisque personne ne lisait cette variable.
+
+**Vérifié avant d'y toucher.** Aucun fichier d'`apps/api` modifié depuis le déploiement actif (`git diff a532d26..HEAD` : seulement `tmp/`, le web et le .gitignore), build API verte et **124 tests API verts** à HEAD — un redéploiement ne changerait donc aucun code d'API. Après l'opération : `api/health` renvoie `{"ok":true}` et l'accueil 200.
+
+**Prochain run.** Vérifier que `STRIPE_TRIAL_DAYS` a bien disparu de `backend-api` (donc que Marion a déployé), puis les preuves du déploiement web : `curl -s -A GPTBot https://www.monpetitvoyageur.com/ | grep -o '"price": "[0-9.]*"'` → `5.99` et `49`.
