@@ -7,16 +7,31 @@ export type HomeLocale = "fr" | "en";
 
 export const SITE_URL = "https://www.monpetitvoyageur.com";
 
+/**
+ * Tarifs réellement facturés, source unique pour la page, ses données
+ * structurées et llms.txt. `display` doit rester identique aux libellés du
+ * paywall (`src/appTranslations.ts`), `amount` est la forme décimale attendue
+ * par schema.org — un test compare les deux. Stripe est configuré en
+ * production depuis le 2026-09-10 : l'accès est réservé aux comptes en essai
+ * ou abonnés, donc plus aucune page ne doit promettre un service gratuit.
+ */
+export const PRICING = {
+  currency: "EUR",
+  trialDays: 7,
+  monthly: { amount: "5.99", display: { fr: "5,99 €", en: "€5.99" } },
+  annual: { amount: "49", display: { fr: "49 €", en: "€49" } }
+} as const;
+
 export const SEO = {
   fr: {
     title: "Mon Petit Voyageur · Votre voyage planifié par l'IA, dans votre budget",
     description:
-      "Budget, dates, style : l'IA construit votre itinéraire jour par jour avec vols et hôtels au prix réel, activités, restaurants et guide illustré. Inscription gratuite."
+      "Budget, dates, style : l'IA construit votre itinéraire jour par jour avec vols et hôtels au prix réel, activités, restaurants et guide illustré. Essai gratuit de 7 jours, puis 5,99 €/mois."
   },
   en: {
     title: "My Little Traveler · Your trip planned by AI, within your budget",
     description:
-      "Budget, dates, style: the AI builds your day-by-day itinerary with real flight and hotel prices, activities, restaurants and an illustrated guide. Free sign-up."
+      "Budget, dates, style: the AI builds your day-by-day itinerary with real flight and hotel prices, activities, restaurants and an illustrated guide. 7-day free trial, then €5.99/month."
   }
 } as const;
 
@@ -129,6 +144,10 @@ export const FAQ = {
       {
         q: "Faut-il un compte pour créer un voyage ?",
         a: "Oui : l'inscription se fait par email et mot de passe ou avec un compte Google. Vos voyages sont conservés dans votre espace, avec leur programme et leur guide."
+      },
+      {
+        q: "Combien coûte Mon Petit Voyageur ?",
+        a: "La création du compte est gratuite et chaque nouveau compte dispose de 7 jours d'essai gratuit. Ensuite, l'abonnement est de 5,99 € par mois ou 49 € par an, sans engagement et résiliable en un clic depuis votre espace. Les vols, hôtels et activités se paient sur les sites de réservation, jamais chez nous."
       }
     ]
   },
@@ -162,6 +181,10 @@ export const FAQ = {
       {
         q: "Do I need an account to create a trip?",
         a: "Yes: sign up with email and password or with a Google account. Your trips are kept in your space, with their program and guide."
+      },
+      {
+        q: "How much does My Little Traveler cost?",
+        a: "Creating an account is free and every new account gets a 7-day free trial. After that the subscription is €5.99 per month or €49 per year, with no commitment, cancellable in one click from your account. Flights, hotels and activities are paid on the booking sites, never here."
       }
     ]
   }

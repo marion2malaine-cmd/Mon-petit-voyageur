@@ -11,13 +11,13 @@ export default {
   dateModified: "2026-09-08",
   title: "Planificateur de voyage IA : itinéraire complet, vols et hôtels au prix réel | Mon Petit Voyageur",
   description:
-    "Donnez un budget, un style et une période : l'IA construit l'itinéraire jour par jour, trouve vols et hôtels au prix réel et vous laisse tout réserver via des liens. Inscription gratuite.",
+    "Donnez un budget, un style et une période : l'IA construit l'itinéraire jour par jour, trouve vols et hôtels au prix réel et vous laisse tout réserver via des liens. 7 jours d'essai gratuit.",
   h1: "Le planificateur de voyage IA qui organise tout, dans votre budget",
   lead:
     "Vous donnez un budget, un style et une période. L'intelligence artificielle construit l'itinéraire, les outils de prix en direct trouvent les vols et les hôtels, et vous réservez avec des liens pré-remplis.",
   related: ["organiser-un-voyage-avec-l-ia", "planificateur-road-trip-ia", "budget-voyage"],
   ctaTitle: "Prêt à créer votre voyage ?",
-  ctaText: "Inscription gratuite par email ou avec Google. Le questionnaire prend deux minutes, le plan complet est généré en quelques minutes.",
+  ctaText: "Inscription par email ou avec Google, puis 7 jours d'essai gratuit — ensuite 5,99 € par mois ou 49 € par an, sans engagement. Le questionnaire prend deux minutes, le plan complet est généré en quelques minutes.",
   body: `
 <div class="summary"><p><strong>En bref :</strong> Mon Petit Voyageur est un planificateur de voyage assisté par intelligence artificielle, édité par MARA LABS (Lille). À partir d'un questionnaire (budget total, style de voyage, durée, mois de départ, ville de départ, destination ou non), il propose une destination, compare les vols et les hébergements, écrit un programme jour par jour et produit un guide illustré téléchargeable. Chaque proposition est accompagnée d'un lien de réservation.</p></div>
 

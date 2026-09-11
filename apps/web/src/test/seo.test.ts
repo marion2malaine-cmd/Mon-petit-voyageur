@@ -6,7 +6,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { loadPages, readState, readHomeHead, renderSite, syncState, internalLinks } from "../../seo/build.mjs";
 import { SITE_URL, APP_ANCHORS } from "../../seo/site.mjs";
-import { SEO, EYEBROW, ABOUT, FAQ, FEATURES, STEPS } from "../homeContent";
+import { SEO, EYEBROW, ABOUT, FAQ, FEATURES, STEPS, PRICING } from "../homeContent";
+import { text as appText } from "../appTranslations";
 
 const webRoot = path.resolve(__dirname, "../..");
 const pages = await loadPages();
@@ -166,6 +167,54 @@ describe("sitemap, robots, llms.txt, 404", () => {
     const html = files.get("404.html")!;
     expect(html).toContain('<meta name="robots" content="noindex">');
     expect(html).toContain('href="/"');
+  });
+});
+
+// Stripe est branché en production depuis le 2026-09-10 : l'application est
+// fermée aux comptes sans essai ni abonnement. Des données structurées qui
+// annonceraient « gratuit », ou un prix inventé, mentiraient à Google comme
+// aux moteurs génératifs.
+describe("tarifs : données structurées = produit réel", () => {
+  it("les prix déclarés sont ceux du paywall de l'application", () => {
+    expect(PRICING.monthly.display.fr).toBe(appText.fr.planMonthlyPrice);
+    expect(PRICING.annual.display.fr).toBe(appText.fr.planAnnualPrice);
+    expect(PRICING.monthly.display.en).toBe(appText.en.planMonthlyPrice);
+  });
+
+  it("aucune page ne promet plus un service gratuit", () => {
+    for (const [name, html] of [["index.html", indexHtml], ...files] as [string, string][]) {
+      if (name.endsWith(".xml")) continue;
+      expect(html, `${name} annonce encore « Inscription gratuite »`).not.toContain("Inscription gratuite");
+    }
+    expect(SEO.fr.description).toContain(PRICING.monthly.display.fr);
+  });
+
+  // La coquille statique (lue par les crawlers) et la page React (lue par le
+  // visiteur et par Googlebot après rendu) doivent dire la même chose du prix.
+  it("le bloc d'appel à l'action dit la même chose dans la coquille statique et dans React", () => {
+    const shell = indexHtml.match(/<p class="section-sub">(Laissez[^<]+)<\/p>/)?.[1];
+    expect(shell).toBe(appText.fr.ctaCardSub);
+    expect(shell).toContain(PRICING.monthly.display.fr);
+  });
+
+  it("l'Offer de chaque page porte les vrais montants, et ces montants sont visibles dans le texte", () => {
+    const amounts = [PRICING.monthly.amount, PRICING.annual.amount];
+    for (const [name, html] of [["index.html", indexHtml], ...files] as [string, string][]) {
+      if (!html.includes('"SoftwareApplication"')) continue;
+      const app = jsonLdBlocks(html.replace(/<script type="application\/ld\+json">\s*/g, '<script type="application/ld+json">'))
+        .flatMap((b) => b["@graph"] ?? [b])
+        .find((g: any) => g["@type"] === "SoftwareApplication");
+      const offers = [app.offers].flat();
+      expect(offers.map((o: any) => o.price).sort(), `${name} : offres inattendues`).toEqual([...amounts].sort());
+      for (const offer of offers) {
+        expect(offer.priceCurrency).toBe(PRICING.currency);
+        expect(Number(offer.price), `${name} : un prix à 0 rouvrirait la promesse « gratuit »`).toBeGreaterThan(0);
+      }
+      // Ce que la page déclare à Google doit se lire sur la page.
+      const visible = textOf(html);
+      expect(visible, `${name} : le prix mensuel n'apparaît pas dans le texte visible`).toContain(PRICING.monthly.display.fr);
+      expect(visible, `${name} : la durée d'essai n'apparaît pas dans le texte visible`).toContain(`${PRICING.trialDays} jours d'essai`);
+    }
   });
 });
 

@@ -30,7 +30,7 @@ export default {
     ]
   },
   ctaTitle: "Appliquez la méthode en un questionnaire",
-  ctaText: "Mon Petit Voyageur confie la structure à l'IA et les prix à des recherches en direct. Inscription gratuite.",
+  ctaText: "Mon Petit Voyageur confie la structure à l'IA et les prix à des recherches en direct. 7 jours d'essai gratuit, puis 5,99 € par mois ou 49 € par an, sans engagement.",
   body: `
 <div class="summary"><p><strong>En bref :</strong> confiez à l'IA la structure (rythme, répartition des journées, idées de visites adaptées à votre style) et gardez pour des sources en direct tout ce qui est chiffré ou daté : tarifs de vols et d'hôtels, horaires, disponibilités, adresses. Fixez le budget avant de demander un itinéraire, vérifiez chaque prix sur le site de réservation, et emportez le plan hors ligne.</p></div>
 

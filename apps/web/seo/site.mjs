@@ -51,9 +51,14 @@ export const SOFTWARE = {
     "Road trip par étapes avec hôtel chaque nuit et temps de route",
     "Guide illustré téléchargeable et imprimable"
   ],
-  // Registration is free today (every page says "Inscription gratuite"). Update
-  // if a paid plan ships (see memory: Stripe subscription planned, gating open).
-  offers: { "@type": "Offer", price: "0", priceCurrency: "EUR", description: "Inscription gratuite", availability: "https://schema.org/InStock" },
+  // Stripe est configuré en production depuis le 2026-09-10 : l'accès est
+  // réservé aux comptes en essai ou abonnés. Ces prix doivent rester ceux du
+  // paywall (src/appTranslations.ts) et rester visibles dans le texte des
+  // pages — un test compare les deux.
+  offers: [
+    { "@type": "Offer", name: "Abonnement mensuel", price: "5.99", priceCurrency: "EUR", description: "5,99 € par mois après 7 jours d'essai gratuit, sans engagement", availability: "https://schema.org/InStock", url: `${SITE_URL}/#connexion` },
+    { "@type": "Offer", name: "Abonnement annuel", price: "49", priceCurrency: "EUR", description: "49 € par an après 7 jours d'essai gratuit, sans engagement", availability: "https://schema.org/InStock", url: `${SITE_URL}/#connexion` }
+  ],
   provider: { "@id": `${SITE_URL}/#organization` }
 };
 
@@ -268,7 +273,7 @@ ${page.body}
 ${faqHtml}
 <aside class="cta">
 <h2>${escapeHtml(page.ctaTitle ?? "Créez votre voyage avec Mon Petit Voyageur")}</h2>
-<p>${escapeHtml(page.ctaText ?? "Inscription gratuite. Répondez au questionnaire, l'IA construit l'itinéraire, vous réservez avec les liens fournis.")}</p>
+<p>${escapeHtml(page.ctaText ?? "Répondez au questionnaire, l'IA construit l'itinéraire, vous réservez avec les liens fournis. 7 jours d'essai gratuit, puis 5,99 € par mois ou 49 € par an, sans engagement.")}</p>
 <a class="button" href="/#connexion">Commencer mon voyage</a>
 </aside>
 ${relatedHtml}

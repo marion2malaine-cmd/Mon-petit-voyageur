@@ -24,7 +24,7 @@
       "lastOptimized": "2026-09-09",
       "title": "Mon Petit Voyageur · Votre voyage planifié par l'IA, dans votre budget",
       "h1": "Mon Petit Voyageur",
-      "faqVisible": 7,
+      "faqVisible": 8,
       "linksTo": [
         "/budget-voyage",
         "/organiser-un-voyage-avec-l-ia",
@@ -68,19 +68,22 @@
         {
           "date": "2026-09-11",
           "what": "Poids réel de l'accueil mesuré au navigateur (serveur local, dist de production) : 4 requêtes, ~650 Ko transférés — index.js 99 Ko gzip, logo-hero.avif 479 Ko, CSS 11 Ko, logo.png 60 Ko. mapbox-gl (1,86 Mo) et three (688 Ko) sont en import dynamique et ne sont PAS chargés sur la landing : l'alerte « bundle lourd sur la landing » notée les 08 et 09/09 était fausse, elle est retirée des problèmes ouverts."
+        },
+        {
+          "date": "2026-09-11",
+          "what": "Stripe branché en production (variables STRIPE_* posées sur backend-api, déploiement actif du 2026-09-10 11:05) : l'application n'est plus ouverte à tous. Tout le SEO qui promettait la gratuité est corrigé — description, appel à l'action, Offer JSON-LD (5,99 €/mois et 49 €/an au lieu de price 0), nouvelle question « Combien coûte Mon Petit Voyageur ? » visible et en FAQPage, llms.txt. Prix repris du paywall (src/appTranslations.ts), essai de 7 jours confirmé par TRIAL_DAYS=7."
         }
       ],
       "openIssues": [
         "H1 = marque seule (« Mon Petit Voyageur ») : choix design (titre serif géant) ; le positionnement est porté par le title, la tagline et l'eyebrow.",
         "?legal=privacy|terms|sales : vues SPA (canonical propre posé par src/seo.ts, pas de HTML statique) : acceptable, non stratégique.",
-        "Email de contact affiché contact@monpetitvoyageur.fr alors que le domaine est .com : à confirmer par Marion (boîte existante ?) avant tout changement.",
-        "Accueil : l'Offer JSON-LD déclare price \"0\" et la description « Inscription gratuite ». Vrai aujourd'hui (STRIPE_SECRET_KEY absente → hasActiveAccess() ouvre l'app), faux dès que Stripe sera configuré en production. Voir backlog stripe-seo-offer."
+        "Email de contact affiché contact@monpetitvoyageur.fr alors que le domaine est .com : à confirmer par Marion (boîte existante ?) avant tout changement."
       ],
       "nextOpportunities": [
         "Mention MARA LABS + Lille dans le footer visible de la landing React (déjà présent dans la coquille statique et la section « Qu'est-ce que Mon Petit Voyageur ? »).",
         "Version anglaise indexable (/en/) seulement si une demande anglophone est mesurée dans Search Console."
       ],
-      "description": "Budget, dates, style : l'IA construit votre itinéraire jour par jour avec vols et hôtels au prix réel, activités, restaurants et guide illustré. Inscription gratuite.",
+      "description": "Budget, dates, style : l'IA construit votre itinéraire jour par jour avec vols et hôtels au prix réel, activités, restaurants et guide illustré. Essai gratuit de 7 jours, puis 5,99 €/mois.",
       "canonical": "https://www.monpetitvoyageur.com/"
     },
     "/budget-voyage": {
@@ -440,8 +443,32 @@
       "geo": 4,
       "effort": 2,
       "risk": 4,
-      "status": "watch",
-      "note": "Déclencheur : STRIPE_SECRET_KEY configurée sur l'API de production (l'app renvoie alors billing_enabled=true et hasActiveAccess() ferme l'accès aux non-abonnés). Aujourd'hui (2026-09-11) Stripe n'est pas configuré, l'application est ouverte et « Inscription gratuite » + Offer price \"0\" sont exacts — ne rien changer avant. Le jour venu : tarifs réels dans src/appTranslations.ts (planMonthlyPrice « 5,99 € » / mois, planAnnualPrice « 49 € » / an, essai gratuit de 7 jours ; formule « Voyage Premium » 9,99 €/mois dans src/PremiumMobile.tsx), à reporter dans l'Offer de index.html, les meta descriptions des pages commerciales, la FAQ de src/homeContent.ts et llms.txt. Risque de données structurées mensongères si on l'oublie."
+      "status": "done",
+      "note": "FAIT le 2026-09-11, le jour où Marion a branché Stripe. Vérification : six variables STRIPE_* (SECRET_KEY, WEBHOOK_SECRET, PRICE_MONTHLY, PRICE_ANNUAL, PRICE_PREMIUM, TRIAL_DAYS) présentes et appliquées sur backend-api en production ; aucun changement staged, aucune activité Railway ce jour, déploiement actif depuis le 2026-09-10 11:05 — les clés étaient donc déjà en place à son démarrage. Corrigés : meta description et og:description, appel à l'action (coquille statique ET appTranslations, désormais identiques), Offer JSON-LD de l'accueil et des 4 guides (deux Offer à 5.99 et 49 EUR), ctaText des pages, llms.txt (tarifs + « ne pas présenter le service comme entièrement gratuit »), FAQ tarif visible = FAQPage. Trois tests verrouillent : prix = ceux du paywall, plus aucune page ne dit « Inscription gratuite », Offer > 0 et montants visibles dans le texte."
+    },
+    {
+      "id": "stripe-mode-test-ou-live",
+      "title": "Confirmer que la clé Stripe de production est une clé live (et non une clé de test)",
+      "score": 80,
+      "impact": 5,
+      "commercial": 5,
+      "geo": 0,
+      "effort": 1,
+      "risk": 5,
+      "status": "open",
+      "note": "Non vérifiable sans révéler le secret : la valeur de STRIPE_SECRET_KEY n'a délibérément pas été affichée. `isRealSecretKey` accepte sk_live_… COMME sk_test_… : avec une clé de test, le paywall se ferme quand même (isConfigured=true) mais aucun paiement réel n'aboutit — les visiteurs seraient bloqués sans pouvoir s'abonner. Marion peut le lire en un coup d'œil dans l'admin (`sources.stripe` et `test_mode` du tableau de bord) ou dans Stripe. À confirmer avant de pousser du trafic."
+    },
+    {
+      "id": "variable-stripe-trial-days-inutile",
+      "title": "Variable STRIPE_TRIAL_DAYS posée sur Railway mais jamais lue par le code",
+      "score": 40,
+      "impact": 2,
+      "commercial": 2,
+      "geo": 0,
+      "effort": 1,
+      "risk": 2,
+      "status": "open",
+      "note": "Relevé le 2026-09-11 : backend-api porte STRIPE_TRIAL_DAYS *et* TRIAL_DAYS. Le schéma de configuration (apps/api/src/config.ts) ne connaît que TRIAL_DAYS ; STRIPE_TRIAL_DAYS n'a donc aucun effet. TRIAL_DAYS vaut 7, ce qui correspond au texte affiché (« Essai gratuit de 7 jours ») : rien n'est faux aujourd'hui. À supprimer pour éviter qu'une future modification de STRIPE_TRIAL_DAYS ne soit silencieusement ignorée."
     }
   ],
   "kpi": {
@@ -645,6 +672,36 @@
       "url": "(comparatifs)",
       "action": "audit",
       "justification": "Opportunité « meilleurs planificateurs de voyage IA » instruite : tarifs publics vérifiés chez layla.ai (49 $/an), absents chez mindtrip.ai et tripplanner.ai. Page NON créée : un comparatif à moitié vérifiable n'a pas d'utilité réelle et exposerait à des affirmations invérifiables. Conclusion consignée dans le backlog pour que le prochain run ne refasse pas la recherche."
+    },
+    {
+      "date": "2026-09-11",
+      "url": "(production)",
+      "action": "mesure",
+      "justification": "Marion annonce Stripe branché : vérifié à la source plutôt que sur parole. Six variables STRIPE_* appliquées sur backend-api (environnement production), TRIAL_DAYS=7, aucun changement en attente, aucune activité Railway ce jour et déploiement actif depuis le 2026-09-10 11:05 — l'API tournante a donc les clés. Non vérifié volontairement : le mode test/live, qui aurait exigé d'afficher le secret."
+    },
+    {
+      "date": "2026-09-11",
+      "url": "/",
+      "action": "optimisation",
+      "justification": "Le SEO promettait « Inscription gratuite » et déclarait un Offer à price 0 alors que l'accès est désormais réservé aux comptes en essai ou abonnés : données structurées mensongères. Description, og:description, appel à l'action, Offer (5,99 €/mois et 49 €/an) et nouvelle FAQ tarif alignés sur le paywall réel."
+    },
+    {
+      "date": "2026-09-11",
+      "url": "/planificateur-voyage-ia, /organiser-un-voyage-avec-l-ia, /budget-voyage, /planificateur-road-trip-ia",
+      "action": "optimisation",
+      "justification": "Même correction sur les 4 guides : Offer partagé de site.mjs passé aux vrais tarifs, ctaText sans promesse de gratuité, prix et durée d'essai rendus visibles dans le texte pour que les données structurées correspondent à ce qui est affiché."
+    },
+    {
+      "date": "2026-09-11",
+      "url": "llms.txt",
+      "action": "optimisation",
+      "justification": "Ligne « Tarifs » ajoutée (compte gratuit, 7 jours d'essai, 5,99 €/mois ou 49 €/an, module « Pendant mon voyage » 9,99 €/mois) et interdiction explicite de présenter le service comme entièrement gratuit : c'est le fichier que lisent les moteurs génératifs."
+    },
+    {
+      "date": "2026-09-11",
+      "url": "(tests)",
+      "action": "technique",
+      "justification": "Quatre garde-fous ajoutés : les prix des données structurées doivent égaler ceux du paywall (src/appTranslations.ts), aucune page ne peut redire « Inscription gratuite », chaque Offer doit être > 0 avec son montant visible dans le texte, et l'appel à l'action doit être identique dans la coquille statique et dans React. Vérifié par mutation."
     }
   ],
   "privateRoutes": {

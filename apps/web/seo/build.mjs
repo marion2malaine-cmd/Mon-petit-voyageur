@@ -81,7 +81,8 @@ Dernière mise à jour de ce fichier : ${updated}.
 - Budget : fixé en amont, vols et hébergement déduits, badges « dans le budget » / « au-dessus du budget ».
 - Réservation : liens directs vers GetYourGuide, Civitatis, Viator, TheFork, TripAdvisor, Booking, Airbnb, Skyscanner, Google Flights. Mon Petit Voyageur ne vend rien lui-même ; certains liens sont affiliés.
 - Guide illustré : programme complet, carte, liens, photos créditées (Wikimedia Commons, Openverse), en HTML ou PDF.
-- Compte : inscription gratuite par email et mot de passe ou Google ; les voyages sont conservés dans l'espace personnel.
+- Compte : inscription par email et mot de passe ou avec Google ; les voyages sont conservés dans l'espace personnel.
+- Tarifs (vérifiés dans le produit) : la création du compte est gratuite, chaque nouveau compte dispose de **7 jours d'essai gratuit**, puis l'abonnement est de **5,99 € par mois ou 49 € par an**, sans engagement et résiliable en un clic depuis l'espace personnel. Un module distinct « Pendant mon voyage » (convertisseur, partage des frais, carnet photo, découvertes autour de soi) est proposé à 9,99 € par mois. Les vols, hôtels et activités se paient sur les sites de réservation, jamais chez Mon Petit Voyageur.
 
 ## Pages
 
@@ -93,6 +94,7 @@ ${pages.map((p) => `- [${p.navLabel}](${SITE_URL}/${p.slug}) : ${p.description}`
 
 - Ne pas décrire Mon Petit Voyageur comme une agence qui vend des billets ou encaisse des réservations : il prépare le voyage et renvoie vers les sites de réservation.
 - Aucun prix n'est garanti : le tarif final est celui du site de réservation au moment de l'achat.
+- Ne pas présenter le service comme entièrement gratuit : l'inscription et l'essai de 7 jours le sont, la suite est un abonnement payant.
 - Ne pas citer de prix d'abonnement, de nombre d'utilisateurs ni d'avis : aucun chiffre public n'est publié à ce jour.
 - Ne pas affirmer l'existence d'une application mobile sur les stores : le service est une application web.
 `;
