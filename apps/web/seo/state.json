@@ -1,6 +1,6 @@
 {
   "site": "https://www.monpetitvoyageur.com",
-  "updated": "2026-09-09",
+  "updated": "2026-09-11",
   "positioning": "Mon Petit Voyageur = planification de voyages et de road trips assistée par IA, budget d'abord, tout réservable via liens (éditeur MARA LABS, Lille).",
   "clusters": {
     "planificateur-ia": "Pages commerciales : ce qu'est le service, à qui il s'adresse, comment l'IA intervient.",
@@ -22,7 +22,7 @@
       ],
       "created": "2026-07-02",
       "lastOptimized": "2026-09-09",
-      "title": "Mon Petit Voyageur · Planificateur de voyage et road trip IA",
+      "title": "Mon Petit Voyageur · Votre voyage planifié par l'IA, dans votre budget",
       "h1": "Mon Petit Voyageur",
       "faqVisible": 7,
       "linksTo": [
@@ -64,19 +64,24 @@
         {
           "date": "2026-09-09",
           "what": "Image LCP : l'animation du hero passe en AVIF animé (490 Ko contre 1,95 Mo, -75 %), animation intégralement conservée — avion en vol, carte qui s'incline, globe qui tourne. WebP gardée en repli pour les navigateurs sans AVIF. server.mjs servait les .avif en application/octet-stream : type MIME image/avif ajouté."
+        },
+        {
+          "date": "2026-09-11",
+          "what": "Poids réel de l'accueil mesuré au navigateur (serveur local, dist de production) : 4 requêtes, ~650 Ko transférés — index.js 99 Ko gzip, logo-hero.avif 479 Ko, CSS 11 Ko, logo.png 60 Ko. mapbox-gl (1,86 Mo) et three (688 Ko) sont en import dynamique et ne sont PAS chargés sur la landing : l'alerte « bundle lourd sur la landing » notée les 08 et 09/09 était fausse, elle est retirée des problèmes ouverts."
         }
       ],
       "openIssues": [
         "H1 = marque seule (« Mon Petit Voyageur ») : choix design (titre serif géant) ; le positionnement est porté par le title, la tagline et l'eyebrow.",
-        "Bundle JS principal lourd (three.js, mapbox) chargé sur la landing : mesurer LCP/INP réels après déploiement.",
-        "Bundle JS principal lourd (three.js, mapbox) chargé sur la landing : mesurer LCP/INP réels maintenant que l'image LCP est passée de 1,95 Mo à 490 Ko.",
         "?legal=privacy|terms|sales : vues SPA (canonical propre posé par src/seo.ts, pas de HTML statique) : acceptable, non stratégique.",
-        "Email de contact affiché contact@monpetitvoyageur.fr alors que le domaine est .com : à confirmer par Marion (boîte existante ?) avant tout changement."
+        "Email de contact affiché contact@monpetitvoyageur.fr alors que le domaine est .com : à confirmer par Marion (boîte existante ?) avant tout changement.",
+        "Accueil : l'Offer JSON-LD déclare price \"0\" et la description « Inscription gratuite ». Vrai aujourd'hui (STRIPE_SECRET_KEY absente → hasActiveAccess() ouvre l'app), faux dès que Stripe sera configuré en production. Voir backlog stripe-seo-offer."
       ],
       "nextOpportunities": [
         "Mention MARA LABS + Lille dans le footer visible de la landing React (déjà présent dans la coquille statique et la section « Qu'est-ce que Mon Petit Voyageur ? »).",
         "Version anglaise indexable (/en/) seulement si une demande anglophone est mesurée dans Search Console."
-      ]
+      ],
+      "description": "Budget, dates, style : l'IA construit votre itinéraire jour par jour avec vols et hôtels au prix réel, activités, restaurants et guide illustré. Inscription gratuite.",
+      "canonical": "https://www.monpetitvoyageur.com/"
     },
     "/budget-voyage": {
       "type": "guide",
@@ -352,7 +357,7 @@
       "effort": 4,
       "risk": 3,
       "status": "open",
-      "note": "Interdit d'inventer ; chaque ligne doit citer la page source consultée et sa date. À ne lancer que si un run dispose du temps pour vérifier 4-6 outils."
+      "note": "Interdit d'inventer ; chaque ligne doit citer la page source consultée et sa date. Vérification tentée le 2026-09-11 : layla.ai affiche publiquement « For $49/year, you'll unlock unlimited access to all premium planning features » ; mindtrip.ai/pricing et tripplanner.ai n'affichent AUCUN tarif public (écran de connexion / page produit sans prix). Un tableau comparatif dont deux colonnes sur trois vaudraient « tarif non public » n'a pas assez d'utilité réelle pour justifier une URL, et les fonctionnalités ne peuvent pas être vérifiées sans créer un compte chez chaque concurrent. À rouvrir seulement si un run peut vérifier 4 outils avec tarif public le jour même, ou en changeant d'angle (comparer des MÉTHODES : IA généraliste type ChatGPT vs planificateur spécialisé vs agence, sans tableau de prix concurrents)."
     },
     {
       "id": "destinations-pilotes",
@@ -376,7 +381,7 @@
       "effort": 1,
       "risk": 0,
       "status": "open",
-      "note": "Search Console créée le 2026-09-08. Attendre ≥ 28 jours de données puis appliquer la règle CTR (ROUTINE.md § 2, state.kpi.ctrRule)."
+      "note": "Search Console créée le 2026-09-08. Au 2026-09-11 : 1 impression au total. Attendre ≥ 28 jours de données ET ≥ 50 impressions sur une requête avant d'appliquer la règle CTR (ROUTINE.md § 2, state.kpi.ctrRule). Ne pas réécrire un title sur une poignée d'impressions."
     },
     {
       "id": "backlinks",
@@ -425,6 +430,18 @@
       "risk": 1,
       "status": "open",
       "note": "Sans gravité : la racine n'a jamais été indexée et le canonical de toutes les pages pointe sur www, donc Google consolide correctement. La redirection IONOS n'est pas paramétrable en 301 dans l'offre actuelle. Relevé aussi : un appel sur trois met ~18 s à répondre côté redirection IONOS (les autres ~2,5 s)."
+    },
+    {
+      "id": "stripe-seo-offer",
+      "title": "Le jour où Stripe est activé : aligner l'Offer JSON-LD, les descriptions et llms.txt sur les vrais tarifs",
+      "score": 70,
+      "impact": 3,
+      "commercial": 4,
+      "geo": 4,
+      "effort": 2,
+      "risk": 4,
+      "status": "watch",
+      "note": "Déclencheur : STRIPE_SECRET_KEY configurée sur l'API de production (l'app renvoie alors billing_enabled=true et hasActiveAccess() ferme l'accès aux non-abonnés). Aujourd'hui (2026-09-11) Stripe n'est pas configuré, l'application est ouverte et « Inscription gratuite » + Offer price \"0\" sont exacts — ne rien changer avant. Le jour venu : tarifs réels dans src/appTranslations.ts (planMonthlyPrice « 5,99 € » / mois, planAnnualPrice « 49 € » / an, essai gratuit de 7 jours ; formule « Voyage Premium » 9,99 €/mois dans src/PremiumMobile.tsx), à reporter dans l'Offer de index.html, les meta descriptions des pages commerciales, la FAQ de src/homeContent.ts et llms.txt. Risque de données structurées mensongères si on l'oublie."
     }
   ],
   "kpi": {
@@ -434,12 +451,12 @@
       "sitemapSubmitted": "https://www.monpetitvoyageur.com/sitemap.xml",
       "urlsDiscovered": 5,
       "note": "Aucune donnée d'impressions encore (traitement en cours). Dernière exploration de / par Googlebot : 2026-09-06 en 404 (avant la mise en production du 08) ; réindexation demandée le 08.",
-      "checkedAt": "2026-09-09",
+      "checkedAt": "2026-09-11",
       "indexation": "Les 5 URL sont indexées (inspection URL du 2026-09-09) : /, /planificateur-voyage-ia, /budget-voyage, /planificateur-road-trip-ia, /organiser-un-voyage-avec-l-ia. Fils d'Ariane valide détecté sur les 4 guides, HTTPS OK partout.",
-      "performance": "0 clic / 0 impression au 2026-09-09 ; le rapport Performances ne couvre que les 5-6/09 (avant indexation) et le rapport Indexation affiche encore « traitement des données en cours ». Règle CTR inapplicable avant ~28 jours de données.",
+      "performance": "Première impression enregistrée. Relevé du 2026-09-11 (28 j) : 1 impression, 0 clic, CTR 0 %, position moyenne 99, requête « ia en voyage ». Le graphique s'arrête encore au 08/09/2026 (Google a ~3 jours de retard de traitement) et le rapport Indexation affiche toujours « traitement des données en cours ». Règle CTR (≥ 50 impressions) très loin d'être applicable : prochaine mesure utile vers le 2026-09-18, règle CTR vers le 2026-10-06.",
       "piege": "L'inspection d'URL de Search Console garde en mémoire la « canonique déclarée » de l'URL précédente quand on enchaîne les inspections sans rechargement complet. Vérifié le 2026-09-09 : les canoniques servies sont correctes (curl Googlebot desktop et smartphone, dist/, un seul <link rel=canonical> par page, aucun en-tête Link). Recharger la page d'inspection avant de conclure à une anomalie."
     },
-    "note": "Search Console opérationnelle et les 5 URL indexées au 2026-09-09, mais aucune donnée de performance exploitable (0 impression). Prochaine mesure utile : impressions/requêtes à partir de ~2026-09-16, règle CTR à partir de ~2026-10-06.",
+    "note": "Le site est indexé (5 URL) et sort de l'anonymat : 1 impression sur « ia en voyage » en position 99. Volume insuffisant pour décider quoi que ce soit ; ne pas réécrire de title sur cette base.",
     "ctrRule": "Dès que Search Console existe : requêtes des 28 derniers jours avec ≥ 50 impressions, CTR < 2 % et position ≤ 15 → réécrire title/description de la page ciblée (une par run), noter la requête ici, comparer 28 j après."
   },
   "history": [
@@ -592,6 +609,52 @@
       "url": "/",
       "action": "mesure",
       "justification": "Déploiement vérifié en production : /logo-hero.avif servi en 200 image/avif (490 480 o), la page d'accueil référence bien l'AVIF et garde la WebP en repli ; og-image.jpg et logo.png allégés en ligne."
+    },
+    {
+      "date": "2026-09-11",
+      "url": "/robots.txt",
+      "action": "technique",
+      "justification": "Les groupes d'agents nommés (GPTBot, OAI-SearchBot, ChatGPT-User, ClaudeBot, Claude-User, anthropic-ai, PerplexityBot, Google-Extended, Applebot-Extended, Bingbot) ne disaient que « Allow: / ». Un groupe robots.txt n'hérite pas de « User-agent: * » : ces dix crawlers, dont ceux des moteurs génératifs, avaient donc accès à /admin et /mobile, fermés à tous les autres. Disallow /admin et /mobile ajoutés dans chaque groupe."
+    },
+    {
+      "date": "2026-09-11",
+      "url": "/mobile, /admin",
+      "action": "technique",
+      "justification": "Ces routes servent la coquille HTML de l'accueil telle quelle (canonical vers /, robots index,follow) : un crawler qui ignore robots.txt y trouvait l'accueil en double. server.mjs leur renvoie désormais X-Robots-Tag: noindex, nofollow. Vérifié sur le serveur local avec CANONICAL_HOST : /mobile, /admin, /admin/users portent l'en-tête, / et les 4 guides ne le portent pas."
+    },
+    {
+      "date": "2026-09-11",
+      "url": "seo/state.json",
+      "action": "mesure",
+      "justification": "La mémoire mentait sur l'accueil : title enregistré « Mon Petit Voyageur · Planificateur de voyage et road trip IA » alors que le site sert « Mon Petit Voyageur · Votre voyage planifié par l'IA, dans votre budget » depuis le 08/09. Cause : les champs de l'accueil étaient recopiés à la main, --sync ne traitant que seo/pages/*.mjs. readHomeHead() les relit maintenant dans index.html (title, description, H1, canonical, indexabilité) ; un test compare la mémoire au fichier réel."
+    },
+    {
+      "date": "2026-09-11",
+      "url": "/",
+      "action": "audit",
+      "justification": "Alerte « bundle JS lourd (three.js, mapbox) chargé sur la landing » vérifiée au navigateur et infirmée : ces chunks sont en import dynamique, l'accueil ne télécharge que 4 ressources (~650 Ko, 99 Ko de JS gzippé). Problème ouvert retiré pour ne pas faire courir les prochains runs après un faux chantier."
+    },
+    {
+      "date": "2026-09-11",
+      "url": "(routine)",
+      "action": "technique",
+      "justification": "La tâche planifiée (SKILL.md) avait perdu son pointeur vers l'annexe opératoire quand Marion a remplacé le prompt le 08/09 : un run ne savait plus, par le prompt seul, qu'il devait poser le verrou ni recharger state.json/journal.md. Annexe ajoutée en fin de SKILL.md (emplacement des fichiers, ordre du run, vérités produit à revérifier) sans toucher à la stratégie de Marion."
+    },
+    {
+      "date": "2026-09-11",
+      "url": "(comparatifs)",
+      "action": "audit",
+      "justification": "Opportunité « meilleurs planificateurs de voyage IA » instruite : tarifs publics vérifiés chez layla.ai (49 $/an), absents chez mindtrip.ai et tripplanner.ai. Page NON créée : un comparatif à moitié vérifiable n'a pas d'utilité réelle et exposerait à des affirmations invérifiables. Conclusion consignée dans le backlog pour que le prochain run ne refasse pas la recherche."
     }
-  ]
+  ],
+  "privateRoutes": {
+    "routes": [
+      "/admin",
+      "/mobile"
+    ],
+    "why": "Routes applicatives servies par server.mjs (SPA_PREFIXES) : elles renvoient la coquille HTML de l'accueil telle quelle, donc un doublon exact de / si elles étaient explorées. /mobile est l'espace « Pendant mon voyage » (formule Premium), /admin l'administration.",
+    "protection": "public/robots.txt : Disallow /admin et /mobile dans CHAQUE groupe d'agents (un groupe n'hérite pas de User-agent: *) + X-Robots-Tag: noindex, nofollow servi par server.mjs. Tenu par deux tests dans src/test/seo.test.ts.",
+    "notOrphan": "Non stratégiques, volontairement hors sitemap et hors index : ce ne sont pas des pages orphelines à corriger.",
+    "checkedAt": "2026-09-11"
+  }
 }

@@ -4,6 +4,7 @@
 //                                 dist/sitemap.xml, dist/llms.txt (after vite build)
 //   node seo/build.mjs --sync   → refreshes the derived fields of seo/state.json
 //                                 (title, h1, links, sitemap) from the page modules
+//                                 and, for the home page, from index.html itself
 //
 // renderSite() is pure (no I/O) so the tests can validate everything in memory.
 
@@ -16,6 +17,25 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 export const DIST_DIR = path.resolve(here, "../dist");
 export const STATE_PATH = path.join(here, "state.json");
 export const PAGES_DIR = path.join(here, "pages");
+export const INDEX_HTML = path.resolve(here, "../index.html");
+
+/**
+ * The home page lives in index.html, not in seo/pages/ : its title, description
+ * and H1 were therefore copied by hand into state.json and drifted (the title
+ * recorded on 2026-09-09 was two versions behind the file). Reading them back
+ * from the file keeps the routine's memory true by construction.
+ */
+export function readHomeHead(html = fs.readFileSync(INDEX_HTML, "utf8")) {
+  const pick = (re) => html.match(re)?.[1]?.trim();
+  const h1 = pick(/<h1[^>]*>([\s\S]*?)<\/h1>/);
+  return {
+    title: pick(/<title>([^<]*)<\/title>/),
+    description: pick(/<meta name="description" content="([^"]*)"/),
+    h1: h1 && h1.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim(),
+    canonical: pick(/<link rel="canonical" href="([^"]*)"/),
+    robots: pick(/<meta name="robots" content="([^"]*)"/)
+  };
+}
 
 export async function loadPages() {
   const files = fs.readdirSync(PAGES_DIR).filter((f) => f.endsWith(".mjs")).sort();
@@ -157,6 +177,15 @@ export function syncState(pages, state, today) {
     });
     next.pages[url] = entry;
     next.intents[page.intent] = url;
+  }
+  const home = next.pages["/"];
+  if (home) {
+    const head = readHomeHead();
+    home.title = head.title ?? home.title;
+    home.description = head.description ?? home.description;
+    home.h1 = head.h1 ?? home.h1;
+    home.canonical = head.canonical ?? home.canonical;
+    home.indexable = !/noindex/.test(head.robots ?? "");
   }
   for (const url of Object.keys(next.pages)) {
     if (url === "/") {

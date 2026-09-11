@@ -7,7 +7,9 @@
 //   • serves the static SEO pages dist/<slug>.html at /<slug>
 //   • 301 /index.html → /, /<slug>.html → /<slug>, /<slug>/ → /<slug>
 //   • serves index.html (the React app) only for / and the app routes
-//     (/mobile*, /admin*), everything else is a real 404 (dist/404.html)
+//     (/mobile*, /admin*, answered with X-Robots-Tag: noindex, nofollow since
+//     they are private surfaces serving the home shell), everything else is a
+//     real 404 (dist/404.html)
 //   • gzips text responses, X-Robots-Tag: noindex on non-canonical hosts
 //     (the *.up.railway.app domain must not be indexed as a duplicate)
 // No dependency: node:http only. Node ≥ 18.
@@ -140,9 +142,13 @@ export function handler(req, res) {
     if (fileIfExists(`${clean.slice(1)}.html`)) return redirect(res, clean + search);
   }
 
-  // The React app: / and the app routes.
-  if (pathname === "/" || SPA_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
-    return send(req, res, fileIfExists("index.html"), 200, extra);
+  // The React app: / and the app routes. The app routes (/mobile, /admin) are
+  // private surfaces that serve the home shell verbatim: without an explicit
+  // noindex a crawler that ignores robots.txt would find the home page
+  // duplicated under those paths.
+  if (pathname === "/") return send(req, res, fileIfExists("index.html"), 200, extra);
+  if (SPA_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+    return send(req, res, fileIfExists("index.html"), 200, { ...extra, "X-Robots-Tag": "noindex, nofollow" });
   }
   // Real files (assets, images, robots.txt, sitemap.xml, llms.txt…).
   const file = fileIfExists(pathname.slice(1));

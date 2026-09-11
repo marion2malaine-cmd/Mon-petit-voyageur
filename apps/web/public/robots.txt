@@ -8,32 +8,52 @@ Disallow: /mobile
 
 User-agent: GPTBot
 Allow: /
+Disallow: /admin
+Disallow: /mobile
 
 User-agent: OAI-SearchBot
 Allow: /
+Disallow: /admin
+Disallow: /mobile
 
 User-agent: ChatGPT-User
 Allow: /
+Disallow: /admin
+Disallow: /mobile
 
 User-agent: ClaudeBot
 Allow: /
+Disallow: /admin
+Disallow: /mobile
 
 User-agent: Claude-User
 Allow: /
+Disallow: /admin
+Disallow: /mobile
 
 User-agent: anthropic-ai
 Allow: /
+Disallow: /admin
+Disallow: /mobile
 
 User-agent: PerplexityBot
 Allow: /
+Disallow: /admin
+Disallow: /mobile
 
 User-agent: Google-Extended
 Allow: /
+Disallow: /admin
+Disallow: /mobile
 
 User-agent: Applebot-Extended
 Allow: /
+Disallow: /admin
+Disallow: /mobile
 
 User-agent: Bingbot
 Allow: /
+Disallow: /admin
+Disallow: /mobile
 
 Sitemap: https://www.monpetitvoyageur.com/sitemap.xml

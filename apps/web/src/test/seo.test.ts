@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { loadPages, readState, renderSite, syncState, internalLinks } from "../../seo/build.mjs";
+import { loadPages, readState, readHomeHead, renderSite, syncState, internalLinks } from "../../seo/build.mjs";
 import { SITE_URL, APP_ANCHORS } from "../../seo/site.mjs";
 import { SEO, EYEBROW, ABOUT, FAQ, FEATURES, STEPS } from "../homeContent";
 
@@ -14,6 +14,8 @@ const state = readState();
 const files = renderSite(pages, state);
 const indexHtml = fs.readFileSync(path.join(webRoot, "index.html"), "utf8");
 const robots = fs.readFileSync(path.join(webRoot, "public/robots.txt"), "utf8");
+/** Surfaces privées de l'application : jamais explorées, jamais indexées. */
+const APP_ROUTES = ["/admin", "/mobile"];
 
 function count(html: string, re: RegExp) {
   return (html.match(re) ?? []).length;
@@ -135,6 +137,25 @@ describe("sitemap, robots, llms.txt, 404", () => {
     for (const p of pages) expect(robots).not.toContain(`Disallow: /${p.slug}`);
   });
 
+  // Un groupe robots.txt n'hérite de rien : les règles de "User-agent: *" ne
+  // s'appliquent pas aux agents nommés. Sans cette garde, déclarer GPTBot ou
+  // ClaudeBot leur ouvrait /admin et /mobile, fermés à tous les autres.
+  it("chaque groupe robots.txt, agents nommés compris, ferme /admin et /mobile", () => {
+    const groups = robots
+      .split(/\n\s*\n/)
+      .filter((block) => /^User-agent:/m.test(block))
+      .map((block) => ({
+        agents: [...block.matchAll(/^User-agent:\s*(.+)$/gm)].map((m) => m[1].trim()),
+        disallows: [...block.matchAll(/^Disallow:\s*(.+)$/gm)].map((m) => m[1].trim())
+      }));
+    expect(groups.length).toBeGreaterThanOrEqual(2);
+    for (const group of groups) {
+      for (const route of APP_ROUTES) {
+        expect(group.disallows, `robots.txt : le groupe ${group.agents.join(", ")} n'interdit pas ${route}`).toContain(route);
+      }
+    }
+  });
+
   it("llms.txt décrit le site et référence chaque page", () => {
     const llms = files.get("llms.txt")!;
     for (const p of pages) expect(llms).toContain(`${SITE_URL}/${p.slug}`);
@@ -149,6 +170,18 @@ describe("sitemap, robots, llms.txt, 404", () => {
 });
 
 describe("index.html (accueil)", () => {
+  // La mémoire de la routine doit dire la vérité : le title de l'accueil y a
+  // dérivé de deux versions parce qu'il y était recopié à la main.
+  it("est décrit dans state.json tel qu'il est réellement servi (title, description, H1)", () => {
+    const head = readHomeHead(indexHtml);
+    const synced = syncState(pages, state, state.updated).pages["/"];
+    expect(head.title).toBe(SEO.fr.title);
+    expect(synced.title).toBe(head.title);
+    expect(synced.description).toBe(head.description);
+    expect(synced.h1).toBe(head.h1);
+    expect(synced.indexable).toBe(true);
+  });
+
   it("a un title et une description spécifiques (= homeContent), un canonical, Open Graph et JSON-LD", () => {
     expect(indexHtml).toContain(`<title>${SEO.fr.title}</title>`);
     expect(indexHtml).toContain(`<meta name="description" content="${SEO.fr.description}" />`);
@@ -225,6 +258,17 @@ describe("images de partage et poids des ressources", () => {
       expect(mime, `server.mjs : type MIME manquant pour ${ext} (servi en application/octet-stream)`).toContain(`"${ext}"`);
     }
     expect(mime).toContain('".avif": "image/avif"');
+  });
+
+  // /mobile et /admin renvoient la coquille de l'accueil telle quelle : sans
+  // en-tête explicite, un crawler qui ignore robots.txt indexerait l'accueil
+  // en double sous ces chemins.
+  it("server.mjs répond noindex sur les routes privées de l'app (/mobile, /admin)", () => {
+    const server = fs.readFileSync(path.join(webRoot, "server.mjs"), "utf8");
+    const prefixes = server.match(/const SPA_PREFIXES = \[([^\]]*)\]/)?.[1] ?? "";
+    for (const route of APP_ROUTES) expect(prefixes).toContain(`"${route}"`);
+    const branch = server.slice(server.indexOf("SPA_PREFIXES.some"), server.indexOf("// Real files"));
+    expect(branch, "server.mjs : les routes privées doivent porter X-Robots-Tag: noindex").toContain('"X-Robots-Tag": "noindex, nofollow"');
   });
 
   it("ne référence que des fichiers présents dans public/", () => {

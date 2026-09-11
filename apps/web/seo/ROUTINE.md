@@ -12,6 +12,8 @@ cd /Users/MarionDEMALAINE/my-little-traveler && LOCK=apps/web/seo/.run.lock; if 
 
 Si « VERROU ACTIF » s'affiche (autre exécution depuis moins de 2 h) : arrête-toi en répondant seulement « Routine MPV : exécution déjà en cours, pas d'action ». Sinon continue et **supprime `apps/web/seo/.run.lock` à la toute fin**. Ne commit jamais ce fichier.
 
+Un verrou vieux de plus de 2 h est périmé : la commande l'écrase d'elle-même. Dans ce cas, **vérifie que le run précédent a bien laissé une entrée dans `journal.md`** ; s'il n'y en a pas, il s'est interrompu — signale-le en tête de rapport et reprends son « prochain run ». (Arrivé le 2026-09-10 : verrou posé à 09:23, aucune entrée de journal.)
+
 ## 1. Recharger la mémoire (avant toute décision)
 
 - `apps/web/seo/README.md` — architecture du système (pages statiques `seo/pages/*.mjs`, `seo/build.mjs`, `server.mjs`, `index.html` pré-rendu, tests).
@@ -21,6 +23,11 @@ Si « VERROU ACTIF » s'affiche (autre exécution depuis moins de 2 h) : arrête
 
 Vérité produit (ne jamais inventer une fonctionnalité) : `README.md`, `apps/web/src/App.tsx`, `apps/web/src/homeContent.ts`, `apps/api`.
 
+**Deux vérités produit à revérifier à chaque run, parce qu'elles rendraient le SEO mensonger en changeant :**
+
+- **Abonnement.** `apps/api/src/billing.ts` → `hasActiveAccess()` laisse l'application ouverte tant que `STRIPE_SECRET_KEY` est absente ; le paywall (`PricingPlans`, `src/App.tsx`) ne s'affiche que si l'API renvoie `billing_enabled`. Tant que Stripe n'est pas configuré en production, « Inscription gratuite » et l'`Offer` `price: "0"` de l'accueil sont **vrais**. Dès que Stripe est branché, ils deviennent **faux** : mettre à jour l'`Offer` JSON-LD, les descriptions et `llms.txt` avec les tarifs réels lus dans `src/appTranslations.ts` (`planMonthlyPrice`, `planAnnualPrice`, `planSub`). Backlog : `stripe-seo-offer`.
+- **Surfaces privées.** `server.mjs → SPA_PREFIXES` (`/admin`, `/mobile`) sert la coquille de l'accueil telle quelle. Toute nouvelle route de ce type doit être ajoutée à `public/robots.txt` **dans chaque groupe d'agents** : un groupe `robots.txt` n'hérite jamais des règles de `User-agent: *`, donc déclarer `User-agent: GPTBot` sans `Disallow` lui rouvre tout ce que `*` ferme (corrigé le 2026-09-11). Le test `seo.test.ts` le vérifie groupe par groupe, plus l'en-tête `X-Robots-Tag: noindex, nofollow`.
+
 ## 2. Mesurer (lecture seule, ≤ 10 requêtes, 1 s entre requêtes)
 
 - Prod : `curl -sS -o /dev/null -w "%{http_code} %{content_type}\n" -A GPTBot https://www.monpetitvoyageur.com/<url>` pour `/`, `/robots.txt`, `/sitemap.xml`, `/llms.txt`, chaque page de `state.json` et une URL inexistante (attendu 404). **Si `/sitemap.xml` renvoie du HTML, la version SEO n'est pas déployée** : le signaler en tête de rapport, ne rien créer de nouveau, limiter le run aux corrections dans le repo et redonner la commande de déploiement.
@@ -29,6 +36,7 @@ Vérité produit (ne jamais inventer une fonctionnalité) : `README.md`, `apps/w
 - **Piège de l'inspection d'URL** : en enchaînant les inspections dans la barre du haut sans rechargement complet, le panneau garde la « canonique déclarée » de l'URL précédente. Avant de signaler une anomalie de canonique, recharger la page d'inspection à froid **et** contre-vérifier par `curl -s -A Googlebot <url> | grep canonical` (desktop et smartphone) plus le contenu de `dist/`.
 - **Avant de recompresser une image**, lire son format réel (`webpmux -info`, `magick identify`) : `/logo-hero.webp` est une animation de 36 images, qu'un `cwebp` détruirait. Une réduction qui dégrade le rendu voulu par Marion est une décision à lui remonter avec des tailles mesurées, pas à appliquer seul.
 - **Règle CTR** (dès que Search Console existe) : requêtes 28 j avec ≥ 50 impressions, CTR < 2 % et position ≤ 15 → la page ciblée reçoit un title (≤ 80 caractères avant « | Mon Petit Voyageur ») et une description (≤ 190 caractères) qui répondent mot pour mot à la requête, avec un bénéfice concret et « Inscription gratuite » si la page est commerciale. Une page par run, requête et date consignées dans `state.json → kpi`, relecture 28 j après.
+- **Poids réel de la landing** (ne pas se fier aux tailles de chunks) : `dist/index.html` ne précharge que `assets/index-*.js` ; `mapbox-gl` (1,86 Mo) et `three` (688 Ko) sont en import dynamique et **ne sont pas chargés sur l'accueil** — mesuré au navigateur le 2026-09-11 : 4 requêtes, ~650 Ko transférés, dont 99 Ko de JavaScript gzippé. Avant de rouvrir un chantier « bundle lourd », relire le réseau réel.
 - Repo : `npm run test -w @mlt/web` vert avant de toucher quoi que ce soit.
 
 ## 3. Décider
@@ -54,6 +62,7 @@ Puis `PORT=4180 node apps/web/server.mjs &`, `curl -sI http://localhost:4180/<sl
 
 ## 6. Enregistrer
 
+- `npm run seo:sync -w @mlt/web` recalcule aussi le title, la description, le H1 et le canonical de l'accueil **en les relisant dans `index.html`** (`readHomeHead()` dans `build.mjs`) : ces champs étaient recopiés à la main dans `state.json` et avaient dérivé de deux versions. Ne plus jamais les saisir à la main.
 - `state.json` : une entrée `history` par action (date, url, action ∈ {audit, optimisation, création, fusion, technique, maillage, mesure}, justification) ; `changes`, `openIssues`, `nextOpportunities`, `backlog`, `kpi` à jour.
 - `journal.md` : entrée datée (avant / fait / non fait / prochain run), dernière ligne = prochaine action recommandée et preuve attendue.
 - Commit local des seuls fichiers SEO, `git add` fichier par fichier (jamais `git add -A` : le dépôt contient du travail non commité de Marion), message « SEO : … », dernière ligne `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
