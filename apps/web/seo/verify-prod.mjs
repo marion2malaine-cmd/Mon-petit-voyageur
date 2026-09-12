@@ -33,8 +33,11 @@ const MISSING_URL = "/inexistant-verif-" + Date.now().toString(36);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const results = [];
-function check(name, ok, detail = "") {
-  results.push({ name, ok, detail });
+// `detail` s'affiche toujours (une mesure) ; `whenFail` seulement en cas
+// d'échec (une explication), pour qu'une ligne OK ne porte jamais le texte
+// d'un problème qui n'a pas eu lieu.
+function check(name, ok, detail = "", whenFail = "") {
+  results.push({ name, ok, detail: ok ? detail : (whenFail || detail) });
 }
 
 async function fetchUrl(pathname) {
@@ -128,7 +131,7 @@ async function verifyTechnical(exp) {
   check("/robots.txt · text/plain", robots.headers.get("content-type")?.includes("text/plain") ?? false,
     robots.headers.get("content-type") ?? "");
   check("/robots.txt · identique au dépôt", robots.body.trim() === exp.robotsTxt.trim(),
-    robots.body.trim() === exp.robotsTxt.trim() ? "" : "la production sert un robots.txt différent");
+    "", "la production sert un robots.txt différent");
 
   // Un groupe robots.txt n'hérite jamais de « User-agent: * » : chaque groupe
   // servi en production doit fermer lui-même les routes privées.
@@ -167,7 +170,7 @@ async function verifyTechnical(exp) {
   // trouvée le 2026-09-12 : les tarifs étaient donnés puis déclarés non publics).
   check("/llms.txt · aucune interdiction de citer les tarifs",
     !/Ne pas citer[^\n]*prix d'abonnement/i.test(llms.body),
-    "une consigne interdit de citer un prix que le fichier publie");
+    "", "une consigne interdit de citer un prix que le fichier publie");
 
   const notFound = await fetchUrl(MISSING_URL);
   check("URL inexistante · 404", notFound.status === 404, String(notFound.status));
@@ -185,7 +188,7 @@ async function main() {
   const width = Math.max(...results.map((r) => r.name.length));
   for (const r of results) {
     const mark = r.ok ? "  OK  " : "ÉCHEC ";
-    console.log(`${mark} ${r.name.padEnd(width)}  ${r.ok ? r.detail : r.detail}`.trimEnd());
+    console.log(`${mark} ${r.name.padEnd(width)}  ${r.detail}`.trimEnd());
   }
 
   const failed = results.filter((r) => !r.ok);
