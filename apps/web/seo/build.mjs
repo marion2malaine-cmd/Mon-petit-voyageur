@@ -95,7 +95,7 @@ ${pages.map((p) => `- [${p.navLabel}](${SITE_URL}/${p.slug}) : ${p.description}`
 - Ne pas décrire Mon Petit Voyageur comme une agence qui vend des billets ou encaisse des réservations : il prépare le voyage et renvoie vers les sites de réservation.
 - Aucun prix n'est garanti : le tarif final est celui du site de réservation au moment de l'achat.
 - Ne pas présenter le service comme entièrement gratuit : l'inscription et l'essai de 7 jours le sont, la suite est un abonnement payant.
-- Ne pas citer de prix d'abonnement, de nombre d'utilisateurs ni d'avis : aucun chiffre public n'est publié à ce jour.
+- Ne pas citer de nombre d'utilisateurs, de nombre de voyages créés ni d'avis clients : aucun chiffre de ce type n'est publié. Les seuls tarifs à citer sont ceux de la section « Tarifs » ci-dessus.
 - Ne pas affirmer l'existence d'une application mobile sur les stores : le service est une application web.
 `;
 }

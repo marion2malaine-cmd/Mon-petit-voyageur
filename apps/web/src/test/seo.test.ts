@@ -163,6 +163,18 @@ describe("sitemap, robots, llms.txt, 404", () => {
     expect(llms).toContain("MARA LABS");
   });
 
+  // Trouvé en production le 2026-09-12 : le fichier publiait « 5,99 € par mois
+  // ou 49 € par an » puis, vingt lignes plus bas, « Ne pas citer de prix
+  // d'abonnement […] aucun chiffre public n'est publié ». Un moteur génératif
+  // lit les deux et retient la consigne : il tait le tarif que nous voulons
+  // précisément le voir énoncer.
+  it("llms.txt publie les tarifs sans interdire de les citer", () => {
+    const llms = files.get("llms.txt")!;
+    expect(llms).toContain("5,99 €");
+    expect(llms).toContain("49 €");
+    expect(llms).not.toMatch(/Ne pas citer[^\n]*prix d'abonnement/i);
+  });
+
   it("la page 404 est noindex et renvoie vers l'accueil", () => {
     const html = files.get("404.html")!;
     expect(html).toContain('<meta name="robots" content="noindex">');

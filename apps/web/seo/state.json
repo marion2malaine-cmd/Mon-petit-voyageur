@@ -1,6 +1,6 @@
 {
   "site": "https://www.monpetitvoyageur.com",
-  "updated": "2026-09-11",
+  "updated": "2026-09-12",
   "positioning": "Mon Petit Voyageur = planification de voyages et de road trips assistée par IA, budget d'abord, tout réservable via liens (éditeur MARA LABS, Lille).",
   "clusters": {
     "planificateur-ia": "Pages commerciales : ce qu'est le service, à qui il s'adresse, comment l'IA intervient.",
@@ -468,7 +468,21 @@
       "effort": 1,
       "risk": 2,
       "status": "waiting-deploy",
-      "note": "Le 2026-09-11, la variable valait **14** alors que TRIAL_DAYS, la seule que le code lise, vaut **7** : l'essai réellement accordé était donc de 7 jours, et la variable n'était pas seulement inutile, elle exprimait une intention contraire. Marion a tranché pour **7 jours** (décision du 2026-09-11) : aucun texte à modifier, l'application comme le site annoncent déjà 7 jours. STRIPE_TRIAL_DAYS a été supprimée dans l'interface Railway ; la suppression est **en attente** (« Apply 1 change » / bouton Deploy sur backend-api) car déclencher un déploiement d'API reste l'action de Marion. Sans effet fonctionnel quoi qu'il arrive : la variable n'était lue par personne. À vérifier au prochain run : la variable a-t-elle disparu de backend-api ?"
+      "note": "Suppression posée dans Railway le 2026-09-11, toujours en attente d'un déploiement d'API. Sans conséquence fonctionnelle (personne ne lit cette variable). À reverifier au prochain run."
+    },
+    {
+      "id": "deploy-drift-verifier",
+      "score": 100,
+      "status": "done",
+      "title": "Détecter automatiquement que la production sert une version périmée",
+      "note": "seo/verify-prod.mjs + npm run seo:verify-prod : relit le dépôt (index.html, state.json, robots.txt, server.mjs, appTranslations.ts) et compare à la production. Aucune valeur en dur. Branché en tête du § 2 de ROUTINE.md le 2026-09-12."
+    },
+    {
+      "id": "llms-contradiction-tarifs",
+      "score": 65,
+      "status": "done",
+      "title": "llms.txt publiait les tarifs puis interdisait de les citer",
+      "note": "Ligne « Ne pas citer de prix d'abonnement […] aucun chiffre public » supprimée : elle contredisait la section Tarifs ajoutée le 2026-09-11 et privait les moteurs génératifs du prix exact. Remplacée par une interdiction limitée aux chiffres réellement non publics (utilisateurs, voyages créés, avis). Test de non-régression dans seo.test.ts."
     }
   ],
   "kpi": {
@@ -477,14 +491,20 @@
       "createdAt": "2026-09-08",
       "sitemapSubmitted": "https://www.monpetitvoyageur.com/sitemap.xml",
       "urlsDiscovered": 5,
-      "note": "Aucune donnée d'impressions encore (traitement en cours). Dernière exploration de / par Googlebot : 2026-09-06 en 404 (avant la mise en production du 08) ; réindexation demandée le 08.",
+      "note": "Aucune donnée d'impressions encore (traitement en cours). Dernière exploration de / par Googlebot : 2026-09-06 en 404 (avant la mise en production du 08) ; réindexation demandée le 08. | 2026-09-12 : non relevé (Chrome MCP indisponible en exécution planifiée). Prochaine mesure utile vers le 2026-09-18 ; règle CTR (≥ 50 impressions) vers le 2026-10-06.",
       "checkedAt": "2026-09-11",
       "indexation": "Les 5 URL sont indexées (inspection URL du 2026-09-09) : /, /planificateur-voyage-ia, /budget-voyage, /planificateur-road-trip-ia, /organiser-un-voyage-avec-l-ia. Fils d'Ariane valide détecté sur les 4 guides, HTTPS OK partout.",
       "performance": "Première impression enregistrée. Relevé du 2026-09-11 (28 j) : 1 impression, 0 clic, CTR 0 %, position moyenne 99, requête « ia en voyage ». Le graphique s'arrête encore au 08/09/2026 (Google a ~3 jours de retard de traitement) et le rapport Indexation affiche toujours « traitement des données en cours ». Règle CTR (≥ 50 impressions) très loin d'être applicable : prochaine mesure utile vers le 2026-09-18, règle CTR vers le 2026-10-06.",
       "piege": "L'inspection d'URL de Search Console garde en mémoire la « canonique déclarée » de l'URL précédente quand on enchaîne les inspections sans rechargement complet. Vérifié le 2026-09-09 : les canoniques servies sont correctes (curl Googlebot desktop et smartphone, dist/, un seul <link rel=canonical> par page, aucun en-tête Link). Recharger la page d'inspection avant de conclure à une anomalie."
     },
     "note": "Le site est indexé (5 URL) et sort de l'anonymat : 1 impression sur « ia en voyage » en position 99. Volume insuffisant pour décider quoi que ce soit ; ne pas réécrire de title sur cette base.",
-    "ctrRule": "Dès que Search Console existe : requêtes des 28 derniers jours avec ≥ 50 impressions, CTR < 2 % et position ≤ 15 → réécrire title/description de la page ciblée (une par run), noter la requête ici, comparer 28 j après."
+    "ctrRule": "Dès que Search Console existe : requêtes des 28 derniers jours avec ≥ 50 impressions, CTR < 2 % et position ≤ 15 → réécrire title/description de la page ciblée (une par run), noter la requête ici, comparer 28 j après.",
+    "deployment": {
+      "checkedAt": "2026-09-12",
+      "finding": "Écart de 24 h entre le dépôt et la production : commits cce2fca, 2f92094, 118462b restés locaux. Production requalifiée le 2026-09-12 à 09:11 (80 s après le push).",
+      "guard": "npm run seo:verify-prod (40 vérifications) — à lancer au § 2 de chaque run.",
+      "lastVerified": "2026-09-12 : 40/40 après correction de llms.txt (39/40 avant)."
+    }
   },
   "history": [
     {
@@ -714,6 +734,36 @@
       "url": "(production)",
       "action": "technique",
       "justification": "STRIPE_TRIAL_DAYS valait 14 alors que TRIAL_DAYS, seule variable lue par config.ts, vaut 7 : l'essai réel était de 7 jours et la variable exprimait une intention contraire, jamais appliquée. Marion a tranché pour 7 jours ; la variable a été supprimée dans Railway (suppression en attente de déploiement, action de Marion). Vérifié avant d'y toucher : aucun fichier d'apps/api modifié depuis le déploiement actif, build API et 124 tests verts à HEAD — un redéploiement ne changerait donc aucun code d'API."
+    },
+    {
+      "date": "2026-09-12",
+      "url": "https://www.monpetitvoyageur.com/",
+      "action": "mesure",
+      "justification": "Contrôle de production : les trois commits SEO du 2026-09-11 n'étaient pas poussés. La production servait encore « Inscription gratuite » et Offer price 0 alors que Stripe live facture depuis le 2026-09-10, et /admin comme /mobile répondaient 200 sans X-Robots-Tag aux crawlers génératifs."
+    },
+    {
+      "date": "2026-09-12",
+      "url": "https://www.monpetitvoyageur.com/",
+      "action": "technique",
+      "justification": "Push de main sur origin à la demande de Marion : Railway a reconstruit et mis en ligne en 80 s. Tarifs 5,99 €/49 €, robots.txt par groupes et X-Robots-Tag vérifiés en production après déploiement."
+    },
+    {
+      "date": "2026-09-12",
+      "url": "apps/web/seo/verify-prod.mjs",
+      "action": "technique",
+      "justification": "Détecteur de dérive dépôt ↔ production (40 vérifications, npm run seo:verify-prod). Créé parce qu'aucun garde-fou ne regardait ce que le site servait réellement : tests et build restaient verts pendant que la production mentait sur le prix."
+    },
+    {
+      "date": "2026-09-12",
+      "url": "https://www.monpetitvoyageur.com/llms.txt",
+      "action": "optimisation",
+      "justification": "Contradiction supprimée : le fichier publiait « 5,99 € par mois ou 49 € par an » puis ordonnait « Ne pas citer de prix d'abonnement […] aucun chiffre public n'est publié ». Un moteur génératif retenait la consigne et taisait le tarif. Interdiction recentrée sur les chiffres réellement absents (utilisateurs, voyages, avis)."
+    },
+    {
+      "date": "2026-09-12",
+      "url": "apps/web/seo/ROUTINE.md",
+      "action": "technique",
+      "justification": "§ 2 réécrit : le run commence désormais par git log origin/main..HEAD (doit être vide) puis seo:verify-prod. Des commits non poussés sont déclarés incident."
     }
   ],
   "privateRoutes": {

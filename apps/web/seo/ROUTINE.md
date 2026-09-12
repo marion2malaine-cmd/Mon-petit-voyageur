@@ -30,8 +30,17 @@ Vérité produit (ne jamais inventer une fonctionnalité) : `README.md`, `apps/w
 
 ## 2. Mesurer (lecture seule, ≤ 10 requêtes, 1 s entre requêtes)
 
-- Prod : `curl -sS -o /dev/null -w "%{http_code} %{content_type}\n" -A GPTBot https://www.monpetitvoyageur.com/<url>` pour `/`, `/robots.txt`, `/sitemap.xml`, `/llms.txt`, chaque page de `state.json` et une URL inexistante (attendu 404). **Si `/sitemap.xml` renvoie du HTML, la version SEO n'est pas déployée** : le signaler en tête de rapport, ne rien créer de nouveau, limiter le run aux corrections dans le repo et redonner la commande de déploiement.
-- HTML sans JS : `curl -s -A GPTBot <url> | grep -c "<h1"` = 1, title et description présents.
+**Une seule commande remplace les curls d'autrefois** — c'est la première chose à lancer :
+
+```bash
+cd /Users/MarionDEMALAINE/my-little-traveler && git fetch origin --quiet && git log --oneline origin/main..HEAD && npm run seo:verify-prod -w @mlt/web
+```
+
+`seo/verify-prod.mjs` ne contient **aucune valeur attendue en dur** : il relit `index.html`, `state.json`, `public/robots.txt`, `server.mjs` et `src/appTranslations.ts`, puis vérifie que la production dit la même chose (statuts, H1 unique, title/description/canonical, prix JSON-LD = prix du paywall, prix lisibles, aucune « Inscription gratuite », robots.txt identique et routes privées fermées **dans chaque groupe**, `X-Robots-Tag`, sitemap complet, llms.txt, 404 réel). Code de sortie 1 si une vérification échoue.
+
+**La sortie de `git log origin/main..HEAD` doit être vide.** Le 2026-09-12, trois commits SEO étaient restés locaux depuis plus de 24 h : la production annonçait encore « Inscription gratuite » et `price: "0"` alors que Stripe live facturait, et `/admin` comme `/mobile` restaient ouverts aux dix crawlers génératifs. Tests verts, build vert, journal complet — rien ne regardait le site réel. **Des commits non poussés sont un incident, pas un détail** : le signaler en tête de rapport et demander le déploiement (le push sur `main` suffit, Railway reconstruit ; **jamais `railway up`**).
+
+Si le vérificateur échoue, **ne rien créer de nouveau** : le run se limite aux corrections et à la remise en production.
 - Search Console `sc-domain:monpetitvoyageur.com` (Chrome MCP) si la propriété existe : 28 j vs 28 j précédents, requêtes/pages, positions 4-10 et 8-20, CTR faible à fortes impressions ; consigner dans `state.json → kpi` et une ligne de baromètre dans `journal.md`. Sinon noter « Search Console indisponible ».
 - **Piège de l'inspection d'URL** : en enchaînant les inspections dans la barre du haut sans rechargement complet, le panneau garde la « canonique déclarée » de l'URL précédente. Avant de signaler une anomalie de canonique, recharger la page d'inspection à froid **et** contre-vérifier par `curl -s -A Googlebot <url> | grep canonical` (desktop et smartphone) plus le contenu de `dist/`.
 - **Avant de recompresser une image**, lire son format réel (`webpmux -info`, `magick identify`) : `/logo-hero.webp` est une animation de 36 images, qu'un `cwebp` détruirait. Une réduction qui dégrade le rendu voulu par Marion est une décision à lui remonter avec des tailles mesurées, pas à appliquer seul.
