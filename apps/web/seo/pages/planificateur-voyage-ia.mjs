@@ -8,7 +8,7 @@ export default {
   intent: "planificateur voyage ia",
   secondaryKeywords: ["organisateur voyage ia", "assistant voyage ia", "application organisation voyage", "créer itinéraire voyage avec ia", "générateur itinéraire voyage"],
   datePublished: "2026-09-08",
-  dateModified: "2026-09-08",
+  dateModified: "2026-09-13",
   title: "Planificateur de voyage IA : itinéraire complet, vols et hôtels au prix réel | Mon Petit Voyageur",
   description:
     "Donnez un budget, un style et une période : l'IA construit l'itinéraire jour par jour, trouve vols et hôtels au prix réel et vous laisse tout réserver via des liens. 7 jours d'essai gratuit.",
@@ -81,7 +81,11 @@ export default {
     },
     {
       q: "Faut-il un compte ?",
-      a: "Oui, l'inscription est gratuite, par email ou avec un compte Google. Elle permet de retrouver vos voyages et de télécharger le guide illustré."
+      a: "Oui : l'inscription se fait par email ou avec un compte Google. Le compte permet de retrouver vos voyages et de télécharger le guide illustré."
+    },
+    {
+      q: "Combien coûte Mon Petit Voyageur ?",
+      a: "Chaque nouveau compte dispose de 7 jours d'essai gratuit. Ensuite, l'abonnement est de 5,99 € par mois ou 49 € par an, sans engagement. Les vols, hôtels et activités se paient sur les sites de réservation, jamais dans l'application."
     },
     {
       q: "Dans quelles langues l'application est-elle disponible ?",

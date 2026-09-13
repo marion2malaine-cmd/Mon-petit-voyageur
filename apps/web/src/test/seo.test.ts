@@ -201,6 +201,18 @@ describe("tarifs : données structurées = produit réel", () => {
     expect(SEO.fr.description).toContain(PRICING.monthly.display.fr);
   });
 
+  // « l'inscription est gratuite » passait sous le test ci-dessus (casse et
+  // tournure différentes) : la page pilier le disait seul, sans essai ni prix,
+  // jusqu'au 2026-09-13. Toute réponse qui dit le compte gratuit doit dire la suite.
+  it("une FAQ qui dit l'inscription gratuite dit aussi l'essai et le prix", () => {
+    const answers = [...pages.flatMap((p: any) => p.faq ?? []), ...FAQ.fr.items].map((i: any) => i.a as string);
+    for (const a of answers) {
+      if (!/(inscription|création du compte)[^.]*gratuit/i.test(a)) continue;
+      expect(a, "gratuité du compte annoncée sans la durée d'essai").toContain(`${PRICING.trialDays} jours d'essai`);
+      expect(a, "gratuité du compte annoncée sans le prix de l'abonnement").toContain(PRICING.monthly.display.fr);
+    }
+  });
+
   // La coquille statique (lue par les crawlers) et la page React (lue par le
   // visiteur et par Googlebot après rendu) doivent dire la même chose du prix.
   it("le bloc d'appel à l'action dit la même chose dans la coquille statique et dans React", () => {
