@@ -80,7 +80,8 @@ Dernière mise à jour de ce fichier : ${updated}.
 - Road trip : étapes avec un hôtel par nuit, temps de route, arrêts, location de voiture calée sur le budget avec ses pièges signalés, carte du parcours.
 - Budget : fixé en amont, vols et hébergement déduits, badges « dans le budget » / « au-dessus du budget ».
 - Réservation : liens directs vers GetYourGuide, Civitatis, Viator, TheFork, TripAdvisor, Booking, Airbnb, Skyscanner, Google Flights. Mon Petit Voyageur ne vend rien lui-même ; certains liens sont affiliés.
-- Guide illustré : programme complet, carte, liens, photos créditées (Wikimedia Commons, Openverse), en HTML ou PDF.
+- Guide illustré : programme complet, carte, liens, photos créditées (Wikimedia Commons, Openverse ; photo du produit Viator pour les activités trouvées sur Viator), en HTML ou PDF.
+- Activités payantes : chaque activité est cherchée sur Viator ; quand le produit exact est trouvé, sa page (lien affilié) devient le premier lien de réservation avec son tarif « dès X € ». Une offre GetYourGuide correspondante reste proposée avec son tarif. Les billets de musées et de sites gardent le site officiel en premier.
 - Compte : inscription par email et mot de passe ou avec Google ; les voyages sont conservés dans l'espace personnel.
 - Tarifs (vérifiés dans le produit) : la création du compte est gratuite, chaque nouveau compte dispose de **7 jours d'essai gratuit**, puis l'abonnement est de **5,99 € par mois ou 49 € par an**, sans engagement et résiliable en un clic depuis l'espace personnel. Un module distinct « Pendant mon voyage » (convertisseur, partage des frais, carnet photo, découvertes autour de soi) est proposé à 9,99 € par mois. Les vols, hôtels et activités se paient sur les sites de réservation, jamais chez Mon Petit Voyageur.
 

@@ -109,7 +109,7 @@
         "voyage dans le budget",
         "prévoir budget voyage"
       ],
-      "lastOptimized": "2026-09-08",
+      "lastOptimized": "2026-09-14",
       "title": "Budget voyage : fixer son enveloppe et la répartir en 5 étapes | Mon Petit Voyageur",
       "h1": "Budget voyage : comment fixer et répartir votre enveloppe",
       "linksTo": [
@@ -155,7 +155,7 @@
         "créer itinéraire vacances ia",
         "préparer un voyage"
       ],
-      "lastOptimized": "2026-09-08",
+      "lastOptimized": "2026-09-14",
       "title": "Organiser un voyage avec l'IA : la méthode en 6 étapes, sans se faire piéger | Mon Petit Voyageur",
       "h1": "Comment organiser un voyage avec l'IA (sans se faire piéger)",
       "linksTo": [
@@ -240,9 +240,7 @@
           "what": "FAQ « Faut-il un compte ? » : « l'inscription est gratuite » retiré (répondu seul, sans essai ni prix, il présentait la page pilier commerciale comme gratuite alors que Stripe live facture). Nouvelle question visible « Combien coûte Mon Petit Voyageur ? » (7 jours d'essai, 5,99 €/mois ou 49 €/an) = FAQPage (8 questions). dateModified 2026-09-13."
         }
       ],
-      "openIssues": [
-        "Depuis le 2026-09-10 (commit 5803062), quand VIATOR_API_KEY est configurée, la fiche Viator devient le premier lien de réservation d'une activité (« dès X € ») ; la page cite GetYourGuide comme source principale et Viator « en complément ». Non modifié : présence de la clé en production non vérifiable depuis la routine. À confirmer côté Railway (backend-api) avant de réécrire."
-      ],
+      "openIssues": [],
       "nextOpportunities": [],
       "cluster": "planificateur-ia",
       "intent": "planificateur voyage ia",
@@ -253,7 +251,7 @@
         "créer itinéraire voyage avec ia",
         "générateur itinéraire voyage"
       ],
-      "lastOptimized": "2026-09-13",
+      "lastOptimized": "2026-09-14",
       "title": "Planificateur de voyage IA : itinéraire complet, vols et hôtels au prix réel | Mon Petit Voyageur",
       "h1": "Le planificateur de voyage IA qui organise tout, dans votre budget",
       "linksTo": [
@@ -523,8 +521,8 @@
       "geo": 5,
       "effort": 1,
       "risk": 0,
-      "status": "open",
-      "note": "Action de Marion (git push origin main ; jamais railway up). Détecté le 2026-09-14 par verify-prod étendu. Preuve de clôture : npm run seo:verify-prod -w @mlt/web = 48/48."
+      "status": "done",
+      "note": "Action de Marion (git push origin main ; jamais railway up). Détecté le 2026-09-14 par verify-prod étendu. Preuve de clôture : npm run seo:verify-prod -w @mlt/web = 48/48. | FAIT le 2026-09-14 : poussé à la demande de Marion, Railway en ligne en ~45 s, verify-prod 48/48."
     }
   ],
   "kpi": {
@@ -848,6 +846,36 @@
       "url": "apps/web/seo/ROUTINE.md",
       "action": "technique",
       "justification": "§ 2 : description de l’égalité exacte et consigne de lecture — un ÉCHEC « identique au dépôt » après un commit local signale un push manquant, pas un faux positif. Annexe du SKILL.md alignée (48 vérifications)."
+    },
+    {
+      "date": "2026-09-14",
+      "url": "https://www.monpetitvoyageur.com/",
+      "action": "mesure",
+      "justification": "Push de 5367113 + 3fa3f6b demandé par Marion. Déployé en ~45 s ; seo:verify-prod 48/48 : la page pilier ne dit plus le compte gratuit sans essai ni prix."
+    },
+    {
+      "date": "2026-09-14",
+      "url": "https://www.monpetitvoyageur.com/planificateur-voyage-ia",
+      "action": "optimisation",
+      "justification": "Marion confirme VIATOR_API_KEY en production. Code (enrichItinerary.ts l. 140 → resolveViatorActivities, après l’étape GetYourGuide l. 82) : chaque activité payante est cherchée sur Viator, le produit exact devient le premier lien avec « dès X € » et sa photo ; billets de musées exclus. La page citait Viator « en complément » : liste Activités, section IA, 2 FAQ corrigées."
+    },
+    {
+      "date": "2026-09-14",
+      "url": "https://www.monpetitvoyageur.com/budget-voyage",
+      "action": "optimisation",
+      "justification": "Même vérité produit Viator : « Prix en direct » et FAQ « prix fiables » citaient GetYourGuide seul."
+    },
+    {
+      "date": "2026-09-14",
+      "url": "https://www.monpetitvoyageur.com/organiser-un-voyage-avec-l-ia",
+      "action": "optimisation",
+      "justification": "Tableau assistant vs planificateur : offres réelles Viator et GetYourGuide."
+    },
+    {
+      "date": "2026-09-14",
+      "url": "https://www.monpetitvoyageur.com/llms.txt",
+      "action": "optimisation",
+      "justification": "Ligne « Activités payantes » (Viator premier lien, GetYourGuide, billets officiels) et crédit photo Viator ; FAQ guide illustré de l’accueil (FR/EN, index.html) alignée."
     }
   ],
   "privateRoutes": {

@@ -135,7 +135,7 @@ export const FAQ = {
       },
       {
         q: "Que contient le guide illustré ?",
-        a: "Le programme complet jour par jour, les adresses, la carte, les liens de réservation et des photos créditées (Wikimedia Commons, Openverse). Il se télécharge en HTML ou PDF et peut être envoyé par email."
+        a: "Le programme complet jour par jour, les adresses, la carte, les liens de réservation et des photos créditées (Wikimedia Commons, Openverse, et la photo du produit Viator pour les activités). Il se télécharge en HTML ou PDF et peut être envoyé par email."
       },
       {
         q: "Quelles destinations sont couvertes ?",
@@ -172,7 +172,7 @@ export const FAQ = {
       },
       {
         q: "What is in the illustrated guide?",
-        a: "The full day-by-day program, addresses, the map, booking links and credited photos (Wikimedia Commons, Openverse). It downloads as HTML or PDF and can be sent by email."
+        a: "The full day-by-day program, addresses, the map, booking links and credited photos (Wikimedia Commons, Openverse, and the Viator product photo for activities). It downloads as HTML or PDF and can be sent by email."
       },
       {
         q: "Which destinations are covered?",

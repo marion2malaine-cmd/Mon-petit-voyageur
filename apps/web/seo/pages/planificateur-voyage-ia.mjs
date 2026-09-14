@@ -8,7 +8,7 @@ export default {
   intent: "planificateur voyage ia",
   secondaryKeywords: ["organisateur voyage ia", "assistant voyage ia", "application organisation voyage", "créer itinéraire voyage avec ia", "générateur itinéraire voyage"],
   datePublished: "2026-09-08",
-  dateModified: "2026-09-13",
+  dateModified: "2026-09-14",
   title: "Planificateur de voyage IA : itinéraire complet, vols et hôtels au prix réel | Mon Petit Voyageur",
   description:
     "Donnez un budget, un style et une période : l'IA construit l'itinéraire jour par jour, trouve vols et hôtels au prix réel et vous laisse tout réserver via des liens. 7 jours d'essai gratuit.",
@@ -31,14 +31,14 @@ export default {
 <li><strong>Hébergements :</strong> sélection dans votre enveloppe, avec des recherches Booking et Airbnb déjà renseignées (dates, voyageurs, destination).</li>
 <li><strong>Programme jour par jour :</strong> visites culturelles gratuites, trois options d'activité payante par jour dans des catégories différentes (culture, sport, découverte, farniente, gastronomie), déroulé horaire et plan B en cas de mauvais temps.</li>
 <li><strong>Restaurants :</strong> trois adresses par jour cherchées sur Google Maps, retenues à partir de 4,2 étoiles et 50 avis, dans la gamme de prix de votre budget. Une table que la recherche n'a pas confirmée est signalée comme non vérifiée.</li>
-<li><strong>Activités :</strong> quand une offre réelle GetYourGuide correspond, son tarif « dès X € » et son lien direct remplacent l'estimation ; sinon le prix est marqué indicatif. Liens Viator et Civitatis en complément.</li>
+<li><strong>Activités :</strong> chaque activité payante est cherchée sur Viator ; quand le produit exact est trouvé, sa propre photo illustre la carte et sa page devient le premier lien de réservation, avec son tarif « dès X € ». Quand une offre réelle GetYourGuide correspond, son tarif et son lien direct remplacent aussi l'estimation ; sinon le prix est marqué indicatif. Les billets de musées et de sites gardent leur site officiel en premier. Liens Civitatis en complément.</li>
 <li><strong>Road trip :</strong> en mode itinérant, chaque journée porte sa route, son temps de trajet et son hôtel, avec conseils de location de voiture. Voir le <a href="/planificateur-road-trip-ia">planificateur de road trip</a>.</li>
 <li><strong>Pratique :</strong> météo, formalités d'entrée, taux de change, checklist de valise.</li>
 <li><strong>Guide illustré :</strong> un carnet de voyage complet, jour par jour, avec photos et liens, téléchargeable et imprimable en PDF.</li>
 </ul>
 
 <h2>Comment l'IA intervient, et où elle n'intervient pas</h2>
-<p>L'intelligence artificielle écrit le programme : le rythme des journées, la répartition des visites, les activités adaptées à votre style, les conseils de transport. Elle ne fixe aucun prix et n'écrit aucun lien. Les tarifs de vols et d'hôtels proviennent de recherches en direct (Google Flights, Google Hotels), les restaurants de Google Maps, les activités de GetYourGuide. Les liens de réservation sont reconstruits par l'application à partir de vos dates et de votre destination. C'est ce qui évite les prix inventés et les adresses qui n'existent pas, deux défauts fréquents des assistants généralistes. Pour comprendre la méthode complète, lisez <a href="/organiser-un-voyage-avec-l-ia">comment organiser un voyage avec l'IA</a>.</p>
+<p>L'intelligence artificielle écrit le programme : le rythme des journées, la répartition des visites, les activités adaptées à votre style, les conseils de transport. Elle ne fixe aucun prix et n'écrit aucun lien. Les tarifs de vols et d'hôtels proviennent de recherches en direct (Google Flights, Google Hotels), les restaurants de Google Maps, les activités de Viator et de GetYourGuide. Les liens de réservation sont reconstruits par l'application à partir de vos dates et de votre destination. C'est ce qui évite les prix inventés et les adresses qui n'existent pas, deux défauts fréquents des assistants généralistes. Pour comprendre la méthode complète, lisez <a href="/organiser-un-voyage-avec-l-ia">comment organiser un voyage avec l'IA</a>.</p>
 
 <h2>Comment ça marche</h2>
 <ol>
@@ -69,11 +69,11 @@ export default {
     },
     {
       q: "L'IA invente-t-elle des prix ou des adresses ?",
-      a: "Non. L'IA écrit le programme mais ne fixe aucun prix et n'écrit aucun lien. Les tarifs de vols et d'hôtels viennent de Google Flights et Google Hotels, les restaurants de Google Maps, les activités de GetYourGuide. Une adresse non confirmée par la recherche est marquée comme non vérifiée."
+      a: "Non. L'IA écrit le programme mais ne fixe aucun prix et n'écrit aucun lien. Les tarifs de vols et d'hôtels viennent de Google Flights et Google Hotels, les restaurants de Google Maps, les activités de Viator et de GetYourGuide. Une adresse non confirmée par la recherche est marquée comme non vérifiée."
     },
     {
       q: "Peut-on réserver directement dans l'application ?",
-      a: "La réservation se fait chez les vendeurs (Skyscanner, Google Flights, Booking, Airbnb, GetYourGuide, TheFork…) via des liens pré-remplis avec vos dates et votre destination. Mon Petit Voyageur ne prend pas de paiement pour les réservations."
+      a: "La réservation se fait chez les vendeurs (Skyscanner, Google Flights, Booking, Airbnb, Viator, GetYourGuide, TheFork…) via des liens pré-remplis avec vos dates et votre destination. Mon Petit Voyageur ne prend pas de paiement pour les réservations."
     },
     {
       q: "Est-ce adapté aux road trips ?",

@@ -9,7 +9,7 @@ export default {
   intent: "comment organiser un voyage avec l'ia",
   secondaryKeywords: ["préparer voyage ia", "planifier voyage intelligence artificielle", "intelligence artificielle voyage", "créer itinéraire vacances ia", "préparer un voyage"],
   datePublished: "2026-09-08",
-  dateModified: "2026-09-08",
+  dateModified: "2026-09-14",
   title: "Organiser un voyage avec l'IA : la méthode en 6 étapes, sans se faire piéger | Mon Petit Voyageur",
   description:
     "Ce que l'IA fait bien (structure, idées) et ce qu'elle rate (prix, disponibilités, adresses). La méthode en 6 étapes pour un itinéraire fiable, et quelles informations lui donner.",
@@ -61,7 +61,7 @@ export default {
 <tbody>
 <tr><td>Structure du séjour</td><td>Bonne, à condition de bien décrire ses contraintes.</td><td>Guidée par un questionnaire : budget, style, rythme, forme du voyage.</td></tr>
 <tr><td>Prix des vols et hôtels</td><td>À vérifier systématiquement, souvent faux.</td><td>Recherches en direct (Google Flights, Google Hotels), jamais écrits par l'IA.</td></tr>
-<tr><td>Restaurants et activités</td><td>Noms parfois inexistants, pas de tarif fiable.</td><td>Adresses cherchées sur Google Maps (note et avis), offres réelles GetYourGuide avec tarif « dès X € », mention « non vérifié » sinon.</td></tr>
+<tr><td>Restaurants et activités</td><td>Noms parfois inexistants, pas de tarif fiable.</td><td>Adresses cherchées sur Google Maps (note et avis), offres réelles Viator et GetYourGuide avec tarif « dès X € », mention « non vérifié » sinon.</td></tr>
 <tr><td>Réservation</td><td>Aucune : il faut tout ressaisir.</td><td>Liens pré-remplis vers les sites de réservation.</td></tr>
 <tr><td>Sur place</td><td>Copier-coller à organiser soi-même.</td><td>Guide illustré téléchargeable, imprimable, hors ligne.</td></tr>
 </tbody></table></div>

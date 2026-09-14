@@ -9,7 +9,7 @@ export default {
   intent: "budget voyage",
   secondaryKeywords: ["calculer budget voyage", "répartir budget vacances", "voyage dans le budget", "prévoir budget voyage"],
   datePublished: "2026-09-08",
-  dateModified: "2026-09-08",
+  dateModified: "2026-09-14",
   title: "Budget voyage : fixer son enveloppe et la répartir en 5 étapes | Mon Petit Voyageur",
   description:
     "Combien prévoir et dans quel ordre dépenser ? La méthode « budget d'abord » en 5 étapes, les postes qu'on oublie (voiture, visa, change) et les outils pour rester dans l'enveloppe.",
@@ -60,7 +60,7 @@ export default {
 <ul>
 <li><strong>Billets d'abord, puis l'IA organise dans ce qui reste :</strong> le budget restant (budget moins vols moins hébergement) est transmis à l'itinéraire, qui en déduit les gammes de prix des restaurants et l'enveloppe activités. Si les billets absorbent l'essentiel, le plan vous en avertit.</li>
 <li><strong>Badges « dans le budget » / « au-dessus du budget »</strong> sur les vols, les hôtels et les activités, pour voir d'un coup d'œil ce qui dépasse.</li>
-<li><strong>Prix en direct :</strong> vols sur Google Flights, hôtels sur Google Hotels, activités GetYourGuide avec tarif « dès X € » quand une offre réelle correspond. Un prix non confirmé est marqué indicatif.</li>
+<li><strong>Prix en direct :</strong> vols sur Google Flights, hôtels sur Google Hotels, activités Viator ou GetYourGuide avec tarif « dès X € » quand le produit exact est trouvé. Un prix non confirmé est marqué indicatif.</li>
 <li><strong>Visites gratuites chaque jour :</strong> musées, quartiers, panoramas et sites gratuits sont intégrés au programme, ce qui allège la part activités sans appauvrir le voyage.</li>
 <li><strong>Restaurants dans votre gamme :</strong> les adresses proposées sont filtrées sur la gamme de prix cohérente avec votre budget.</li>
 </ul>
@@ -79,7 +79,7 @@ export default {
     },
     {
       q: "Les prix affichés par l'application sont-ils fiables ?",
-      a: "Les prix de vols et d'hôtels viennent de recherches en direct sur Google Flights et Google Hotels, conservées en cache jusqu'à 24 heures ; les activités affichent le tarif réel de GetYourGuide quand une offre correspond, sinon un prix indicatif clairement signalé. Le prix final est toujours celui du site de réservation au moment de l'achat."
+      a: "Les prix de vols et d'hôtels viennent de recherches en direct sur Google Flights et Google Hotels, conservées en cache jusqu'à 24 heures ; les activités affichent le tarif « dès X € » de Viator ou de GetYourGuide quand le produit exact est trouvé, sinon un prix indicatif clairement signalé. Le prix final est toujours celui du site de réservation au moment de l'achat."
     },
     {
       q: "Comment économiser sur les activités ?",
