@@ -1,6 +1,6 @@
 {
   "site": "https://www.monpetitvoyageur.com",
-  "updated": "2026-09-13",
+  "updated": "2026-09-14",
   "positioning": "Mon Petit Voyageur = planification de voyages et de road trips assistée par IA, budget d'abord, tout réservable via liens (éditeur MARA LABS, Lille).",
   "clusters": {
     "planificateur-ia": "Pages commerciales : ce qu'est le service, à qui il s'adresse, comment l'IA intervient.",
@@ -500,7 +500,7 @@
       "risk": 1,
       "status": "done",
       "title": "La page pilier répondait « l'inscription est gratuite » sans essai ni prix",
-      "note": "Corrigé le 2026-09-13, non poussé. Passait sous le garde-fou qui ne cherchait que la chaîne exacte « Inscription gratuite ». Nouveau test seo.test.ts : toute réponse de FAQ (guides + accueil) disant l'inscription ou la création du compte gratuite doit contenir « 7 jours d'essai » et « 5,99 € » ; vérifié par mutation. Piste : étendre verify-prod à la même règle insensible à la casse."
+      "note": "Corrigé le 2026-09-13, non poussé. Passait sous le garde-fou qui ne cherchait que la chaîne exacte « Inscription gratuite ». Nouveau test seo.test.ts : toute réponse de FAQ (guides + accueil) disant l'inscription ou la création du compte gratuite doit contenir « 7 jours d'essai » et « 5,99 € » ; vérifié par mutation. 2026-09-14 : toujours servi en production (commit non poussé) alors que verify-prod affichait 41/41. Plutôt qu’une règle de plus insensible à la casse, verify-prod compare désormais la production au build du dépôt au caractère près : l’écart est détecté (45/48). Se ferme quand Marion pousse et que verify-prod passe à 48/48."
     },
     {
       "id": "viator-premier-lien-pages",
@@ -513,6 +513,18 @@
       "status": "open",
       "title": "Aligner les pages sur Viator premier lien de réservation des activités (si VIATOR_API_KEY est en production)",
       "note": "Code vérifié le 2026-09-13 : enrichItinerary.ts resolveViatorActivities met Viator « dès X € » en premier lien quand la clé existe ; sinon GetYourGuide reste la source du tarif. Affirmations revérifiées exactes ce jour : restaurants ≥ 4,2 étoiles et 50 avis (serpapi.ts:589), cache 24 h (CACHE_TTL_MS), GetYourGuide « dès X € », photos Wikimedia/Openverse. Lien Aviasales conditionné au marker Travelpayouts (non vérifiable depuis la routine)."
+    },
+    {
+      "id": "push-5367113",
+      "title": "Pousser 5367113 : la page pilier dit encore en production « l’inscription est gratuite » sans essai ni prix",
+      "score": 95,
+      "impact": 4,
+      "commercial": 5,
+      "geo": 5,
+      "effort": 1,
+      "risk": 0,
+      "status": "open",
+      "note": "Action de Marion (git push origin main ; jamais railway up). Détecté le 2026-09-14 par verify-prod étendu. Preuve de clôture : npm run seo:verify-prod -w @mlt/web = 48/48."
     }
   ],
   "kpi": {
@@ -521,7 +533,7 @@
       "createdAt": "2026-09-08",
       "sitemapSubmitted": "https://www.monpetitvoyageur.com/sitemap.xml",
       "urlsDiscovered": 5,
-      "note": "Aucune donnée d'impressions encore (traitement en cours). Dernière exploration de / par Googlebot : 2026-09-06 en 404 (avant la mise en production du 08) ; réindexation demandée le 08. | 2026-09-12 : non relevé (Chrome MCP indisponible en exécution planifiée). Prochaine mesure utile vers le 2026-09-18 ; règle CTR (≥ 50 impressions) vers le 2026-10-06. | 2026-09-13 : non relevé (volume insuffisant avant le 2026-09-18).",
+      "note": "Aucune donnée d'impressions encore (traitement en cours). Dernière exploration de / par Googlebot : 2026-09-06 en 404 (avant la mise en production du 08) ; réindexation demandée le 08. | 2026-09-12 : non relevé (Chrome MCP indisponible en exécution planifiée). Prochaine mesure utile vers le 2026-09-18 ; règle CTR (≥ 50 impressions) vers le 2026-10-06. | 2026-09-13 : non relevé (volume insuffisant avant le 2026-09-18). | 2026-09-14 : non relevé (volume insuffisant avant le 2026-09-18).",
       "checkedAt": "2026-09-11",
       "indexation": "Les 5 URL sont indexées (inspection URL du 2026-09-09) : /, /planificateur-voyage-ia, /budget-voyage, /planificateur-road-trip-ia, /organiser-un-voyage-avec-l-ia. Fils d'Ariane valide détecté sur les 4 guides, HTTPS OK partout.",
       "performance": "Première impression enregistrée. Relevé du 2026-09-11 (28 j) : 1 impression, 0 clic, CTR 0 %, position moyenne 99, requête « ia en voyage ». Le graphique s'arrête encore au 08/09/2026 (Google a ~3 jours de retard de traitement) et le rapport Indexation affiche toujours « traitement des données en cours ». Règle CTR (≥ 50 impressions) très loin d'être applicable : prochaine mesure utile vers le 2026-09-18, règle CTR vers le 2026-10-06.",
@@ -532,7 +544,7 @@
     "deployment": {
       "checkedAt": "2026-09-13",
       "finding": "Écart de 24 h entre le dépôt et la production : commits cce2fca, 2f92094, 118462b restés locaux. Production requalifiée le 2026-09-12 à 09:11 (80 s après le push).",
-      "guard": "npm run seo:verify-prod (41 vérifications) — à lancer au § 2 de chaque run.",
+      "guard": "npm run seo:verify-prod (48 vérifications, dont égalité au caractère près prod = build du dépôt pour les guides, sitemap.xml, llms.txt et le JSON-LD de l’accueil depuis le 2026-09-14) — à lancer au § 2 de chaque run ; échoue tant qu’un commit SEO n’est pas poussé.",
       "lastVerified": "2026-09-13 : 41/41, git log origin/main..HEAD vide (avant modification du run)."
     }
   },
@@ -818,6 +830,24 @@
       "url": "apps/web/src/test/seo.test.ts",
       "action": "technique",
       "justification": "Le garde-fou « Inscription gratuite » était sensible à la casse et à la tournure. Nouveau test : toute FAQ disant l'inscription ou la création du compte gratuite doit contenir la durée d'essai et le prix mensuel. Mutation vérifiée (l'ancienne phrase fait échouer la suite)."
+    },
+    {
+      "date": "2026-09-14",
+      "url": "https://www.monpetitvoyageur.com/planificateur-voyage-ia",
+      "action": "mesure",
+      "justification": "Début de run : git log origin/main..HEAD non vide (5367113, 24 h) ; verify-prod 41/41 alors que la production sert toujours « l’inscription est gratuite » (×2) et aucune question « Combien coûte ». Incident : le détecteur de dérive est aveugle aux tournures non listées."
+    },
+    {
+      "date": "2026-09-14",
+      "url": "apps/web/seo/verify-prod.mjs",
+      "action": "technique",
+      "justification": "Ajout de 7 vérifications d’égalité au caractère près entre production et build du dépôt (HTML des 4 guides, sitemap.xml, llms.txt, JSON-LD de l’accueil), sans valeur en dur. Mesuré sans faux positif sur les pages non modifiées ; détecte l’écart réel (45/48)."
+    },
+    {
+      "date": "2026-09-14",
+      "url": "apps/web/seo/ROUTINE.md",
+      "action": "technique",
+      "justification": "§ 2 : description de l’égalité exacte et consigne de lecture — un ÉCHEC « identique au dépôt » après un commit local signale un push manquant, pas un faux positif. Annexe du SKILL.md alignée (48 vérifications)."
     }
   ],
   "privateRoutes": {

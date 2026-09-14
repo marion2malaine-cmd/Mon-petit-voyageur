@@ -21,7 +21,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { readHomeHead, readState, STATE_PATH } from "./build.mjs";
+import { INDEX_HTML, loadPages, readHomeHead, readState, renderSite, STATE_PATH } from "./build.mjs";
 import { SITE_URL } from "./site.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -50,10 +50,32 @@ async function fetchUrl(pathname) {
   return { status: res.status, headers: res.headers, body };
 }
 
+// Pourquoi comparer à l'identique : le 2026-09-14, la production disait encore
+// « l'inscription est gratuite » sur la page pilier (correction du 13/09 non
+// poussée) et le vérificateur affichait 41/41, parce qu'il ne cherchait que la
+// chaîne « Inscription gratuite ». Toute liste de phrases interdites a un trou ;
+// l'égalité avec le build n'en a pas.
+function sameAsRepo(name, prod, repo) {
+  if (prod === repo) return check(name, true);
+  let i = 0;
+  while (i < prod.length && prod[i] === repo[i]) i++;
+  const around = (s) => JSON.stringify(s.slice(Math.max(0, i - 20), i + 40));
+  check(name, false, "", `écart au caractère ${i} : prod ${around(prod)} ≠ dépôt ${around(repo)}`);
+}
+
+function jsonLd(html) {
+  return [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
+    .map((m) => JSON.stringify(JSON.parse(m[1])))
+    .join("\n");
+}
+
 // --- Ce que le dépôt affirme -------------------------------------------------
 
-function expectations() {
+async function expectations() {
   const state = readState();
+  // Ce que le build génère à partir du dépôt : la production doit le servir
+  // octet pour octet (guides, sitemap, llms.txt).
+  const generated = renderSite(await loadPages(), state);
   const home = readHomeHead();
   const robotsTxt = fs.readFileSync(path.join(WEB_DIR, "public/robots.txt"), "utf8");
   const serverMjs = fs.readFileSync(path.join(WEB_DIR, "server.mjs"), "utf8");
@@ -75,6 +97,8 @@ function expectations() {
   return {
     state,
     home,
+    generated,
+    homeJsonLd: jsonLd(fs.readFileSync(INDEX_HTML, "utf8")),
     privateRoutes,
     agents,
     robotsTxt,
@@ -108,6 +132,10 @@ async function verifyPages(exp) {
     // La page ne doit jamais se dire gratuite : le paywall est actif.
     check(`${url} · aucune « Inscription gratuite »`, !body.includes("Inscription gratuite"));
 
+    // Guide : HTML servi = HTML généré par le dépôt, au caractère près.
+    const generated = exp.generated.get(`${url.slice(1)}.html`);
+    if (generated) sameAsRepo(`${url} · HTML identique au dépôt`, body, generated);
+
     // L'accueil doit servir exactement le head du dépôt.
     if (url === "/") {
       check("/ · title identique au dépôt", title === exp.home.title,
@@ -122,6 +150,10 @@ async function verifyPages(exp) {
 
       const visible = exp.prices.every((p) => body.includes(p.replace(".", ",")));
       check("/ · prix lisibles dans le texte visible", visible);
+
+      // L'accueil passe par Vite (noms d'assets hachés) : on compare ses
+      // données structurées, pas le fichier entier.
+      sameAsRepo("/ · JSON-LD identique au dépôt", jsonLd(body), exp.homeJsonLd);
     }
   }
 }
@@ -156,9 +188,11 @@ async function verifyTechnical(exp) {
   const missing = exp.pageUrls.filter((u) => !sitemap.body.includes(SITE_URL + (u === "/" ? "/" : u)));
   check("/sitemap.xml · toutes les URL du dépôt", missing.length === 0,
     missing.length ? `absentes : ${missing.join(", ")}` : `${exp.pageUrls.length} URL`);
+  sameAsRepo("/sitemap.xml · identique au dépôt", sitemap.body, exp.generated.get("sitemap.xml"));
 
   const llms = await fetchUrl("/llms.txt");
   check("/llms.txt · 200", llms.status === 200, String(llms.status));
+  sameAsRepo("/llms.txt · identique au dépôt", llms.body, exp.generated.get("llms.txt"));
 
   // Les moteurs génératifs lisent ce fichier comme une consigne. Il doit publier
   // les tarifs réels…
@@ -179,7 +213,7 @@ async function verifyTechnical(exp) {
 // --- Rapport -----------------------------------------------------------------
 
 async function main() {
-  const exp = expectations();
+  const exp = await expectations();
   console.log(`Vérification de ${SITE_URL} contre le dépôt (état du ${exp.state.updated})\n`);
 
   await verifyPages(exp);
