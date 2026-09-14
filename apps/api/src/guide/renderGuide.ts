@@ -1,3 +1,4 @@
+import { preferredActivityLinks, activityFindings } from "@mlt/contracts";
 import type {
   BookingLink,
   DayRoute,
@@ -521,25 +522,24 @@ export function renderGuideHtml(plan: PlanTripResponse, options: RenderGuideOpti
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
-<style>${GUIDE_CSS}</style>
+<style>${GUIDE_CSS}
+.activity-choice { border: 1px solid var(--border); border-radius: 12px; margin: 1rem 0; overflow: hidden; }
+.activity-choice > summary { padding: .8rem 1rem; cursor: pointer; font-size: .85rem; }
+.activity-choice .option { border: 0; margin: 0; }
+.activity-reviews { padding: .6rem; background: var(--secondary); border-radius: 8px; margin: .6rem 0; }
+@media print { .cover { padding: 1.5rem 1rem; } .cover-note { display: none; } .stats { margin: 1rem 0; } h2, h3 { break-after: avoid; } .activity-choice.alternative > :not(summary) { display: none !important; } .activity-choice { break-inside: auto; } }
+</style>
 </head>
 <body>
 ${renderCover(t, { destination, brief, days: days.length, travelers, freeVisitCount, optionCount })}
-${renderMap(t, days, destination, options.mapboxToken ?? null, options.staticMapSrc ?? null)}
-${renderCalendar(t, days, options.locale)}
-${renderStages(t, days, structured, destination, options.locale)}
-${renderGroundTransport(t, structured.research?.ground_transport)}
+${renderFlights(structured.research, options.locale)}
 ${renderCarRental(t, structured.research?.car_rental, options.locale)}
-${renderDays(t, days, options.locale, structured.research?.internal_flights ?? [])}
-
-${renderExcursions(t, itinerary.suggested_excursions ?? [])}
-${renderBookingLadder(t, structured, destination)}
-${renderFreeHighlights(t, itinerary.free_culture_highlights ?? [], days)}
-${renderRestaurants(t, days)}
-${renderForumFindings(t, itinerary?.forum_findings ?? [])}
+${renderGroundTransport(t, structured.research?.ground_transport)}
+${renderMap(t, days, destination, options.mapboxToken ?? null, options.staticMapSrc ?? null)}
+${renderDays(t, days, options.locale, structured.research?.internal_flights ?? [], itinerary.forum_findings ?? [])}
 ${renderBudget(t, structured.budget_estimate, brief, days.length, destination)}
 ${renderPractical(t, structured, plan)}
-${renderLinks(t, structured, itinerary)}
+
 ${renderPhotoCredits(t, days, itinerary?.suggested_excursions ?? [])}
 <footer class="footer">
   <strong>${escapeHtml(t.footer)}</strong>
@@ -550,6 +550,16 @@ ${renderPhotoCredits(t, days, itinerary?.suggested_excursions ?? [])}
 </div>
 </body>
 </html>`;
+}
+
+function renderFlights(research: any, locale: "fr" | "en"): string {
+  const fr = locale === "fr";
+  const flights = research?.recommended_flights ?? [];
+  const links = (research?.search_links ?? []).filter((l: any) => l.category === "flights");
+  return `<section class="band band-cream"><div class="inner"><h2 class="section-title">${fr ? "Vols aller-retour" : "Return flights"}</h2>
+    ${flights.length ? flights.slice(0, 3).map((f: any) => `<article class="info-card"><strong>${escapeHtml(f.label)}</strong><p>${escapeHtml([f.price == null ? (fr ? "Tarif à vérifier" : "Check fare") : `${f.price} ${f.currency ?? "EUR"}`, f.total_duration, f.stops == null ? null : f.stops === 0 ? (fr ? "Direct" : "Direct") : `${f.stops} ${fr ? "escale(s)" : "stop(s)"}`].filter(Boolean).join(" · "))}</p>${f.booking_url ? renderBookingButtons([{provider:"kayak", label: fr ? "Voir le vol" : "View flight", url: f.booking_url}]) : ""}</article>`).join("") : `<p>${fr ? "Aucun vol chiffré disponible pour ce voyage. Consultez les départs et tarifs ci-dessous." : "No priced flight available for this trip. Check departures and fares below."}</p>`}
+    ${renderBookingButtons(links)}
+  </div></section>`;
 }
 
 function renderCover(
@@ -929,7 +939,7 @@ function renderCarRental(t: Strings, advice: any, locale: "fr" | "en" = "fr"): s
   if (!advice?.recommended && !advice?.options?.length) return "";
 
   const pickupLabels: Record<string, string> = t.carPickupLabels;
-  const optionCards = (advice.options ?? [])
+  const optionCards = (advice.recommended ? [advice.options?.find((o: any) => o.category === advice.recommended.category) ?? advice.recommended] : (advice.options ?? []).slice(0, 1))
     .map((option: any, index: number) => {
       const isRecommended = option.category === advice.recommended?.category;
       return `<div class="car-option${isRecommended ? " is-recommended" : ""}">
@@ -1463,13 +1473,14 @@ function renderDays(
   t: Strings,
   days: ItineraryDay[],
   locale: "fr" | "en",
-  internalFlights: InternalFlight[] = []
+  internalFlights: InternalFlight[] = [],
+  findings: ForumFinding[] = []
 ): string {
   if (!days.length) return "";
 
   // A flown leg is read inside its own day, next to the drive it replaces.
   const flightsByDay = new Map(internalFlights.map((flight) => [flight.day, flight]));
-  const cards = days.map((day) => renderDay(t, day, locale, flightsByDay.get(day.day) ?? null)).join("");
+  const cards = days.map((day) => renderDay(t, day, locale, flightsByDay.get(day.day) ?? null, findings)).join("");
 
 
   return `<section class="band band-cream">
@@ -1487,7 +1498,7 @@ function renderDays(
  * the tables of the day in a panel beside it. Alternatives and the plan B
  * fold away so the page reads calmly.
  */
-function renderDay(t: Strings, day: ItineraryDay, locale: "fr" | "en", internalFlight: InternalFlight | null = null): string {
+function renderDay(t: Strings, day: ItineraryDay, locale: "fr" | "en", internalFlight: InternalFlight | null = null, findings: ForumFinding[] = []): string {
 
   const dateLabel = day.date
     ? new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-GB", {
@@ -1540,10 +1551,7 @@ function renderDay(t: Strings, day: ItineraryDay, locale: "fr" | "en", internalF
     ${renderLodging(t, day.lodging)}
     ${
       options.length
-        ? `<details class="fold">
-      <summary>${escapeHtml(t.changeMood(options.length))}</summary>
-      <div class="fold-body">${renderPaidOptions(t, options)}</div>
-    </details>`
+        ? `<div class="day-options">${renderPaidOptions(t, options, findings)}</div>`
         : ""
     }
     ${
@@ -1602,13 +1610,14 @@ const CATEGORY_LABELS: Record<"fr" | "en", Record<string, string>> = {
   en: { culture: "Culture", sport: "Sport", discovery: "Discovery", relax: "Leisure", food: "Food" }
 };
 
-function renderPaidOptions(t: Strings, opts: PaidOption[]): string {
+function renderPaidOptions(t: Strings, opts: PaidOption[], findings: ForumFinding[] = []): string {
   if (!opts.length) return "";
 
   const cards = opts
     .map((option, index) => {
       const variant = index === 0 ? "option-a" : index === 1 ? "option-b" : "";
-      return `<div class="option ${variant}">
+      return `<details class="activity-choice${opts.some(o => o.selected) && !option.selected ? " alternative" : ""}" ${option.selected || !opts.some(o => o.selected) ? "open" : ""}>
+      <summary>${escapeHtml(option.option_label)} · ${escapeHtml(option.title)}${option.selected ? (t.dayWord === "Jour" ? " · Sélectionné" : " · Selected") : ""}</summary><div class="option ${variant}">
       <div class="option-photo">${photoTag(option.photo, "option-photo-fallback")}</div>
       <div class="option-body">
         <div class="option-label">${escapeHtml(option.option_label)}</div>
@@ -1627,9 +1636,10 @@ function renderPaidOptions(t: Strings, opts: PaidOption[]): string {
           ${(option.suited_for ?? []).map((tag) => chip("check", tag)).join("")}
         </div>
         ${renderLocalAlternative(t, option.local_alternative, option.crossing)}
+        ${activityFindings(option.title, findings).map(f => `<aside class="activity-reviews"><small>${escapeHtml(f.source)} · ${escapeHtml(f.title)}${f.snippet ? ` — ${escapeHtml(f.snippet)}` : ""}</small>${renderBookingButtons([{ provider: "forum", label: t.dayWord === "Jour" ? "Lire l’avis" : "Read review", url: f.url }])}</aside>`).join("")}
         ${option.kind === "ticket" ? renderTicketButtons(t, option.booking_links ?? []) : renderBookingButtons(option.booking_links ?? [])}
       </div>
-    </div>`;
+    </div></details>`;
     })
     .join("");
 
@@ -1761,6 +1771,7 @@ function renderTicketButtons(t: Strings, links: BookingLink[]): string {
 }
 
 function renderBookingButtons(links: BookingLink[], allGhost = false): string {
+  links = preferredActivityLinks(links);
   if (!links.length) return "";
   return `<div class="btn-row">${links
     .map(

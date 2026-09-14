@@ -25,3 +25,11 @@ describe("saved trip edits", () => {
     expect(editTrip(plan, { action: "budget", values: { people: 2, rooms: 1, nights: 3, transport: null } }).structured_json.budget_choices.people).toBe(2);
   });
 });
+
+it("switches alternatives exclusively and supports undo", () => {
+  const initial: any = structuredClone(plan);
+  initial.structured_json.itinerary.itinerary_by_day[0].paid_options = [{title: "A", selected: true}, {title: "B", selected: false}];
+  const updated = editTrip(initial, {action: "select", day: 1, collection: "paid_options", index: 1, selected: true});
+  expect(updated.structured_json.itinerary.itinerary_by_day[0].paid_options.map((o: any) => o.selected)).toEqual([false, true]);
+  expect(editTrip(updated, {action: "undo"}).structured_json.itinerary).toEqual(initial.structured_json.itinerary);
+});

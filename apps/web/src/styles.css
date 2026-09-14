@@ -2082,3 +2082,16 @@ button, a { touch-action: manipulation; }
   color: var(--foreground);
   border: 1px solid var(--border);
 }
+
+/* A single spacious itinerary, with alternatives kept within their day. */
+.results .day-grid { grid-template-columns: minmax(0, 1fr); gap: 2rem; }
+.results .day-card { padding: 1.5rem; }
+.results .day-card > .day-card-photo { max-height: 340px; object-fit: cover; }
+.activity-choice { border: 1px solid #dce5df; border-radius: 12px; margin: 12px 0; overflow: hidden; }
+.activity-choice > summary { cursor: pointer; padding: 12px 16px; font-size: .85rem; }
+.activity-choice[open] > summary { font-weight: 600; }
+.activity-choice .option-card { border: 0; margin: 0; }
+.activity-reviews { display: grid; gap: 8px; padding: 10px 12px; background: #f3f6f3; border-radius: 8px; margin: 12px 0; }
+.activity-reviews:empty { display: none; }
+.travel-extra { margin: 20px 0; }
+.travel-extra > summary { cursor: pointer; padding: 12px 0; }

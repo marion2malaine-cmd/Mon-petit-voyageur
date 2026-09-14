@@ -1,3 +1,4 @@
+import { preferredActivityLinks, activityFindings } from "@mlt/contracts";
 import { SavedTrips } from "./SavedTrips";
 import { text } from "./appTranslations";
 import { PricingPlans } from "./PricingPlans";
@@ -252,8 +253,6 @@ function TravelerApp() {
   };
   const [guideBusy, setGuideBusy] = useState(false);
   const [guideError, setGuideError] = useState("");
-  const [guideSent, setGuideSent] = useState("");
-  const [emailTo, setEmailTo] = useState("");
   const [billingBusy, setBillingBusy] = useState(false);
   const [billingMsg, setBillingMsg] = useState("");
 
@@ -504,7 +503,7 @@ function TravelerApp() {
     try {
       const saved = await api.getTrip(trip.id);
       setResult({ ...saved.plan_json, trip_id: saved.id });
-      setGuideError(""); setGuideSent(""); setPage("planner");
+      setGuideError("");  setPage("planner");
       window.setTimeout(() => document.querySelector(".results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     } catch (error) { setTripsError((error as Error).message); }
     finally { setTripsBusy(false); }
@@ -520,7 +519,7 @@ function TravelerApp() {
     if (!result?.trip_id) return;
     setGuideBusy(true);
     setGuideError("");
-    setGuideSent("");
+
     try {
       const run = action === "download" ? downloadGuide : action === "pdf" ? downloadGuidePdf : previewGuide;
       await run(result.trip_id, locale);
@@ -545,24 +544,6 @@ function TravelerApp() {
         setResult(result);
         setGuideError(locale === "fr" ? "Le choix d’hôtel n’a pas pu être enregistré. Réessayez." : "Hotel choice could not be saved. Please retry.");
       }
-    }
-  }
-
-  async function handleEmailGuide() {
-    if (!result?.trip_id) return;
-    setGuideBusy(true);
-    setGuideError("");
-    setGuideSent("");
-    try {
-      const sent = await api.emailGuide(result.trip_id, locale, emailTo.trim() || undefined);
-      setGuideSent(`${t.guideSent} ${sent.to}`);
-    } catch (error) {
-      // The API returns a readable message when SMTP is not configured yet.
-      const raw = (error as Error).message;
-      const parsed = raw.startsWith("{") ? (JSON.parse(raw).message as string | undefined) : undefined;
-      setGuideError(parsed ?? t.guideEmailError);
-    } finally {
-      setGuideBusy(false);
     }
   }
 
@@ -991,19 +972,6 @@ function TravelerApp() {
                     </button>
                   </div>
                   <GuideImages key={result.trip_id} tripId={result.trip_id} />
-                  <div className="guide-email">
-                    <input
-                      type="email"
-                      value={emailTo}
-                      onChange={(event) => setEmailTo(event.target.value)}
-                      placeholder={user?.email ?? t.emailPlaceholder}
-                      aria-label={t.emailGuide}
-                    />
-                    <button className="secondary" onClick={handleEmailGuide} disabled={guideBusy}>
-                      {t.emailGuide}
-                    </button>
-                  </div>
-                  {guideSent && <p className="success-text">{guideSent}</p>}
                   {guideError && <p className="error-text">{guideError}</p>}
                 </div>
               )}
@@ -1018,8 +986,7 @@ function TravelerApp() {
                 </>
               )}
 
-              <h4>{t.flightsHotels}</h4>
-              <LocalMobility transport={research?.ground_transport} locale={locale} />
+              <h4>{locale === "fr" ? "Vols aller-retour" : "Return flights"}</h4>
               {(research?.price_calendar ?? []).length > 0 && (
                 <div className="price-strip" aria-label={t.calendarTitle}>
                   <p className="price-strip-title">
@@ -1085,36 +1052,11 @@ function TravelerApp() {
                     )}
                   </article>
                 ))}
-                {stays.slice(0, 3).map((s: any, idx: number) => (
-                  <article key={`stay-${idx}`} className={chosenStayIndex === idx ? "stay-card chosen" : "stay-card"}>
-                    {s.photo_url && <img className="stay-photo" src={s.photo_url} alt={s.name} loading="lazy" />}
-                    <span className="tag">{t.stayTag}</span>
-                    <br />
-                    <strong>{s.name}</strong>
-                    <p>
-                      {s.price_per_night ?? "?"} {s.currency ?? "EUR"}
-                      {t.perNight} {budgetBadge(s.budget_fit)}
-                    </p>
-                    <small>
-                      {[s.rating ? `${s.rating} ★` : null, s.area, (s.notes ?? [])[0]].filter(Boolean).join(" · ") || "-"}
-                    </small>
-                    {s.booking_url && (
-                      <a className="book-link" href={safeLink(s.booking_url)} target="_blank" rel="noreferrer">
-                        {t.book} ↗
-                      </a>
-                    )}
-                    <button
-                      type="button"
-                      className={chosenStayIndex === idx ? "choose-stay chosen" : "choose-stay secondary"}
-                      onClick={() => handleChooseStay(idx)}
-                    >
-                      {chosenStayIndex === idx ? t.chosenStay : t.chooseStay}
-                    </button>
-                  </article>
-                ))}
               </div>
-              {stays.length > 0 && chosenStayIndex === null && <p className="stay-hint"><small>{t.chooseStayHint}</small></p>}
-
+              {!(research?.recommended_flights ?? []).length && <p>{locale === "fr" ? "Aucun vol chiffré disponible. Consultez les départs et tarifs :" : "No priced flights available. Check departures and fares:"}</p>}
+              <div className="link-chips">{searchLinks.filter((link: any) => link.category === "flights").map((link: any) => <a className="chip" key={link.url} href={safeLink(link.url)} target="_blank" rel="noreferrer">{link.label} ↗</a>)}</div>
+              <h4>{locale === "fr" ? "Voiture et transports" : "Car and transport"}</h4>
+              <LocalMobility transport={research?.ground_transport} locale={locale} />
               {carRental?.recommended && (
                 <>
                   <h4>{t.carTitle}</h4>
@@ -1167,93 +1109,43 @@ function TravelerApp() {
                 </>
               )}
 
-              {searchLinks.length > 0 && (
-                <>
-                  {((result.structured_json as any)?.itinerary?.forum_findings ?? []).length > 0 && (
-                    <>
-                      <h4>{t.forumTitle}</h4>
-                      <ul className="forum-list">
-                        {((result.structured_json as any).itinerary.forum_findings as any[])
-                          .filter((finding) => /^https?:\/\//i.test(String(finding.url ?? "")))
-                          .slice(0, 6)
-                          .map((finding) => (
-                          <li key={finding.url}>
-                            <span className="tag">{finding.source || "Forum"}</span>
-                            <strong>{finding.title}</strong>
-                            {finding.snippet && <small>{finding.snippet}</small>}
-                            <a className="book-link" href={safeLink(finding.url)} target="_blank" rel="noreferrer">
-                              {t.readThread} ↗
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                  <h4>{t.bookingLinks}</h4>
-                  <div className="link-chips">
-                    {searchLinks.map((link: any) => (
-                      <a key={link.url} className="chip" href={safeLink(link.url)} target="_blank" rel="noreferrer">
-                        {link.label} ↗
+              {stays.length > 0 && <details className="travel-extra"><summary>{locale === "fr" ? "Hébergements" : "Accommodation"}</summary><div className="compact-grid">                {stays.slice(0, 3).map((s: any, idx: number) => (
+                  <article key={`stay-${idx}`} className={chosenStayIndex === idx ? "stay-card chosen" : "stay-card"}>
+                    {s.photo_url && <img className="stay-photo" src={s.photo_url} alt={s.name} loading="lazy" />}
+                    <span className="tag">{t.stayTag}</span>
+                    <br />
+                    <strong>{s.name}</strong>
+                    <p>
+                      {s.price_per_night ?? "?"} {s.currency ?? "EUR"}
+                      {t.perNight} {budgetBadge(s.budget_fit)}
+                    </p>
+                    <small>
+                      {[s.rating ? `${s.rating} ★` : null, s.area, (s.notes ?? [])[0]].filter(Boolean).join(" · ") || "-"}
+                    </small>
+                    {s.booking_url && (
+                      <a className="book-link" href={safeLink(s.booking_url)} target="_blank" rel="noreferrer">
+                        {t.book} ↗
                       </a>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {excursions.length > 0 && (
-                <>
-                  <h4>{t.excursionsTitle}</h4>
-                  <div className="compact-grid excursion-grid">
-                    {excursions.map((exc: any) => (
-                      <article key={exc.title} className="day-card">
-                        {exc.photo?.url && (
-                          <img className="day-card-photo" src={exc.photo.url} alt={exc.title} loading="lazy" />
-                        )}
-                        <PhotoCredit photo={exc.photo} />
-                        <span className="tag">{exc.style ?? t.excursionTag}</span>
-                        <br />
-                        <strong>{exc.title}</strong>
-                        <p className="excursion-desc">
-                          <small>{exc.description}</small>
-                        </p>
-                        <p className="excursion-meta">
-                          {exc.duration && <span>{exc.duration}</span>}
-                          {exc.price_estimate_eur !== null && (
-                            <span>
-                              {exc.price_estimate_eur === 0 ? t.freeLabel : `~${exc.price_estimate_eur} ${t.perPerson}`}
-                            </span>
-                          )}
-                        </p>
-                        {exc.booking_url && (
-                          <a className="book-link" href={safeLink(exc.booking_url)} target="_blank" rel="noreferrer">
-                            {t.book} ↗
-                          </a>
-                        )}
-                      </article>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {experienceLinks.length > 0 && (
-                <>
-                  <h4>{t.experiences}</h4>
-                  <div className="link-chips">
-                    {experienceLinks.map((link: any) => (
-                      <a key={link.url} className="chip" href={safeLink(link.url)} target="_blank" rel="noreferrer">
-                        {link.label} ↗
-                      </a>
-                    ))}
-                  </div>
-                </>
-              )}
+                    )}
+                    <button
+                      type="button"
+                      className={chosenStayIndex === idx ? "choose-stay chosen" : "choose-stay secondary"}
+                      onClick={() => handleChooseStay(idx)}
+                    >
+                      {chosenStayIndex === idx ? t.chosenStay : t.chooseStay}
+                    </button>
+                  </article>
+                ))}
+</div></details>}
 
               {(itinerary?.itinerary_by_day ?? []).length > 0 && (
                 <>
-                  <h4>{t.itinerary}</h4>
+                  <h4>{locale === "fr" ? "Votre itinéraire en 3D" : "Your itinerary in 3D"}</h4>
                   <TripMap routes={mapRoutes} locale={locale} hotel={hotelPoint} />
                   {hotelPoint && <label>{locale === "fr" ? "Trajets depuis l’hôtel" : "Travel from hotel"}<select value={hotelTravelMode} onChange={e => setHotelTravelMode(e.target.value as "walking" | "driving")}><option value="walking">{locale === "fr" ? "À pied" : "Walking"}</option><option value="driving">{locale === "fr" ? "En voiture" : "Driving"}</option></select></label>}
-                  <TripCompanion key={result.trip_id} result={result} locale={locale} onChange={updated => { setResult(updated); setTrips(current => current.map(trip => trip.id === updated.trip_id ? { ...trip, plan_json: updated } : trip)); }} />
+                  <details className="travel-extra"><summary>{locale === "fr" ? "Gérer mon voyage et mon budget" : "Manage my trip and budget"}</summary><TripCompanion key={result.trip_id} result={result} locale={locale} onChange={updated => { setResult(updated); setTrips(current => current.map(trip => trip.id === updated.trip_id ? { ...trip, plan_json: updated } : trip)); }} />
+                  </details>
+                  <h4>{t.itinerary}</h4>
                   <div className="compact-grid day-grid">
                     {itinerary.itinerary_by_day.map((day: any) => (
                       <article key={day.day} className="day-card">
@@ -1262,6 +1154,8 @@ function TravelerApp() {
                         )}
                         <PhotoCredit photo={day.photo} />
                         <strong>{day.title}</strong>
+                        {day.narrative && <p>{day.narrative}</p>}
+                        {(day.timeline ?? []).length > 0 && <ol className="day-timeline">{day.timeline.map((step: any, index: number) => <li key={index}><strong>{step.time} · {step.label}</strong><p>{step.detail}</p></li>)}</ol>}
                         {day.theme && <span className="tag">{day.theme}</span>}
                         {day.route?.to && (
                           <p className="day-route">
@@ -1272,7 +1166,7 @@ function TravelerApp() {
                             </small>
                           </p>
                         )}
-                        <p>
+                        {!(day.timeline ?? []).length && <p>
                           <small>
                             {t.morning}: {day.morning}
                             <br />
@@ -1280,7 +1174,7 @@ function TravelerApp() {
                             <br />
                             {t.evening}: {day.evening}
                           </small>
-                        </p>
+                        </p>}
                         {day.lodging?.name && (
                           <p className={`day-facet day-lodging${day.lodging.is_change ? " day-lodging-change" : ""}`}>
                             <em>{day.lodging.is_change ? t.lodgingChange : t.lodgingSame}</em>
@@ -1298,32 +1192,30 @@ function TravelerApp() {
                             </small>
                           </p>
                         )}
-                        {(day.free_visits ?? []).length > 0 && (
-                          <p className="day-facet">
-                            <em>{t.freeVisitsLabel}</em>
-                            <small>
-                              {day.free_visits
-                                .map((visit: any) => `${visit.name}${travelTimes[visit.name] ? ` (${legLabel(travelTimes[visit.name], locale)})` : ""}`)
-                                .join(" · ")}
-                            </small>
-                          </p>
-                        )}
+                        {(day.free_visits ?? []).length > 0 && <div className="day-facet"><em>{t.freeVisitsLabel}</em>{day.free_visits.map((visit: any) => <article className="option-card" key={visit.name}>
+                          {visit.photo?.url && <img className="option-photo" src={visit.photo.url} alt={visit.name} loading="lazy" />}
+                          <div className="option-body"><strong>{visit.name}</strong><p>{visit.description}</p><small>{[visit.duration, visit.free_note, travelTimes[visit.name] ? legLabel(travelTimes[visit.name], locale) : null].filter(Boolean).join(" · ")}</small><PhotoCredit photo={visit.photo} />
+                          <aside className="activity-reviews">{activityFindings(visit.name, itinerary.forum_findings ?? []).map((finding: any) => <a key={finding.url} href={safeLink(finding.url)} target="_blank" rel="noreferrer"><small>{finding.source} · {finding.title}{finding.snippet ? ` — ${finding.snippet}` : ""} ↗</small></a>)}</aside>
+                          {visit.map_url && <a href={safeLink(visit.map_url)} target="_blank" rel="noreferrer">{locale === "fr" ? "Voir sur la carte" : "View on map"} ↗</a>}</div>
+                        </article>)}</div>}
                         {(day.paid_options ?? []).length > 0 && (
                           <div className="day-facet">
                             <em>{t.optionsLabel}</em>
                             <div className="option-list">
-                              {day.paid_options.map((option: any) => {
+                              {day.paid_options.map((option: any, optionIndex: number) => {
                                 const alt = option.local_alternative;
                                 const channel: string = alt?.best_channel && alt.best_channel !== "unknown" ? alt.best_channel : alt?.typical_saving ? "unknown" : "";
                                 const leg = travelTimes[option.title];
                                 return (
-                                  <div key={`${day.day}-${option.option_label}`} className="option-card">
+                                  <details key={`${day.day}-${option.option_label}-${!!option.selected}-${day.paid_options.some((p: any) => p.selected)}`} className="activity-choice" open={option.selected || !day.paid_options.some((p: any) => p.selected)}><summary>{option.option_label} · {option.title}{option.selected ? (locale === "fr" ? " · Sélectionné" : " · Selected") : ""}</summary><div className="option-card">
                                     {option.photo?.url && <img className="option-photo" src={option.photo.url} alt={option.title} loading="lazy" />}
                                     <div className="option-body">
                                       <div className="option-head">
                                         <span className="tag">{option.option_label}</span>
                                         <strong>{option.title}</strong>
                                       </div>
+                                      <PhotoCredit photo={option.photo} />
+                                      <p>{option.description}</p>
                                       <small className="option-meta">
                                         {[
                                           option.category ? CATEGORY_LABELS[locale][option.category] ?? option.category : null,
@@ -1354,15 +1246,17 @@ function TravelerApp() {
                                           {alt?.advice ? ` — ${alt.advice}` : alt?.how_to_book ? ` — ${alt.how_to_book}` : ""}
                                         </small>
                                       )}
+                                      <aside className="activity-reviews">{option.local_alternative?.forum_tip && <small>{option.local_alternative.forum_tip}</small>}{activityFindings(option.title, itinerary.forum_findings ?? []).map((finding: any) => <a key={finding.url} href={safeLink(finding.url)} target="_blank" rel="noreferrer"><small>{finding.source} · {finding.title}{finding.snippet ? ` — ${finding.snippet}` : ""} ↗</small></a>)}</aside>
+                                      <button type="button" disabled={guideBusy || !result.trip_id} aria-pressed={!!option.selected} onClick={async () => { setGuideBusy(true); setGuideError(""); try { const updated = await api.editItinerary(result.trip_id!, { action: "select", day: day.day, collection: "paid_options", index: optionIndex, selected: !option.selected }); setResult(updated); setTrips(current => current.map(trip => trip.id === updated.trip_id ? { ...trip, plan_json: updated } : trip)); } catch { setGuideError(locale === "fr" ? "Choix non enregistré. Réessayez." : "Choice not saved. Please retry."); } finally { setGuideBusy(false); } }}>{option.selected ? (locale === "fr" ? "Retirer ce choix" : "Remove choice") : (locale === "fr" ? "Choisir cette activité" : "Choose activity")}</button>
                                       <div className="link-chips">
-                                        {(option.booking_links ?? []).map((link: any) => (
+                                        {preferredActivityLinks(option.booking_links ?? []).map((link: any) => (
                                           <a key={link.url} className="chip" href={safeLink(link.url)} target="_blank" rel="noreferrer">
                                             {link.label} ↗
                                           </a>
                                         ))}
                                       </div>
                                     </div>
-                                  </div>
+                                  </div></details>
                                 );
                               })}
                             </div>
@@ -1384,6 +1278,7 @@ function TravelerApp() {
                 </>
               )}
 
+              <details className="travel-extra"><summary>{locale === "fr" ? "Informations pratiques et prochaines étapes" : "Practical information and next steps"}</summary>
               <h4>{t.openVerifications}</h4>
               <ul>
                 {result.open_verifications.map((v) => (
@@ -1398,6 +1293,7 @@ function TravelerApp() {
                 ))}
               </ul>
 
+              </details>
               <details>
                 <summary>{t.trace}</summary>
                 <pre>{JSON.stringify(result.trace, null, 2)}</pre>

@@ -333,10 +333,10 @@ describe("guide rendering", () => {
     expect(html).toContain("Visites culturelles gratuites");
     expect(html).toContain("Activités au choix");
     expect(html).toContain("Où manger");
-    expect(html).toContain("getyourguide");
+    expect(html).not.toContain("getyourguide");
     expect(html).toContain("viator");
     expect(html).toContain("Moins cher en direct");
-    expect(html).toContain("Réserver moins cher");
+    expect(html).not.toContain("Réserver moins cher");
     expect(html).not.toContain("<script>alert");
     expect(html).toContain("&lt;script&gt;");
 

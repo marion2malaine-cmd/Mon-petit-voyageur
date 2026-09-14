@@ -23,6 +23,7 @@ export function editTrip(plan: any, edit: any): any {
   if (edit.action === "complete" && typeof edit.completed === "boolean") {
     list[edit.index].completed = edit.completed;
   } else if (edit.action === "select" && edit.collection === "paid_options" && typeof edit.selected === "boolean") {
+    if (edit.selected) list.forEach((option: any) => { option.selected = false; });
     list[edit.index].selected = edit.selected;
   } else if (edit.action === "move") {
     const target = days.find((d: any) => d.day === edit.targetDay);

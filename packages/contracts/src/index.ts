@@ -846,3 +846,14 @@ export const TripRecordSchema = z.object({
   updated_at: z.string()
 });
 export type TripRecord = z.infer<typeof TripRecordSchema>;
+
+/** Keep one activity marketplace when Viator already offers the activity. */
+export function preferredActivityLinks<T extends { provider?: string; url?: string }>(links: T[]): T[] {
+  const is = (link: T, name: string) => (link.provider ?? "").toLowerCase() === name || new RegExp(`(^|\\.)${name}\\.com$`, "i").test((() => { try { return new URL(link.url ?? "").hostname; } catch { return ""; } })());
+  return links.some(link => is(link, "viator")) ? links.filter(link => !is(link, "getyourguide")) : links;
+}
+export function activityFindings<T extends { title?: string; snippet?: string | null; url?: string }>(title: string, findings: T[]): T[] {
+  const normalize = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const words = normalize(title).split(/\W+/).filter(w => w.length > 3);
+  return findings.filter(f => /^https?:\/\//i.test(f.url ?? "") && words.filter(w => normalize(f.title + " " + (f.snippet ?? "")).includes(w)).length >= Math.min(2, Math.max(1, words.length))).slice(0, 2);
+}
