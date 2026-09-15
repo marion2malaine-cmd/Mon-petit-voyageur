@@ -1,6 +1,6 @@
 {
   "site": "https://www.monpetitvoyageur.com",
-  "updated": "2026-09-14",
+  "updated": "2026-09-15",
   "positioning": "Mon Petit Voyageur = planification de voyages et de road trips assistée par IA, budget d'abord, tout réservable via liens (éditeur MARA LABS, Lille).",
   "clusters": {
     "planificateur-ia": "Pages commerciales : ce qu'est le service, à qui il s'adresse, comment l'IA intervient.",
@@ -188,10 +188,16 @@
         {
           "date": "2026-09-09",
           "what": "og:image statique 1200x630 + og:image:width/height/alt + twitter:image ; logo d'en-tête déclaré 66x44 au lieu de 160x44 (le ratio annoncé contredisait l'image 3:2 et provoquait un décalage de mise en page au chargement)."
+        },
+        {
+          "date": "2026-09-15",
+          "what": "Audit produit (1re relecture depuis le 08/09, code revérifié ligne à ligne) : libellés du questionnaire corrigés (« Séjour — une ville, on rayonne », appTranslations.ts:81-82) ; section contrôle de la chaîne des étapes (nuit oubliée reprise de la veille, trajet reconstruit, nuits recalculées — normalizeStages, stages.test.ts) ; 2 FAQ (oubli IA, tarif 7 jours d’essai puis 5,99 €/49 €) ; tarif dans l’encadré CTA ; liens contextuels vers /planificateur-voyage-ia et /organiser-un-voyage-avec-l-ia."
         }
       ],
       "openIssues": [],
-      "nextOpportunities": [],
+      "nextOpportunities": [
+        "Si Search Console montre des requêtes « road trip + destination » récurrentes (≥ 50 impressions), évaluer une section exemple réel dans cette page avant toute URL destination."
+      ],
       "cluster": "road-trips",
       "intent": "planificateur road trip",
       "secondaryKeywords": [
@@ -201,7 +207,7 @@
         "roadbook",
         "road trip étapes hôtel"
       ],
-      "lastOptimized": "2026-09-08",
+      "lastOptimized": "2026-09-15",
       "title": "Planificateur de road trip IA : étapes, hôtel chaque nuit, temps de route | Mon Petit Voyageur",
       "h1": "Planifiez votre road trip avec l'IA : étapes, hôtels, temps de route",
       "linksTo": [
@@ -508,9 +514,9 @@
       "geo": 2,
       "effort": 1,
       "risk": 2,
-      "status": "open",
+      "status": "done",
       "title": "Aligner les pages sur Viator premier lien de réservation des activités (si VIATOR_API_KEY est en production)",
-      "note": "Code vérifié le 2026-09-13 : enrichItinerary.ts resolveViatorActivities met Viator « dès X € » en premier lien quand la clé existe ; sinon GetYourGuide reste la source du tarif. Affirmations revérifiées exactes ce jour : restaurants ≥ 4,2 étoiles et 50 avis (serpapi.ts:589), cache 24 h (CACHE_TTL_MS), GetYourGuide « dès X € », photos Wikimedia/Openverse. Lien Aviasales conditionné au marker Travelpayouts (non vérifiable depuis la routine)."
+      "note": "Code vérifié le 2026-09-13 : enrichItinerary.ts resolveViatorActivities met Viator « dès X € » en premier lien quand la clé existe ; sinon GetYourGuide reste la source du tarif. Affirmations revérifiées exactes ce jour : restaurants ≥ 4,2 étoiles et 50 avis (serpapi.ts:589), cache 24 h (CACHE_TTL_MS), GetYourGuide « dès X € », photos Wikimedia/Openverse. Lien Aviasales conditionné au marker Travelpayouts (non vérifiable depuis la routine). | DONE 2026-09-14 (clé Viator confirmée en production, pages et llms.txt alignés) ; /planificateur-road-trip-ia vérifiée le 2026-09-15 : ne cite aucun fournisseur d’activités, rien à aligner."
     },
     {
       "id": "push-5367113",
@@ -531,7 +537,7 @@
       "createdAt": "2026-09-08",
       "sitemapSubmitted": "https://www.monpetitvoyageur.com/sitemap.xml",
       "urlsDiscovered": 5,
-      "note": "Aucune donnée d'impressions encore (traitement en cours). Dernière exploration de / par Googlebot : 2026-09-06 en 404 (avant la mise en production du 08) ; réindexation demandée le 08. | 2026-09-12 : non relevé (Chrome MCP indisponible en exécution planifiée). Prochaine mesure utile vers le 2026-09-18 ; règle CTR (≥ 50 impressions) vers le 2026-10-06. | 2026-09-13 : non relevé (volume insuffisant avant le 2026-09-18). | 2026-09-14 : non relevé (volume insuffisant avant le 2026-09-18).",
+      "note": "Aucune donnée d'impressions encore (traitement en cours). Dernière exploration de / par Googlebot : 2026-09-06 en 404 (avant la mise en production du 08) ; réindexation demandée le 08. | 2026-09-12 : non relevé (Chrome MCP indisponible en exécution planifiée). Prochaine mesure utile vers le 2026-09-18 ; règle CTR (≥ 50 impressions) vers le 2026-10-06. | 2026-09-13 : non relevé (volume insuffisant avant le 2026-09-18). | 2026-09-14 : non relevé (volume insuffisant avant le 2026-09-18). | 2026-09-15 : non relevé (volume insuffisant avant le 2026-09-18).",
       "checkedAt": "2026-09-11",
       "indexation": "Les 5 URL sont indexées (inspection URL du 2026-09-09) : /, /planificateur-voyage-ia, /budget-voyage, /planificateur-road-trip-ia, /organiser-un-voyage-avec-l-ia. Fils d'Ariane valide détecté sur les 4 guides, HTTPS OK partout.",
       "performance": "Première impression enregistrée. Relevé du 2026-09-11 (28 j) : 1 impression, 0 clic, CTR 0 %, position moyenne 99, requête « ia en voyage ». Le graphique s'arrête encore au 08/09/2026 (Google a ~3 jours de retard de traitement) et le rapport Indexation affiche toujours « traitement des données en cours ». Règle CTR (≥ 50 impressions) très loin d'être applicable : prochaine mesure utile vers le 2026-09-18, règle CTR vers le 2026-10-06.",
@@ -876,6 +882,30 @@
       "url": "https://www.monpetitvoyageur.com/llms.txt",
       "action": "optimisation",
       "justification": "Ligne « Activités payantes » (Viator premier lien, GetYourGuide, billets officiels) et crédit photo Viator ; FAQ guide illustré de l’accueil (FR/EN, index.html) alignée."
+    },
+    {
+      "date": "2026-09-15",
+      "url": "https://www.monpetitvoyageur.com/",
+      "action": "mesure",
+      "justification": "git log origin/main..HEAD vide ; seo:verify-prod 48/48 ; 41 tests verts. Search Console non relevée (volume insuffisant avant le 2026-09-18)."
+    },
+    {
+      "date": "2026-09-15",
+      "url": "https://www.monpetitvoyageur.com/planificateur-road-trip-ia",
+      "action": "audit",
+      "justification": "Seule page non relue face au produit depuis le 08/09. 14 affirmations revérifiées dans le code (carRental.ts, itineraryPlanner.ts normalizeStages, renderGuide.ts, pdf.ts, appTranslations.ts) : toutes exactes sauf les libellés du questionnaire (virgule au lieu du tiret du produit)."
+    },
+    {
+      "date": "2026-09-15",
+      "url": "https://www.monpetitvoyageur.com/planificateur-road-trip-ia",
+      "action": "optimisation",
+      "justification": "Libellés exacts ; GEO : réponses autonomes « Que se passe-t-il si l’IA oublie une nuit ou un trajet ? » et « Combien coûte le planificateur de road trip ? » (FAQ visible = FAQPage, 6 questions) ; tarif du paywall dans le CTA d’une page à intention commerciale qui ne le disait que dans le bloc commun."
+    },
+    {
+      "date": "2026-09-15",
+      "url": "https://www.monpetitvoyageur.com/planificateur-road-trip-ia",
+      "action": "maillage",
+      "justification": "Liens contextuels ajoutés dans le corps vers la page pilier (séjour sans changement d’hôtel) et vers /organiser-un-voyage-avec-l-ia (chatbot vs plan vérifié) ; auparavant seul /budget-voyage était lié dans le texte."
     }
   ],
   "privateRoutes": {

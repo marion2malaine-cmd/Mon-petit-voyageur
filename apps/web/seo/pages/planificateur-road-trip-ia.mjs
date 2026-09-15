@@ -9,7 +9,7 @@ export default {
   intent: "planificateur road trip",
   secondaryKeywords: ["itinéraire road trip", "organiser road trip", "planificateur road trip ia", "roadbook", "road trip étapes hôtel"],
   datePublished: "2026-09-08",
-  dateModified: "2026-09-08",
+  dateModified: "2026-09-15",
   title: "Planificateur de road trip IA : étapes, hôtel chaque nuit, temps de route | Mon Petit Voyageur",
   description:
     "Votre roadbook étape par étape : hôtel chaque nuit avec prix, temps de route et arrêts, location de voiture calée sur le budget, carte du parcours. Imprimable, à réserver au tarif affiché.",
@@ -18,12 +18,12 @@ export default {
     "Un bon road trip se joue sur l'enchaînement des étapes, les nuits et les kilomètres. Mon Petit Voyageur construit ce roadbook pour vous, dans votre budget, et vous laisse réserver au tarif affiché.",
   related: ["planificateur-voyage-ia", "budget-voyage", "organiser-un-voyage-avec-l-ia"],
   ctaTitle: "Construisez votre roadbook",
-  ctaText: "Choisissez « Itinérant — on change d'hôtel en route » dans le questionnaire : l'IA enchaîne les étapes, les nuits et les temps de route.",
+  ctaText: "Choisissez « Itinérant — on change d'hôtel en route » dans le questionnaire : l'IA enchaîne les étapes, les nuits et les temps de route. 7 jours d'essai gratuit, puis 5,99 € par mois ou 49 € par an, sans engagement.",
   body: `
 <div class="summary"><p><strong>En bref :</strong> en mode itinérant, Mon Petit Voyageur produit une vue d'ensemble des étapes (dates, étape, nuits, hôtel, prix par nuit), puis une journée détaillée pour chaque jour : route (départ, arrivée, durée, arrêts), hôtel de la nuit avec prix et liens, visites, activités, restaurants, et un rappel quand les bagages changent d'adresse. La location de voiture est calée sur le budget avec ses pièges signalés.</p></div>
 
 <h2>Ce qui distingue un road trip d'un séjour</h2>
-<p>Dans un séjour, on rayonne depuis une base. Dans un road trip, chaque journée a un point de départ, un point d'arrivée et un hôtel différent, et le programme doit tenir compte du temps passé sur la route. C'est pourquoi le questionnaire pose la question explicitement : <em>Séjour, une ville, on rayonne</em> ou <em>Itinérant, on change d'hôtel en route</em>. L'IA ne devine pas la forme du voyage, vous la choisissez.</p>
+<p>Dans un séjour, on rayonne depuis une base. Dans un road trip, chaque journée a un point de départ, un point d'arrivée et un hôtel différent, et le programme doit tenir compte du temps passé sur la route. C'est pourquoi le questionnaire pose la question explicitement : <em>Séjour — une ville, on rayonne</em> ou <em>Itinérant — on change d'hôtel en route</em>. L'IA ne devine pas la forme du voyage, vous la choisissez. Pour un séjour sans changement d'hôtel, le <a href="/planificateur-voyage-ia">planificateur de voyage IA</a> construit le même programme jour par jour autour d'une seule base.</p>
 
 <h2>Ce que contient le roadbook généré</h2>
 <div class="table-wrap"><table>
@@ -45,7 +45,13 @@ export default {
 </ul>
 
 <h2>Comment l'IA construit l'enchaînement des étapes</h2>
-<p>L'IA commence par un plan d'ensemble sur tout le séjour : quelles zones, quels thèmes et quels noms exacts (visites, activités, restaurants) pour chaque jour, ce qui garantit qu'aucun lieu n'apparaît deux fois. Chaque jour est ensuite détaillé. Si le modèle laisse un trou dans la chaîne des nuits, l'application la reconstruit pour que chaque journée ait bien son hôtel. Les prix d'hôtels viennent de recherches en direct, jamais de l'IA. La logique de budget est détaillée dans <a href="/budget-voyage">Budget voyage : comment fixer et répartir votre enveloppe</a>.</p>
+<p>L'IA commence par un plan d'ensemble sur tout le séjour : quelles zones, quels thèmes et quels noms exacts (visites, activités, restaurants) pour chaque jour, ce qui garantit qu'aucun lieu n'apparaît deux fois. Chaque jour est ensuite détaillé, puis l'application contrôle la chaîne des nuits sans faire confiance au modèle :</p>
+<ul>
+<li><strong>Une nuit oubliée</strong> reprend l'hôtel de la veille, pour qu'aucune journée ne reste sans adresse.</li>
+<li><strong>Un trajet oublié</strong> un jour où l'étape change est reconstruit : départ de l'étape précédente, arrivée à la nouvelle, durée reprise du plan d'ensemble.</li>
+<li><strong>Le nombre de nuits par étape</strong> et le bandeau « Nouvel hôtel » sont recalculés sur la chaîne entière, et chaque nuit reçoit ses liens de réservation.</li>
+</ul>
+<p>Les prix d'hôtels viennent de recherches en direct, jamais de l'IA. La logique de budget est détaillée dans <a href="/budget-voyage">Budget voyage : comment fixer et répartir votre enveloppe</a>, et la différence entre un itinéraire écrit par un chatbot et un plan vérifié dans <a href="/organiser-un-voyage-avec-l-ia">Organiser un voyage avec l'IA</a>.</p>
 
 <h2>Bien préparer son road trip : la méthode</h2>
 <ol>
@@ -72,6 +78,14 @@ export default {
     {
       q: "Le roadbook est-il imprimable ?",
       a: "Oui. Le guide illustré est un fichier autonome qui s'ouvre hors ligne et s'imprime en PDF depuis le navigateur, avec la vue d'ensemble des étapes en tête."
+    },
+    {
+      q: "Que se passe-t-il si l'IA oublie une nuit ou un trajet ?",
+      a: "L'application contrôle la chaîne des étapes après la génération : une nuit sans hôtel reprend celui de la veille, un trajet manquant un jour de changement d'étape est reconstruit avec son départ, son arrivée et la durée prévue au plan, et le nombre de nuits par étape est recalculé."
+    },
+    {
+      q: "Combien coûte le planificateur de road trip ?",
+      a: "Le mode itinérant fait partie de l'abonnement Mon Petit Voyageur : 7 jours d'essai gratuit, puis 5,99 € par mois ou 49 € par an, sans engagement. Les hôtels, la voiture et les activités se réservent et se paient chez les vendeurs."
     }
   ]
 };

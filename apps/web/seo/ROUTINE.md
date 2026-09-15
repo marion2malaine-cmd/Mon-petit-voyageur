@@ -57,6 +57,7 @@ Puis, une fois la production saine :
 
 - Consulter `state.json → intents` avant toute idée de page : intention couverte = enrichir la page existante, jamais une nouvelle URL. Une combinaison destination + durée ne justifie pas une URL.
 - Scorer chaque opportunité dans `backlog` (impact organique, valeur commerciale, potentiel GEO, demande, position connue, difficulté, temps, risque, cannibalisation, contribution au cluster) ; traiter le meilleur score réalisable dans le run.
+- **Fraîcheur produit** : quand aucune correction ni règle CTR ne s'impose, la meilleure action par défaut est de relire la page dont `lastOptimized` est le plus ancien **contre le code** (chaque affirmation → fichier et ligne), parce que l'API change plus vite que les pages. Le 2026-09-15, `/planificateur-road-trip-ia` n'avait pas été relue depuis 7 jours et citait le questionnaire avec des libellés différents du produit.
 - Maximum **1 nouvelle page par run**, avec intention documentée, utilité réelle, contenu spécifique et vérifié. Comparatifs : concurrents, fonctionnalités et prix vérifiés le jour même, source et date dans la page. Aucune statistique, avis, chiffre, partenaire ou fonctionnalité inventé.
 
 ## 4. Agir (voir `README.md` § « Ajouter ou modifier une page »)
