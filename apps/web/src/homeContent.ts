@@ -63,8 +63,8 @@ export const FEATURES = [
   },
   {
     icon: "ticket",
-    fr: { title: "Excursions & activités", desc: "Suggestions concrètes avec durée et prix par personne, réservables sur GetYourGuide et Civitatis." },
-    en: { title: "Tours & activities", desc: "Concrete suggestions with duration and per-person price, bookable on GetYourGuide and Civitatis." }
+    fr: { title: "Excursions & activités", desc: "Suggestions concrètes avec durée et prix par personne, réservables sur Viator, GetYourGuide et Civitatis." },
+    en: { title: "Tours & activities", desc: "Concrete suggestions with duration and per-person price, bookable on Viator, GetYourGuide and Civitatis." }
   },
   {
     icon: "dining",
