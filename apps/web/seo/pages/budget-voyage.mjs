@@ -9,7 +9,7 @@ export default {
   intent: "budget voyage",
   secondaryKeywords: ["calculer budget voyage", "répartir budget vacances", "voyage dans le budget", "prévoir budget voyage"],
   datePublished: "2026-09-08",
-  dateModified: "2026-09-14",
+  dateModified: "2026-09-17",
   title: "Budget voyage : fixer son enveloppe et la répartir en 5 étapes | Mon Petit Voyageur",
   description:
     "Combien prévoir et dans quel ordre dépenser ? La méthode « budget d'abord » en 5 étapes, les postes qu'on oublie (voiture, visa, change) et les outils pour rester dans l'enveloppe.",
@@ -24,12 +24,12 @@ export default {
       { name: "Fixez l'enveloppe totale", text: "Transport compris, pour tous les voyageurs. C'est le seul chiffre à décider ; le reste en découle." },
       { name: "Les billets d'abord", text: "Le transport est le poste le plus rigide : une fois les vols choisis, le budget restant est connu. Si vos dates sont flexibles, comparez le mois entier." },
       { name: "L'hébergement ensuite", text: "Dans ce qui reste, en tenant compte du nombre de nuits et de la zone : dormir près des visites économise des transports." },
-      { name: "Le reste pour vivre sur place", text: "Activités, restaurants, transports locaux. Répartissez cette somme par jour pour savoir ce que vous pouvez vous permettre chaque journée." },
+      { name: "Le reste pour vivre sur place", text: "Activités, restaurants, transports locaux. Divisez cette somme par le nombre de voyageurs et de jours pour savoir ce que vous pouvez vous permettre chaque journée." },
       { name: "Gardez une marge", text: "Pour les imprévus et les postes oubliés : voiture de location et caution, formalités, change, transports locaux." }
     ]
   },
   ctaTitle: "Un voyage qui tient dans votre budget",
-  ctaText: "Indiquez votre enveloppe totale dans le questionnaire : vols, hôtels, activités et restaurants sont choisis pour y rester, avec des prix en direct.",
+  ctaText: "Indiquez votre enveloppe totale dans le questionnaire : vols, hôtels, activités et restaurants sont choisis pour y rester, avec des prix en direct. 7 jours d'essai gratuit, puis 5,99 € par mois ou 49 € par an, sans engagement.",
   body: `
 <div class="summary"><p><strong>En bref :</strong> fixez une enveloppe totale, réglez d'abord les deux gros postes fixes (billets puis hébergement), et consacrez ce qui reste aux activités et aux restaurants. Vérifiez chaque prix sur une source en direct plutôt que sur une estimation, et n'oubliez pas les postes invisibles : voiture de location et caution, formalités, change, transports locaux.</p></div>
 
@@ -41,7 +41,7 @@ export default {
 <li><strong>Fixez l'enveloppe totale</strong>, transport compris, pour tous les voyageurs. C'est le seul chiffre à décider ; le reste en découle.</li>
 <li><strong>Les billets d'abord.</strong> Le transport est le poste le plus rigide : une fois les vols choisis, le budget restant est connu. Si vos dates sont flexibles, comparez le mois entier : la différence entre le jour le moins cher et le plus cher peut représenter une part importante de l'enveloppe.</li>
 <li><strong>L'hébergement ensuite</strong>, dans ce qui reste, en tenant compte du nombre de nuits et de la zone (dormir près des visites économise des transports).</li>
-<li><strong>Le reste pour vivre sur place :</strong> activités, restaurants, transports locaux. Répartissez cette somme par jour pour savoir ce que vous pouvez vous permettre chaque journée.</li>
+<li><strong>Le reste pour vivre sur place :</strong> activités, restaurants, transports locaux. Divisez cette somme par le nombre de voyageurs et de jours pour savoir ce que vous pouvez vous permettre chaque journée — c'est le calcul que l'application fait elle-même une fois les vols et l'hôtel connus.</li>
 <li><strong>Gardez une marge</strong> pour les imprévus et les postes oubliés listés ci-dessous.</li>
 </ol>
 
@@ -53,12 +53,13 @@ export default {
 <tr><td>Formalités d'entrée</td><td>Visa, autorisation électronique, passeport à renouveler.</td><td>Les conditions d'entrée sont vérifiées et rappelées dans le plan.</td></tr>
 <tr><td>Change et frais bancaires</td><td>Le taux réel diffère du taux affiché, et chaque paiement peut porter des frais.</td><td>Le taux de change du jour est intégré au plan (hors frais bancaires).</td></tr>
 <tr><td>Transports locaux</td><td>Navettes d'aéroport, métro, taxis entre les étapes.</td><td>Conseils de transport et informations de transports en commun quand elles sont disponibles.</td></tr>
-<tr><td>Activités</td><td>Les billets « incontournables » s'additionnent vite.</td><td>Trois options par jour comparées à l'enveloppe activités, avec la voie la moins chère (agence locale, kiosque, site officiel).</td></tr>
+<tr><td>Activités</td><td>Les billets « incontournables » s'additionnent vite.</td><td>Trois options par jour comparées à l'enveloppe activités, chacune avec la voie la moins chère : sur place, site officiel ou en ligne.</td></tr>
 </tbody></table></div>
 
 <h2>Comment l'application applique votre budget</h2>
 <ul>
-<li><strong>Billets d'abord, puis l'IA organise dans ce qui reste :</strong> le budget restant (budget moins vols moins hébergement) est transmis à l'itinéraire, qui en déduit les gammes de prix des restaurants et l'enveloppe activités. Si les billets absorbent l'essentiel, le plan vous en avertit.</li>
+<li><strong>Billets d'abord, puis l'IA organise dans ce qui reste :</strong> le budget restant (budget total moins le vol le moins cher trouvé, moins la nuit la moins chère multipliée par le nombre de nuits) est transmis à l'itinéraire, qui en déduit les gammes de prix des restaurants et l'enveloppe activités. Si les billets et l'hébergement absorbent 85 % ou plus de l'enveloppe, le plan vous avertit que le budget est très serré et privilégie les visites gratuites.</li>
+<li><strong>Le montant par personne et par jour est calculé pour vous :</strong> le plan affiche ce qui reste pour les repas, les activités et les transports, converti en somme par voyageur et par jour. En interne, environ 45 % de ce reste sert à choisir la gamme de prix des restaurants et environ 35 % fixe l'enveloppe d'activités quotidienne — c'est l'étape 4 de la méthode, faite automatiquement.</li>
 <li><strong>Badges « dans le budget » / « au-dessus du budget »</strong> sur les vols, les hôtels et les activités, pour voir d'un coup d'œil ce qui dépasse.</li>
 <li><strong>Prix en direct :</strong> vols sur Google Flights, hôtels sur Google Hotels, activités Viator ou GetYourGuide avec tarif « dès X € » quand le produit exact est trouvé. Un prix non confirmé est marqué indicatif.</li>
 <li><strong>Visites gratuites chaque jour :</strong> musées, quartiers, panoramas et sites gratuits sont intégrés au programme, ce qui allège la part activités sans appauvrir le voyage.</li>
@@ -66,9 +67,24 @@ export default {
 </ul>
 
 <h2>Économiser sans sacrifier le voyage</h2>
-<p>Trois leviers pèsent plus que tous les autres : la date (comparer le mois entier quand c'est possible), la zone d'hébergement (près des visites, pas forcément dans le centre le plus cher) et le mode d'achat des activités (l'agence locale, le kiosque du port ou le site officiel coûtent souvent moins cher que les plateformes, ce que les forums de voyageurs confirment destination par destination). Pour aller plus loin sur la préparation, lisez <a href="/organiser-un-voyage-avec-l-ia">comment organiser un voyage avec l'IA</a> et, pour un voyage itinérant, le <a href="/planificateur-road-trip-ia">planificateur de road trip</a>.</p>
+<p>Trois leviers pèsent plus que tous les autres : la date (comparer le mois entier quand c'est possible), la zone d'hébergement (près des visites, pas forcément dans le centre le plus cher) et le mode d'achat des activités, qui est rarement le même selon l'endroit où l'on réserve.</p>
+
+<h2>L'échelle de réservation, de la moins chère à la plus sûre</h2>
+<p>Le guide illustré de Mon Petit Voyageur affiche cette échelle sous chaque journée : la même expérience se paie rarement au même prix, et il vaut la peine de descendre les barreaux avant de réserver.</p>
+<ol>
+<li><strong>Visite libre :</strong> beaucoup de « tours » ne font que commenter un lieu dont l'entrée est gratuite.</li>
+<li><strong>Transport public + site :</strong> un bus et un billet remplacent souvent une excursion facturée bien plus cher.</li>
+<li><strong>Site officiel du musée ou du monument :</strong> le même billet coupe-file, sans commission.</li>
+<li><strong>Agence locale, kiosque du port, réception de l'hôtel :</strong> souvent le même bateau et le même guide, moins cher.</li>
+<li><strong>Plateforme internationale :</strong> le filet de sécurité — confirmation immédiate, annulation gratuite, avis. À privilégier en haute saison.</li>
+</ol>
+<p>Pour aller plus loin sur la préparation, lisez <a href="/organiser-un-voyage-avec-l-ia">comment organiser un voyage avec l'IA</a> et, pour un voyage itinérant, le <a href="/planificateur-road-trip-ia">planificateur de road trip</a>. Si vous partez de zéro, le <a href="/planificateur-voyage-ia">planificateur de voyage IA</a> construit l'itinéraire complet à partir de votre enveloppe.</p>
 `,
   faq: [
+    {
+      q: "Combien coûte Mon Petit Voyageur, et faut-il l'ajouter au budget du voyage ?",
+      a: "Chaque compte dispose de 7 jours d'essai gratuit, puis l'abonnement est de 5,99 € par mois ou 49 € par an, sans engagement et résiliable en un clic. C'est le seul montant à ajouter à votre enveloppe : les vols, les hôtels et les activités se paient directement sur les sites de réservation, jamais chez Mon Petit Voyageur, qui ne prend aucune commission sur vos réservations."
+    },
     {
       q: "Quel budget prévoir pour un voyage ?",
       a: "Il n'existe pas de chiffre universel : le coût dépend de la destination, de la période, de la durée, du nombre de voyageurs et du confort attendu. La bonne démarche est d'inverser la question : fixez l'enveloppe que vous pouvez consacrer au voyage, puis choisissez la destination, la période et le niveau de confort qui y tiennent. Mon Petit Voyageur fait ce calcul avec des prix en direct."
@@ -83,7 +99,7 @@ export default {
     },
     {
       q: "Comment économiser sur les activités ?",
-      a: "Comparez la voie d'achat : agence locale, kiosque sur place ou site officiel sont souvent moins chers que les plateformes. Le plan indique pour chaque activité la voie la moins chère et l'économie typique relevée sur les forums de voyageurs, et intègre des visites gratuites chaque jour."
+      a: "Descendez l'échelle de réservation : visite libre, transport public plus billet d'entrée, site officiel, agence locale ou kiosque sur place, et seulement ensuite la plateforme internationale. Pour chaque activité, le plan indique laquelle de ces voies est la moins chère — sur place, site officiel ou en ligne — avec l'économie typique et l'avis de voyageurs relevés sur les forums, et il intègre des visites gratuites chaque jour."
     }
   ]
 };

@@ -24,8 +24,21 @@ function count(html: string, re: RegExp) {
 function jsonLdBlocks(html: string) {
   return [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1]));
 }
+// Le texte que lit un visiteur : ni le JSON-LD, ni le CSS. Retirer les seules
+// balises laissait le contenu des <script> passer pour du texte visible — une
+// page pouvait donc déclarer un prix en données structurées sans l'écrire nulle
+// part et satisfaire quand même le contrôle « prix visible » (cas de
+// /budget-voyage, trouvé le 2026-09-17).
 function textOf(html: string) {
-  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  return html
+    .replace(/<script[\s\S]*?<\/script>/g, " ")
+    .replace(/<style[\s\S]*?<\/style>/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ");
+}
+/** Le texte propre à la page : « À lire aussi » décrit les voisines, pas celle-ci. */
+function ownTextOf(html: string) {
+  return textOf(html.replace(/<nav class="related"[\s\S]*?<\/nav>/g, " "));
 }
 
 describe("pages SEO statiques", () => {
@@ -234,8 +247,9 @@ describe("tarifs : données structurées = produit réel", () => {
         expect(offer.priceCurrency).toBe(PRICING.currency);
         expect(Number(offer.price), `${name} : un prix à 0 rouvrirait la promesse « gratuit »`).toBeGreaterThan(0);
       }
-      // Ce que la page déclare à Google doit se lire sur la page.
-      const visible = textOf(html);
+      // Ce que la page déclare à Google doit se lire sur la page — dans son
+      // propre texte, pas dans la description d'une page voisine.
+      const visible = ownTextOf(html);
       expect(visible, `${name} : le prix mensuel n'apparaît pas dans le texte visible`).toContain(PRICING.monthly.display.fr);
       expect(visible, `${name} : la durée d'essai n'apparaît pas dans le texte visible`).toContain(`${PRICING.trialDays} jours d'essai`);
     }

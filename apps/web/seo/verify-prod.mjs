@@ -148,7 +148,11 @@ async function verifyPages(exp) {
       check("/ · prix JSON-LD = prix du paywall", same,
         `prod [${offers.join(", ")}] vs paywall [${exp.prices.join(", ")}]`);
 
-      const visible = exp.prices.every((p) => body.includes(p.replace(".", ",")));
+      // Le texte visible, c'est ce qui reste sans le JSON-LD ni le CSS : chercher
+      // le prix dans le HTML entier revenait à le retrouver dans l'Offer qu'on
+      // prétendait vérifier (même angle mort que le test du dépôt, 2026-09-17).
+      const readable = body.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<style[\s\S]*?<\/style>/g, " ");
+      const visible = exp.prices.every((p) => readable.includes(p.replace(".", ",")));
       check("/ · prix lisibles dans le texte visible", visible);
 
       // L'accueil passe par Vite (noms d'assets hachés) : on compare ses
