@@ -69,6 +69,18 @@ function jsonLd(html) {
     .join("\n");
 }
 
+// Texte que lit un robot sans JavaScript : le <body> sans scripts, styles ni
+// balises. Vite ne touche qu'aux balises (assets hachés) : ce texte est le même
+// dans index.html et dans dist/index.html (vérifié le 2026-09-18).
+function bodyText(html) {
+  return (html.match(/<body[^>]*>([\s\S]*)<\/body>/)?.[1] ?? "")
+    .replace(/<script[\s\S]*?<\/script>/g, " ")
+    .replace(/<style[\s\S]*?<\/style>/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 // --- Ce que le dépôt affirme -------------------------------------------------
 
 async function expectations() {
@@ -99,6 +111,7 @@ async function expectations() {
     home,
     generated,
     homeJsonLd: jsonLd(fs.readFileSync(INDEX_HTML, "utf8")),
+    homeText: bodyText(fs.readFileSync(INDEX_HTML, "utf8")),
     privateRoutes,
     agents,
     robotsTxt,
@@ -158,6 +171,11 @@ async function verifyPages(exp) {
       // L'accueil passe par Vite (noms d'assets hachés) : on compare ses
       // données structurées, pas le fichier entier.
       sameAsRepo("/ · JSON-LD identique au dépôt", jsonLd(body), exp.homeJsonLd);
+
+      // Et son texte visible. Le 2026-09-18, la production taisait encore Viator
+      // (correction du 16/09 non poussée) et ce contrôle n'existait pas : la
+      // ligne « / » passait, parce que seuls le head et le JSON-LD étaient comparés.
+      sameAsRepo("/ · texte visible identique au dépôt", bodyText(body), exp.homeText);
     }
   }
 }
