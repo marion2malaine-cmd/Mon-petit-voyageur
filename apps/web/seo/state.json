@@ -1,6 +1,6 @@
 {
   "site": "https://www.monpetitvoyageur.com",
-  "updated": "2026-09-17",
+  "updated": "2026-09-18",
   "positioning": "Mon Petit Voyageur = planification de voyages et de road trips assistée par IA, budget d'abord, tout réservable via liens (éditeur MARA LABS, Lille).",
   "clusters": {
     "planificateur-ia": "Pages commerciales : ce qu'est le service, à qui il s'adresse, comment l'IA intervient.",
@@ -77,7 +77,8 @@
       "openIssues": [
         "H1 = marque seule (« Mon Petit Voyageur ») : choix design (titre serif géant) ; le positionnement est porté par le title, la tagline et l'eyebrow.",
         "?legal=privacy|terms|sales : vues SPA (canonical propre posé par src/seo.ts, pas de HTML statique) : acceptable, non stratégique.",
-        "Email de contact affiché contact@monpetitvoyageur.fr alors que le domaine est .com : à confirmer par Marion (boîte existante ?) avant tout changement."
+        "Email de contact affiché contact@monpetitvoyageur.fr alors que le domaine est .com : à confirmer par Marion (boîte existante ?) avant tout changement.",
+        "2026-09-18 : Google indexe /?legal=terms, /?legal=privacy et /?legal=sales comme pages distinctes (Search Console). Signal mixte : le HTML statique déclare canonical / , le rendu JS (src/seo.ts:62) déclare canonical /?legal=<clé>. Non prioritaire (pages légales, pas de cannibalisation des guides), à trancher avec Marion : soit des URL légales statiques propres, soit un canonical statique cohérent."
       ],
       "nextOpportunities": [
         "Mention MARA LABS + Lille dans le footer visible de la landing React (déjà présent dans la coquille statique et la section « Qu'est-ce que Mon Petit Voyageur ? »).",
@@ -146,6 +147,10 @@
         {
           "date": "2026-09-09",
           "what": "og:image statique 1200x630 + og:image:width/height/alt + twitter:image ; logo d'en-tête déclaré 66x44 au lieu de 160x44 (le ratio annoncé contredisait l'image 3:2 et provoquait un décalage de mise en page au chargement)."
+        },
+        {
+          "date": "2026-09-18",
+          "what": "Relue contre le code (fraîcheur produit). Corrigé : « mention non vérifié » (le produit n'affiche rien de tel ; il pose un badge « Note Google Maps vérifiée » sur les tables retrouvées — renderGuide.ts:1738, itineraryPlanner.ts:338-345) et tarif « dès X € » (le guide affiche « X € / pers. » — renderGuide.ts:1630-1633). Questionnaire décrit avec ses vrais champs (appTranslations.ts:75-107), paragraphe sur le champ « Précisions (destination, envies...) », FAQ « Faut-il déjà connaître sa destination ? » (destination-matcher, orchestrator.ts:176-204)."
         }
       ],
       "openIssues": [],
@@ -159,7 +164,7 @@
         "créer itinéraire vacances ia",
         "préparer un voyage"
       ],
-      "lastOptimized": "2026-09-14",
+      "lastOptimized": "2026-09-18",
       "title": "Organiser un voyage avec l'IA : la méthode en 6 étapes, sans se faire piéger | Mon Petit Voyageur",
       "h1": "Comment organiser un voyage avec l'IA (sans se faire piéger)",
       "linksTo": [
@@ -569,6 +574,18 @@
       "status": "done",
       "title": "« Prix visible » se vérifiait dans le JSON-LD lui-même",
       "note": "Trouvé le 2026-09-17 : textOf() (seo.test.ts) et le contrôle de verify-prod.mjs cherchaient le prix dans le HTML entier, JSON-LD compris. /budget-voyage publiait donc deux Offer (5,99 € et 49 €) sans écrire un seul prix dans son texte, et les deux garde-fous la déclaraient conforme. Corrigé des deux côtés (retrait de <script>/<style>, et mise à l'écart du bloc « À lire aussi » qui décrit les pages voisines) ; la page porte désormais une FAQ tarifaire et le tarif dans son appel à l'action."
+    },
+    {
+      "id": "canonical-pages-legales",
+      "title": "Aligner le canonical des pages légales (?legal=…) entre HTML statique et rendu JS",
+      "score": 30,
+      "impact": 1,
+      "commercial": 1,
+      "geo": 1,
+      "effort": 2,
+      "risk": 1,
+      "status": "open",
+      "note": "Détecté le 2026-09-18 dans Search Console. Touche src/seo.ts et le serveur : décision produit, pas une page SEO."
     }
   ],
   "kpi": {
@@ -577,14 +594,14 @@
       "createdAt": "2026-09-08",
       "sitemapSubmitted": "https://www.monpetitvoyageur.com/sitemap.xml",
       "urlsDiscovered": 5,
-      "note": "Aucune donnée d'impressions encore (traitement en cours). Dernière exploration de / par Googlebot : 2026-09-06 en 404 (avant la mise en production du 08) ; réindexation demandée le 08. | 2026-09-12 : non relevé (Chrome MCP indisponible en exécution planifiée). Prochaine mesure utile vers le 2026-09-18 ; règle CTR (≥ 50 impressions) vers le 2026-10-06. | 2026-09-13 : non relevé (volume insuffisant avant le 2026-09-18). | 2026-09-14 : non relevé (volume insuffisant avant le 2026-09-18). | 2026-09-15 : non relevé (volume insuffisant avant le 2026-09-18). | 2026-09-16 : non relevé (volume insuffisant avant le 2026-09-18). | 2026-09-17 : non relevé (volume insuffisant avant le 2026-09-18).",
-      "checkedAt": "2026-09-11",
+      "note": "Aucune donnée d'impressions encore (traitement en cours). Dernière exploration de / par Googlebot : 2026-09-06 en 404 (avant la mise en production du 08) ; réindexation demandée le 08. | 2026-09-12 : non relevé (Chrome MCP indisponible en exécution planifiée). Prochaine mesure utile vers le 2026-09-18 ; règle CTR (≥ 50 impressions) vers le 2026-10-06. | 2026-09-13 : non relevé (volume insuffisant avant le 2026-09-18). | 2026-09-14 : non relevé (volume insuffisant avant le 2026-09-18). | 2026-09-15 : non relevé (volume insuffisant avant le 2026-09-18). | 2026-09-16 : non relevé (volume insuffisant avant le 2026-09-18). | 2026-09-17 : non relevé (volume insuffisant avant le 2026-09-18). | 2026-09-18 : relevé (Chrome MCP disponible).",
+      "checkedAt": "2026-09-18",
       "indexation": "Les 5 URL sont indexées (inspection URL du 2026-09-09) : /, /planificateur-voyage-ia, /budget-voyage, /planificateur-road-trip-ia, /organiser-un-voyage-avec-l-ia. Fils d'Ariane valide détecté sur les 4 guides, HTTPS OK partout.",
-      "performance": "Première impression enregistrée. Relevé du 2026-09-11 (28 j) : 1 impression, 0 clic, CTR 0 %, position moyenne 99, requête « ia en voyage ». Le graphique s'arrête encore au 08/09/2026 (Google a ~3 jours de retard de traitement) et le rapport Indexation affiche toujours « traitement des données en cours ». Règle CTR (≥ 50 impressions) très loin d'être applicable : prochaine mesure utile vers le 2026-09-18, règle CTR vers le 2026-10-06.",
+      "performance": "Première impression enregistrée. Relevé du 2026-09-11 (28 j) : 1 impression, 0 clic, CTR 0 %, position moyenne 99, requête « ia en voyage ». Le graphique s'arrête encore au 08/09/2026 (Google a ~3 jours de retard de traitement) et le rapport Indexation affiche toujours « traitement des données en cours ». Règle CTR (≥ 50 impressions) très loin d'être applicable : prochaine mesure utile vers le 2026-09-18, règle CTR vers le 2026-10-06. | Relevé du 2026-09-18 (28 j vs 28 j précédents) : 56 impressions (0 avant), 3 clics, CTR 5,4 %, position moyenne 36,7. Requêtes : « ia organisateur de voyage » 8 impr., « chatbot voyage » 6, « planificateur voyage ia » 4, « ia en voyage » 4, « travel ia » 3 (13 requêtes, aucune avec un clic). Pages : /organiser-un-voyage-avec-l-ia 29 impr. pos. 34,7 ; / 23 impr. 1 clic pos. 37,1 ; /?legal=terms 3 impr. 2 clics pos. 9,3 ; /planificateur-voyage-ia 3 impr. pos. 58,7 ; /budget-voyage 2 impr. pos. 4,5 ; /?legal=privacy 2 ; /?legal=sales 2 ; /planificateur-road-trip-ia 1 impr. pos. 6. Règle CTR non applicable (aucune requête ≥ 50 impressions).",
       "piege": "L'inspection d'URL de Search Console garde en mémoire la « canonique déclarée » de l'URL précédente quand on enchaîne les inspections sans rechargement complet. Vérifié le 2026-09-09 : les canoniques servies sont correctes (curl Googlebot desktop et smartphone, dist/, un seul <link rel=canonical> par page, aucun en-tête Link). Recharger la page d'inspection avant de conclure à une anomalie."
     },
     "note": "Le site est indexé (5 URL) et sort de l'anonymat : 1 impression sur « ia en voyage » en position 99. Volume insuffisant pour décider quoi que ce soit ; ne pas réécrire de title sur cette base.",
-    "ctrRule": "Dès que Search Console existe : requêtes des 28 derniers jours avec ≥ 50 impressions, CTR < 2 % et position ≤ 15 → réécrire title/description de la page ciblée (une par run), noter la requête ici, comparer 28 j après.",
+    "ctrRule": "Dès que Search Console existe : requêtes des 28 derniers jours avec ≥ 50 impressions, CTR < 2 % et position ≤ 15 → réécrire title/description de la page ciblée (une par run), noter la requête ici, comparer 28 j après. | 2026-09-18 : non déclenchée, requête la plus vue = 8 impressions.",
     "deployment": {
       "checkedAt": "2026-09-13",
       "finding": "Écart de 24 h entre le dépôt et la production : commits cce2fca, 2f92094, 118462b restés locaux. Production requalifiée le 2026-09-12 à 09:11 (80 s après le push).",
@@ -994,6 +1011,24 @@
       "url": "https://www.monpetitvoyageur.com/budget-voyage",
       "action": "maillage",
       "justification": "Lien contextuel ajouté vers /planificateur-voyage-ia (page pilier) dans la section « échelle de réservation » ; la page ne liait dans son texte que /organiser-un-voyage-avec-l-ia et /planificateur-road-trip-ia."
+    },
+    {
+      "date": "2026-09-18",
+      "url": "https://www.monpetitvoyageur.com/",
+      "action": "technique",
+      "justification": "verify-prod.mjs compare désormais le texte visible de l'accueil (body sans scripts, styles ni balises) au dépôt. Il ne comparait que le head et le JSON-LD : l'accueil en production taisait Viator (commit 0d88672 du 16/09 non poussé) et la ligne « / » passait. Vérifié : texte identique entre index.html et dist/index.html, écart détecté en production au caractère 1668."
+    },
+    {
+      "date": "2026-09-18",
+      "url": "https://www.monpetitvoyageur.com/",
+      "action": "mesure",
+      "justification": "Premier relevé Search Console exploitable (28 j) : 56 impressions, 3 clics, position 36,7 ; règle CTR non applicable. Pages légales ?legal= indexées : backlog canonical-pages-legales."
+    },
+    {
+      "date": "2026-09-18",
+      "url": "https://www.monpetitvoyageur.com/organiser-un-voyage-avec-l-ia",
+      "action": "optimisation",
+      "justification": "Fraîcheur produit (lastOptimized le plus ancien, et page la plus vue dans Search Console : 29 impressions). Deux affirmations fausses retirées (« mention non vérifié », tarif « dès X € »), questionnaire décrit avec ses libellés exacts, FAQ autonome sur la destination facultative — réponse GEO à « faut-il connaître sa destination »."
     }
   ],
   "privateRoutes": {

@@ -9,7 +9,7 @@ export default {
   intent: "comment organiser un voyage avec l'ia",
   secondaryKeywords: ["préparer voyage ia", "planifier voyage intelligence artificielle", "intelligence artificielle voyage", "créer itinéraire vacances ia", "préparer un voyage"],
   datePublished: "2026-09-08",
-  dateModified: "2026-09-14",
+  dateModified: "2026-09-18",
   title: "Organiser un voyage avec l'IA : la méthode en 6 étapes, sans se faire piéger | Mon Petit Voyageur",
   description:
     "Ce que l'IA fait bien (structure, idées) et ce qu'elle rate (prix, disponibilités, adresses). La méthode en 6 étapes pour un itinéraire fiable, et quelles informations lui donner.",
@@ -59,9 +59,9 @@ export default {
 <div class="table-wrap"><table>
 <thead><tr><th>Besoin</th><th>Assistant conversationnel seul</th><th>Planificateur relié à des outils (Mon Petit Voyageur)</th></tr></thead>
 <tbody>
-<tr><td>Structure du séjour</td><td>Bonne, à condition de bien décrire ses contraintes.</td><td>Guidée par un questionnaire : budget, style, rythme, forme du voyage.</td></tr>
+<tr><td>Structure du séjour</td><td>Bonne, à condition de bien décrire ses contraintes.</td><td>Guidée par un questionnaire : budget total, durée, voyageurs, ville de départ, mois de départ, type de voyage, rythme et forme du voyage. La destination est facultative.</td></tr>
 <tr><td>Prix des vols et hôtels</td><td>À vérifier systématiquement, souvent faux.</td><td>Recherches en direct (Google Flights, Google Hotels), jamais écrits par l'IA.</td></tr>
-<tr><td>Restaurants et activités</td><td>Noms parfois inexistants, pas de tarif fiable.</td><td>Adresses cherchées sur Google Maps (note et avis), offres réelles Viator et GetYourGuide avec tarif « dès X € », mention « non vérifié » sinon.</td></tr>
+<tr><td>Restaurants et activités</td><td>Noms parfois inexistants, pas de tarif fiable.</td><td>Restaurants cherchés sur Google Maps, avec leur note, le nombre d'avis et le badge « Note Google Maps vérifiée » ; une table que la recherche n'a pas retrouvée ne porte pas ce badge. Activités : offres réelles Viator et GetYourGuide, avec leur prix par personne.</td></tr>
 <tr><td>Réservation</td><td>Aucune : il faut tout ressaisir.</td><td>Liens pré-remplis vers les sites de réservation.</td></tr>
 <tr><td>Sur place</td><td>Copier-coller à organiser soi-même.</td><td>Guide illustré téléchargeable, imprimable, hors ligne.</td></tr>
 </tbody></table></div>
@@ -69,6 +69,7 @@ export default {
 
 <h2>Quelles informations donner à l'IA</h2>
 <p>Plus le brief est précis, meilleur est le plan. Le minimum utile : budget total et ce qu'il couvre, nombre et âge des voyageurs, durée exacte ou mois de départ, ville de départ, ce que vous aimez et détestez, votre rythme (tranquille, équilibré, soutenu), et la forme du voyage (une base ou un itinéraire). Ajoutez ce qui est non négociable : un lieu à voir absolument, une contrainte de santé, un enfant en bas âge. Pour un voyage itinérant, précisez si vous êtes prêt à conduire et combien d'heures de route par jour vous acceptez ; la logique détaillée est dans le <a href="/planificateur-road-trip-ia">planificateur de road trip</a>.</p>
+<p>Dans Mon Petit Voyageur, l'essentiel de ce brief tient dans le questionnaire : budget total, durée, voyageurs, ville de départ, mois de départ, type de voyage, rythme (tranquille, équilibré ou soutenu) et forme du voyage (« Séjour — une ville, on rayonne » ou « Itinérant — on change d'hôtel en route »). Ce qui n'y entre pas — l'heure de route acceptable, un lieu incontournable, une contrainte de santé — se note dans le champ « Précisions (destination, envies...) ».</p>
 `,
   faq: [
     {
@@ -86,6 +87,10 @@ export default {
     {
       q: "Quelle est la meilleure façon de créer un itinéraire personnalisé ?",
       a: "Partir d'un questionnaire précis (budget, style, rythme, durée, forme du voyage), laisser l'IA construire la structure et l'enchaînement des journées, puis chiffrer chaque poste avec des outils en direct. C'est exactement l'enchaînement suivi par Mon Petit Voyageur."
+    },
+    {
+      q: "Faut-il déjà connaître sa destination pour organiser un voyage avec l'IA ?",
+      a: "Non. Dans Mon Petit Voyageur, la destination est facultative : on peut choisir un continent, un pays ou une ville, ou répondre « Peu importe — surprenez-moi ». L'IA propose alors une destination adaptée au budget, à la durée, au mois et au type de voyage indiqués, puis construit l'itinéraire à partir de ce choix."
     }
   ]
 };
