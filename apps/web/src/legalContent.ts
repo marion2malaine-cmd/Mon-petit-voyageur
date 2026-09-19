@@ -253,11 +253,11 @@ const salesFr: LegalDoc = {
   key: "sales",
   label: "Conditions générales de vente",
   title: "Conditions générales de vente",
-  updated: UPDATED_FR,
+  updated: "19 septembre 2026",
   intro: [
     "Les présentes conditions régissent la vente des prestations payantes proposées par Mon Petit Voyageur aux consommateurs. Elles complètent les conditions générales d'utilisation, qui restent applicables.",
     "Vendeur : " + EDITOR_FR + ". Contact : " + CONTACT + ".",
-    "À la date de mise à jour indiquée ci-dessus, le service est proposé gratuitement et aucune offre payante n'est commercialisée. Les articles qui suivent s'appliqueront dès l'ouverture d'une offre payante, dont le prix et le contenu seront affichés avant tout paiement.",
+    "Offres en vigueur à la date de mise à jour indiquée ci-dessus : l'abonnement de planification, avec 7 jours d'essai gratuit pour tout nouveau compte, puis 5,99 € par mois ou 49 € par an, sans engagement ; et la formule « Voyage Premium », à 9,99 € par mois. Le prix et le contenu de chaque offre sont affichés avant tout paiement.",
   ],
   sections: [
     {
@@ -566,11 +566,11 @@ const salesEn: LegalDoc = {
   key: "sales",
   label: "Terms of sale",
   title: "Terms of sale",
-  updated: UPDATED_EN,
+  updated: "19 September 2026",
   intro: [
     "These terms govern the sale of paid services offered by Mon Petit Voyageur to consumers. They supplement the terms of use, which continue to apply.",
     "Seller: " + EDITOR_EN + ". Contact: " + CONTACT + ".",
-    "As at the update date above, the service is free and no paid offer is on sale. The articles below will apply as soon as a paid offer opens, with its price and content shown before any payment.",
+    "Offers in force at the update date above: the planning subscription, with a 7-day free trial for every new account, then €5.99 per month or €49 per year, with no commitment; and the \"Voyage Premium\" plan, at €9.99 per month. The price and content of each offer are shown before any payment.",
     "This English text is a courtesy translation. In case of any discrepancy, the French version prevails.",
   ],
   sections: [

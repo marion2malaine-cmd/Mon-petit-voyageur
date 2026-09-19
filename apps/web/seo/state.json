@@ -79,7 +79,7 @@
         "?legal=privacy|terms|sales : vues SPA (canonical propre posé par src/seo.ts, pas de HTML statique) : acceptable, non stratégique.",
         "Email de contact affiché contact@monpetitvoyageur.fr alors que le domaine est .com : à confirmer par Marion (boîte existante ?) avant tout changement.",
         "2026-09-18 : Google indexe /?legal=terms, /?legal=privacy et /?legal=sales comme pages distinctes (Search Console). Signal mixte : le HTML statique déclare canonical / , le rendu JS (src/seo.ts:62) déclare canonical /?legal=<clé>. Non prioritaire (pages légales, pas de cannibalisation des guides), à trancher avec Marion : soit des URL légales statiques propres, soit un canonical statique cohérent.",
-        "2026-09-19 : les CGV (/?legal=sales, indexée par Google) disent encore « le service est proposé gratuitement et aucune offre payante n’est commercialisée » (src/legalContent.ts:260, EN l. 573, dernier changement 2026-09-06) alors que Stripe live facture depuis le 2026-09-10. Texte juridique : correction à décider par Marion (backlog cgv-offre-payante)."
+        "2026-09-19 : les CGV (/?legal=sales, indexée par Google) disent encore « le service est proposé gratuitement et aucune offre payante n’est commercialisée » (src/legalContent.ts:260, EN l. 573, dernier changement 2026-09-06) alors que Stripe live facture depuis le 2026-09-10. Texte juridique : correction à décider par Marion (backlog cgv-offre-payante). → corrigé le 2026-09-19 avec l’accord de Marion."
       ],
       "nextOpportunities": [
         "Mention MARA LABS + Lille dans le footer visible de la landing React (déjà présent dans la coquille statique et la section « Qu'est-ce que Mon Petit Voyageur ? »).",
@@ -601,8 +601,8 @@
       "geo": 2,
       "effort": 1,
       "risk": 3,
-      "status": "open",
-      "note": "Détecté le 2026-09-19. src/legalContent.ts:260 (FR) et 573 (EN). Page ?legal=sales indexée (Search Console 18/09). Contradiction avec llms.txt, le paywall et les 4 guides. Texte juridique : la routine ne le réécrit pas seule ; proposition : remplacer la phrase par l’offre réelle (7 jours d’essai, 5,99 €/mois ou 49 €/an, résiliation depuis l’espace personnel) et mettre à jour la date de mise à jour."
+      "status": "done",
+      "note": "Détecté le 2026-09-19. src/legalContent.ts:260 (FR) et 573 (EN). Page ?legal=sales indexée (Search Console 18/09). Contradiction avec llms.txt, le paywall et les 4 guides. Texte juridique : la routine ne le réécrit pas seule ; proposition : remplacer la phrase par l’offre réelle (7 jours d’essai, 5,99 €/mois ou 49 €/an, résiliation depuis l’espace personnel) et mettre à jour la date de mise à jour. | 2026-09-19 : validé par Marion (« go ») ; phrase remplacée FR/EN par les offres réelles (abonnement 7 j d’essai puis 5,99 €/mois ou 49 €/an ; Voyage Premium 9,99 €/mois), date des CGV au 19/09 (seules les CGV)."
     }
   ],
   "kpi": {
@@ -1070,6 +1070,12 @@
       "url": "https://www.monpetitvoyageur.com/?legal=sales",
       "action": "audit",
       "justification": "CGV contradictoires avec l’abonnement facturé : backlog cgv-offre-payante (décision de Marion, texte juridique)."
+    },
+    {
+      "date": "2026-09-19",
+      "url": "https://www.monpetitvoyageur.com/?legal=sales",
+      "action": "technique",
+      "justification": "CGV : la phrase « service proposé gratuitement » remplacée par les offres réellement facturées (FR/EN), accord de Marion ; poussé avec les 7 commits SEO en attente."
     }
   ],
   "privateRoutes": {
