@@ -8,7 +8,7 @@ export default {
   intent: "planificateur voyage ia",
   secondaryKeywords: ["organisateur voyage ia", "assistant voyage ia", "application organisation voyage", "créer itinéraire voyage avec ia", "générateur itinéraire voyage"],
   datePublished: "2026-09-08",
-  dateModified: "2026-09-14",
+  dateModified: "2026-09-19",
   title: "Planificateur de voyage IA : itinéraire complet, vols et hôtels au prix réel | Mon Petit Voyageur",
   description:
     "Donnez un budget, un style et une période : l'IA construit l'itinéraire jour par jour, trouve vols et hôtels au prix réel et vous laisse tout réserver via des liens. 7 jours d'essai gratuit.",
@@ -27,10 +27,10 @@ export default {
 <h2>Ce que le planificateur fait concrètement</h2>
 <ul>
 <li><strong>Destination :</strong> vous choisissez un continent, un pays, un État américain ou une ville, ou vous laissez l'IA proposer une destination adaptée à votre budget, votre style et votre période.</li>
-<li><strong>Vols :</strong> recherche des prix sur Google Flights, puis liens pré-remplis vers Skyscanner, Google Flights et Aviasales pour réserver au tarif affiché. Si vos dates sont flexibles, la recherche vise le jour le moins cher du mois.</li>
+<li><strong>Vols :</strong> recherche des prix sur Google Flights, puis liens pré-remplis vers Skyscanner, Google Flights et Aviasales pour réserver au tarif affiché. Sans date précise, la recherche compare plusieurs jours de départ et retient le moins cher : quand le calendrier des prix est disponible, le jour le moins cher du mois choisi, ou, si le mois est laissé sur « Indifférent », du mois le moins cher des six prochains.</li>
 <li><strong>Hébergements :</strong> sélection dans votre enveloppe, avec des recherches Booking et Airbnb déjà renseignées (dates, voyageurs, destination).</li>
 <li><strong>Programme jour par jour :</strong> visites culturelles gratuites, trois options d'activité payante par jour dans des catégories différentes (culture, sport, découverte, farniente, gastronomie), déroulé horaire et plan B en cas de mauvais temps.</li>
-<li><strong>Restaurants :</strong> trois adresses par jour cherchées sur Google Maps, retenues à partir de 4,2 étoiles et 50 avis, dans la gamme de prix de votre budget. Une table que la recherche n'a pas confirmée est signalée comme non vérifiée.</li>
+<li><strong>Restaurants :</strong> trois adresses par jour cherchées sur Google Maps, retenues à partir de 4,2 étoiles et 50 avis (4 étoiles et 20 avis là où l'offre est trop mince), dans la gamme de prix de votre budget. Les tables retrouvées sur Google Maps portent le badge « Note Google Maps vérifiée ».</li>
 <li><strong>Activités :</strong> chaque activité payante est cherchée sur Viator ; quand le produit exact est trouvé, sa propre photo illustre la carte et sa page devient le premier lien de réservation, avec son tarif « dès X € ». Quand une offre réelle GetYourGuide correspond, son tarif et son lien direct remplacent aussi l'estimation ; sinon le prix est marqué indicatif. Les billets de musées et de sites gardent leur site officiel en premier. Liens Civitatis en complément.</li>
 <li><strong>Road trip :</strong> en mode itinérant, chaque journée porte sa route, son temps de trajet et son hôtel, avec conseils de location de voiture. Voir le <a href="/planificateur-road-trip-ia">planificateur de road trip</a>.</li>
 <li><strong>Pratique :</strong> météo, formalités d'entrée, taux de change, checklist de valise.</li>
@@ -69,7 +69,11 @@ export default {
     },
     {
       q: "L'IA invente-t-elle des prix ou des adresses ?",
-      a: "Non. L'IA écrit le programme mais ne fixe aucun prix et n'écrit aucun lien. Les tarifs de vols et d'hôtels viennent de Google Flights et Google Hotels, les restaurants de Google Maps, les activités de Viator et de GetYourGuide. Une adresse non confirmée par la recherche est marquée comme non vérifiée."
+      a: "Non. L'IA écrit le programme mais ne fixe aucun prix et n'écrit aucun lien. Les tarifs de vols et d'hôtels viennent de Google Flights et Google Hotels, les restaurants de Google Maps, les activités de Viator et de GetYourGuide. Les restaurants retrouvés sur Google Maps portent le badge « Note Google Maps vérifiée » dans le guide ; les liens de réservation sont construits par l'application, jamais par l'IA."
+    },
+    {
+      q: "Et si je ne sais pas quand partir ?",
+      a: "Laissez le mois de départ sur « Indifférent » dans le questionnaire. Le planificateur compare alors les prix de plusieurs dates de départ sur les mois à venir et retient la moins chère ; quand le calendrier des prix est disponible, il part du mois le moins cher des six prochains, puis du jour le moins cher de ce mois. La destination aussi peut rester ouverte : « Peu importe — surprenez-moi »."
     },
     {
       q: "Peut-on réserver directement dans l'application ?",

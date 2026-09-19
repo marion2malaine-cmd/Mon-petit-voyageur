@@ -1,6 +1,6 @@
 {
   "site": "https://www.monpetitvoyageur.com",
-  "updated": "2026-09-18",
+  "updated": "2026-09-19",
   "positioning": "Mon Petit Voyageur = planification de voyages et de road trips assistée par IA, budget d'abord, tout réservable via liens (éditeur MARA LABS, Lille).",
   "clusters": {
     "planificateur-ia": "Pages commerciales : ce qu'est le service, à qui il s'adresse, comment l'IA intervient.",
@@ -78,7 +78,8 @@
         "H1 = marque seule (« Mon Petit Voyageur ») : choix design (titre serif géant) ; le positionnement est porté par le title, la tagline et l'eyebrow.",
         "?legal=privacy|terms|sales : vues SPA (canonical propre posé par src/seo.ts, pas de HTML statique) : acceptable, non stratégique.",
         "Email de contact affiché contact@monpetitvoyageur.fr alors que le domaine est .com : à confirmer par Marion (boîte existante ?) avant tout changement.",
-        "2026-09-18 : Google indexe /?legal=terms, /?legal=privacy et /?legal=sales comme pages distinctes (Search Console). Signal mixte : le HTML statique déclare canonical / , le rendu JS (src/seo.ts:62) déclare canonical /?legal=<clé>. Non prioritaire (pages légales, pas de cannibalisation des guides), à trancher avec Marion : soit des URL légales statiques propres, soit un canonical statique cohérent."
+        "2026-09-18 : Google indexe /?legal=terms, /?legal=privacy et /?legal=sales comme pages distinctes (Search Console). Signal mixte : le HTML statique déclare canonical / , le rendu JS (src/seo.ts:62) déclare canonical /?legal=<clé>. Non prioritaire (pages légales, pas de cannibalisation des guides), à trancher avec Marion : soit des URL légales statiques propres, soit un canonical statique cohérent.",
+        "2026-09-19 : les CGV (/?legal=sales, indexée par Google) disent encore « le service est proposé gratuitement et aucune offre payante n’est commercialisée » (src/legalContent.ts:260, EN l. 573, dernier changement 2026-09-06) alors que Stripe live facture depuis le 2026-09-10. Texte juridique : correction à décider par Marion (backlog cgv-offre-payante)."
       ],
       "nextOpportunities": [
         "Mention MARA LABS + Lille dans le footer visible de la landing React (déjà présent dans la coquille statique et la section « Qu'est-ce que Mon Petit Voyageur ? »).",
@@ -253,6 +254,10 @@
         {
           "date": "2026-09-13",
           "what": "FAQ « Faut-il un compte ? » : « l'inscription est gratuite » retiré (répondu seul, sans essai ni prix, il présentait la page pilier commerciale comme gratuite alors que Stripe live facture). Nouvelle question visible « Combien coûte Mon Petit Voyageur ? » (7 jours d'essai, 5,99 €/mois ou 49 €/an) = FAQPage (8 questions). dateModified 2026-09-13."
+        },
+        {
+          "date": "2026-09-19",
+          "what": "Relue contre le code (fraîcheur produit). Faux : « une table non confirmée est signalée comme non vérifiée » (liste + FAQ) — le guide pose seulement le badge « Note Google Maps vérifiée » sur les tables retrouvées (renderGuide.ts:216,1738). Incomplet : seuil restaurants 4,2★/50 avis abaissé à 4★/20 avis quand l’offre est mince (serpapi.ts:589-590). Dates flexibles précisées (calendrier des prix : mois le moins cher des six prochains puis jour le moins cher, sinon échantillonnage — handlers.ts:574-653). Nouvelle FAQ GEO « Et si je ne sais pas quand partir ? » : FAQPage 9 = FAQ visible 9. dateModified 2026-09-19."
         }
       ],
       "openIssues": [],
@@ -266,7 +271,7 @@
         "créer itinéraire voyage avec ia",
         "générateur itinéraire voyage"
       ],
-      "lastOptimized": "2026-09-14",
+      "lastOptimized": "2026-09-19",
       "title": "Planificateur de voyage IA : itinéraire complet, vols et hôtels au prix réel | Mon Petit Voyageur",
       "h1": "Le planificateur de voyage IA qui organise tout, dans votre budget",
       "linksTo": [
@@ -586,6 +591,18 @@
       "risk": 1,
       "status": "open",
       "note": "Détecté le 2026-09-18 dans Search Console. Touche src/seo.ts et le serveur : décision produit, pas une page SEO."
+    },
+    {
+      "id": "cgv-offre-payante",
+      "title": "Les CGV se disent gratuites alors que l’abonnement est facturé",
+      "score": 85,
+      "impact": 2,
+      "commercial": 3,
+      "geo": 2,
+      "effort": 1,
+      "risk": 3,
+      "status": "open",
+      "note": "Détecté le 2026-09-19. src/legalContent.ts:260 (FR) et 573 (EN). Page ?legal=sales indexée (Search Console 18/09). Contradiction avec llms.txt, le paywall et les 4 guides. Texte juridique : la routine ne le réécrit pas seule ; proposition : remplacer la phrase par l’offre réelle (7 jours d’essai, 5,99 €/mois ou 49 €/an, résiliation depuis l’espace personnel) et mettre à jour la date de mise à jour."
     }
   ],
   "kpi": {
@@ -1029,6 +1046,30 @@
       "url": "https://www.monpetitvoyageur.com/organiser-un-voyage-avec-l-ia",
       "action": "optimisation",
       "justification": "Fraîcheur produit (lastOptimized le plus ancien, et page la plus vue dans Search Console : 29 impressions). Deux affirmations fausses retirées (« mention non vérifié », tarif « dès X € »), questionnaire décrit avec ses libellés exacts, FAQ autonome sur la destination facultative — réponse GEO à « faut-il connaître sa destination »."
+    },
+    {
+      "date": "2026-09-19",
+      "url": "https://www.monpetitvoyageur.com/",
+      "action": "mesure",
+      "justification": "6 commits SEO non poussés (4e jour) ; seo:verify-prod 43/49, les 6 échecs = cet écart. Production en retard → corrections seulement, aucune création."
+    },
+    {
+      "date": "2026-09-19",
+      "url": "https://www.monpetitvoyageur.com/planificateur-voyage-ia",
+      "action": "optimisation",
+      "justification": "Fraîcheur produit (lastOptimized le plus ancien, 14/09 ; position 58,7 sur « planificateur voyage ia »). Affirmation fausse « non vérifiée » retirée (corps + FAQ), seuil restaurants complété, dates flexibles décrites comme le code, FAQ GEO « Et si je ne sais pas quand partir ? »."
+    },
+    {
+      "date": "2026-09-19",
+      "url": "https://www.monpetitvoyageur.com/llms.txt",
+      "action": "optimisation",
+      "justification": "Seuil restaurants aligné sur serpapi.ts:589-590 (4★/20 avis en repli) et badge « Note Google Maps vérifiée »."
+    },
+    {
+      "date": "2026-09-19",
+      "url": "https://www.monpetitvoyageur.com/?legal=sales",
+      "action": "audit",
+      "justification": "CGV contradictoires avec l’abonnement facturé : backlog cgv-offre-payante (décision de Marion, texte juridique)."
     }
   ],
   "privateRoutes": {
